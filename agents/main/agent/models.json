@@ -75,15 +75,16 @@
     },
     "miaoda": {
       "baseUrl": "https://innerapi.aiforce.cloud/innerapi/api/v1/sgw/model/proxy",
-      "apiKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIyMzc5MTE2NTc4X2FwcF80azA5bWY1d3Awc2N2X3ByZXZpZXciLCJleHAiOjE3NzcyOTQ3MjcsIm5iZiI6MTc3NzAzNTUyNywiaWF0IjoxNzc3MDM1NTI3LCJqdGkiOiJiZWNlODJjNS02NDEyLTBkZGItMjk1NS04YjYyM2NhZGU1NmQiLCJ0ZW5hbnRfaWQiOjIzNzkxMTY1NzgsInVzZXJfaWQiOjE4NjMxNjExMzA2OTk4MTIsImFwcF9pZCI6ImFwcF80azA5bWY1d3Awc2N2IiwiYXBwX2VudiI6InByZXZpZXciLCJhY2Nlc3Nfa2V5IjoiMjM3OTExNjU3OF9hcHBfNGswOW1mNXdwMHNjdl9wcmV2aWV3Iiwic2FuZGJveF9pZCI6IjE4NjMzNDEyOTMzMzU4ODIifQ.Sc8a0DjfyGP3jlBTCGHZgMCz6wk3DNn3z2AO08IRrpY",
+      "apiKey": "secretref-managed",
       "api": "openai-completions",
       "headers": {
-        "x-api-key": "2379116578_app_4k09mf5wp0scv_preview"
+        "x-api-key": "secretref-managed"
       },
       "models": [
         {
           "id": "miaoda-model-auto",
           "name": "妙搭",
+          "api": "openai-completions",
           "reasoning": false,
           "input": [
             "text"
@@ -95,12 +96,12 @@
             "cacheWrite": 0
           },
           "contextWindow": 200000,
-          "maxTokens": 8192,
-          "api": "openai-completions"
+          "maxTokens": 8192
         },
         {
           "id": "miaoda-auto-multimodal",
           "name": "妙搭多模态",
+          "api": "openai-completions",
           "reasoning": false,
           "input": [
             "text",
@@ -113,12 +114,12 @@
             "cacheWrite": 0
           },
           "contextWindow": 200000,
-          "maxTokens": 8192,
-          "api": "openai-completions"
+          "maxTokens": 8192
         },
         {
           "id": "miaoda-model-flash",
           "name": "妙搭 Flash",
+          "api": "openai-completions",
           "reasoning": false,
           "input": [
             "text"
@@ -130,12 +131,12 @@
             "cacheWrite": 0
           },
           "contextWindow": 200000,
-          "maxTokens": 8192,
-          "api": "openai-completions"
+          "maxTokens": 8192
         },
         {
           "id": "glm-5.1",
           "name": "GLM-5.1",
+          "api": "openai-completions",
           "reasoning": true,
           "input": [
             "text"
@@ -147,12 +148,12 @@
             "cacheWrite": 0
           },
           "contextWindow": 200000,
-          "maxTokens": 30000,
-          "api": "openai-completions"
+          "maxTokens": 30000
         },
         {
           "id": "qwen-3.6-plus",
           "name": "Qwen 3.6",
+          "api": "openai-completions",
           "reasoning": true,
           "input": [
             "text",
@@ -165,12 +166,12 @@
             "cacheWrite": 0
           },
           "contextWindow": 200000,
-          "maxTokens": 16000,
-          "api": "openai-completions"
+          "maxTokens": 16000
         },
         {
           "id": "minimax-m2.7",
           "name": "MiniMax M2.7",
+          "api": "openai-completions",
           "reasoning": false,
           "input": [
             "text"
@@ -182,12 +183,12 @@
             "cacheWrite": 0
           },
           "contextWindow": 200000,
-          "maxTokens": 16000,
-          "api": "openai-completions"
+          "maxTokens": 16000
         },
         {
           "id": "kimi-k2.6",
           "name": "KIMI K2.6",
+          "api": "openai-completions",
           "reasoning": true,
           "input": [
             "text"
@@ -199,12 +200,12 @@
             "cacheWrite": 0
           },
           "contextWindow": 200000,
-          "maxTokens": 16000,
-          "api": "openai-completions"
+          "maxTokens": 16000
         },
         {
           "id": "doubao-seed-2.0-pro",
           "name": "豆包 Seed 2.0 Pro",
+          "api": "openai-completions",
           "reasoning": true,
           "input": [
             "text",
@@ -217,8 +218,7 @@
             "cacheWrite": 0
           },
           "contextWindow": 200000,
-          "maxTokens": 16000,
-          "api": "openai-completions"
+          "maxTokens": 16000
         }
       ]
     }
