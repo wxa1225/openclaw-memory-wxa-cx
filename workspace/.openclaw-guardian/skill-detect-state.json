@@ -1,0 +1,50 @@
+{
+  "miaoda-doc-parse": {
+    "skill_name": "miaoda-doc-parse",
+    "skill_hash": "7231819ac3d12a7973b39fb1eae7720b6bf2e0eeffce7fe1ae9ee896b194a9ac",
+    "is_detected": true,
+    "last_detect_ts": 1777035636104
+  },
+  "miaoda-image-understanding": {
+    "skill_name": "miaoda-image-understanding",
+    "skill_hash": "d3833100a0d781ba8b40db40ce0eb4f81678269a40bee0e808c92e37f914974d",
+    "is_detected": true,
+    "last_detect_ts": 1777035636241
+  },
+  "miaoda-openclaw-guide": {
+    "skill_name": "miaoda-openclaw-guide",
+    "skill_hash": "10db1c13597eb01325208ff52555fd0e12e36940f7170bcaf3955dce5f246280",
+    "is_detected": true,
+    "last_detect_ts": 1777035636384
+  },
+  "miaoda-skillhub": {
+    "skill_name": "miaoda-skillhub",
+    "skill_hash": "70a0373222049cf4ec3f4f3affd6897080b85863a3e2818667350c81fcc24b6f",
+    "is_detected": true,
+    "last_detect_ts": 1777035636526
+  },
+  "miaoda-speech-to-text": {
+    "skill_name": "miaoda-speech-to-text",
+    "skill_hash": "dd3749c6d3a2dc9f956de8dad441f928ce930ea8184d00109377225fbe6dbe96",
+    "is_detected": true,
+    "last_detect_ts": 1777035636664
+  },
+  "miaoda-text-gen-image": {
+    "skill_name": "miaoda-text-gen-image",
+    "skill_hash": "3d4f18cb60e49c05493f5bccef2132ab58f3e90014d59d48687a914d412b8e9b",
+    "is_detected": true,
+    "last_detect_ts": 1777035636799
+  },
+  "miaoda-web-fetch": {
+    "skill_name": "miaoda-web-fetch",
+    "skill_hash": "a823253d7af63489686c6d5602f348d0f721acfacd2b302f0ee0bba2a52f9634",
+    "is_detected": true,
+    "last_detect_ts": 1777035636940
+  },
+  "miaoda-web-search": {
+    "skill_name": "miaoda-web-search",
+    "skill_hash": "fc55af2721ded2f473da6ad580b081642a5f67808d655182577a24c6453f5e2c",
+    "is_detected": true,
+    "last_detect_ts": 1777035637082
+  }
+}

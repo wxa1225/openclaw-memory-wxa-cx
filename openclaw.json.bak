@@ -1,7 +1,7 @@
 {
   "meta": {
     "lastTouchedVersion": "2026.4.11",
-    "lastTouchedAt": "2026-04-24T14:07:39.241Z"
+    "lastTouchedAt": "2026-04-24T13:01:53.520Z"
   },
   "wizard": {
     "lastRunAt": "2026-03-30T14:54:56.160Z",
@@ -204,7 +204,7 @@
   "agents": {
     "defaults": {
       "model": {
-        "primary": "miaoda/doubao-seed-2.0-pro"
+        "primary": "miaoda/miaoda-model-auto"
       },
       "imageModel": "miaoda/miaoda-auto-multimodal",
       "imageGenerationModel": {

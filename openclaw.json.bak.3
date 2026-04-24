@@ -1,7 +1,7 @@
 {
   "meta": {
     "lastTouchedVersion": "2026.4.11",
-    "lastTouchedAt": "2026-04-24T14:07:39.241Z"
+    "lastTouchedAt": "2026-04-21T02:30:48.717Z"
   },
   "wizard": {
     "lastRunAt": "2026-03-30T14:54:56.160Z",
@@ -72,8 +72,7 @@
               "cacheWrite": 0
             },
             "contextWindow": 200000,
-            "maxTokens": 8192,
-            "api": "openai-completions"
+            "maxTokens": 8192
           },
           {
             "id": "miaoda-auto-multimodal",
@@ -90,8 +89,7 @@
               "cacheWrite": 0
             },
             "contextWindow": 200000,
-            "maxTokens": 8192,
-            "api": "openai-completions"
+            "maxTokens": 8192
           },
           {
             "id": "miaoda-model-flash",
@@ -107,95 +105,7 @@
               "cacheWrite": 0
             },
             "contextWindow": 200000,
-            "maxTokens": 8192,
-            "api": "openai-completions"
-          },
-          {
-            "id": "glm-5.1",
-            "name": "GLM-5.1",
-            "reasoning": true,
-            "input": [
-              "text"
-            ],
-            "cost": {
-              "input": 0,
-              "output": 0,
-              "cacheRead": 0,
-              "cacheWrite": 0
-            },
-            "contextWindow": 200000,
-            "maxTokens": 30000,
-            "api": "openai-completions"
-          },
-          {
-            "id": "qwen-3.6-plus",
-            "name": "Qwen 3.6",
-            "reasoning": true,
-            "input": [
-              "text",
-              "image"
-            ],
-            "cost": {
-              "input": 0,
-              "output": 0,
-              "cacheRead": 0,
-              "cacheWrite": 0
-            },
-            "contextWindow": 200000,
-            "maxTokens": 16000,
-            "api": "openai-completions"
-          },
-          {
-            "id": "minimax-m2.7",
-            "name": "MiniMax M2.7",
-            "reasoning": false,
-            "input": [
-              "text"
-            ],
-            "cost": {
-              "input": 0,
-              "output": 0,
-              "cacheRead": 0,
-              "cacheWrite": 0
-            },
-            "contextWindow": 200000,
-            "maxTokens": 16000,
-            "api": "openai-completions"
-          },
-          {
-            "id": "kimi-k2.6",
-            "name": "KIMI K2.6",
-            "reasoning": true,
-            "input": [
-              "text"
-            ],
-            "cost": {
-              "input": 0,
-              "output": 0,
-              "cacheRead": 0,
-              "cacheWrite": 0
-            },
-            "contextWindow": 200000,
-            "maxTokens": 16000,
-            "api": "openai-completions"
-          },
-          {
-            "id": "doubao-seed-2.0-pro",
-            "name": "豆包 Seed 2.0 Pro",
-            "reasoning": true,
-            "input": [
-              "text",
-              "image"
-            ],
-            "cost": {
-              "input": 0,
-              "output": 0,
-              "cacheRead": 0,
-              "cacheWrite": 0
-            },
-            "contextWindow": 200000,
-            "maxTokens": 16000,
-            "api": "openai-completions"
+            "maxTokens": 8192
           }
         ]
       }
@@ -204,7 +114,7 @@
   "agents": {
     "defaults": {
       "model": {
-        "primary": "miaoda/doubao-seed-2.0-pro"
+        "primary": "miaoda/miaoda-model-auto"
       },
       "imageModel": "miaoda/miaoda-auto-multimodal",
       "imageGenerationModel": {
@@ -219,21 +129,6 @@
         },
         "miaoda/miaoda-model-flash": {
           "alias": "Miaoda Flash"
-        },
-        "miaoda/glm-5.1": {
-          "alias": "GLM-5.1"
-        },
-        "miaoda/qwen-3.6-plus": {
-          "alias": "Qwen 3.6"
-        },
-        "miaoda/minimax-m2.7": {
-          "alias": "MiniMax M2.7"
-        },
-        "miaoda/kimi-k2.6": {
-          "alias": "KIMI K2.6"
-        },
-        "miaoda/doubao-seed-2.0-pro": {
-          "alias": "豆包 Seed 2.0 Pro"
         }
       },
       "workspace": "/home/gem/workspace/agent/workspace",
@@ -558,8 +453,7 @@
       "browser",
       "openclaw-mem0-plugin",
       "openclaw-extension-miaoda",
-      "openclaw-guardian-plugin",
-      "memory-core"
+      "openclaw-guardian-plugin"
     ],
     "entries": {
       "feishu": {
