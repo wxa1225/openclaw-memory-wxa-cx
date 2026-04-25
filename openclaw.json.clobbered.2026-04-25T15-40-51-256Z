@@ -587,8 +587,14 @@
         }
       },
       "openclaw-mem0-plugin": {
-        "enabled": false
-      },
+        "enabled": true,
+        "config": {
+          "mode": "open-source",
+          "userId": "openclaw-team",
+          "autoCapture": true,
+          "autoRecall": true
+        }
+      }
       "openclaw-extension-miaoda": {
         "enabled": true,
         "config": {

@@ -587,8 +587,14 @@
         }
       },
       "openclaw-mem0-plugin": {
-        "enabled": false
-      },
+        "enabled": true,
+        "config": {
+          "mode": "open-source",
+          "userId": "openclaw-team",
+          "autoCapture": true,
+          "autoRecall": true
+        }
+      }
       "openclaw-extension-miaoda": {
         "enabled": true,
         "config": {
@@ -667,11 +673,6 @@
         "shasum": "b6ff207400aa29943d399bf14cc87b20ac536c21",
         "resolvedAt": "2026-04-20T15:24:17.763Z",
         "installedAt": "2026-04-20T15:24:18.395Z"
-      },
-      "team-memory-engine": {
-        "source": "local",
-        "installPath": "./extensions/team-memory-engine",
-        "version": "0.1.0"
       }
     }
   }
