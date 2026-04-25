@@ -1,11 +1,12 @@
 {
   "name": "@lark-apaas/openclaw-extension-miaoda",
-  "version": "1.0.12",
+  "version": "1.0.14",
   "description": "妙搭 OpenClaw 插件",
   "type": "module",
   "scripts": {
-    "build": "tsdown",
-    "build:dev": "MINIFY=false tsdown",
+    "build:slardar": "yarn workspace @lark-apaas/openclaw-slardar build",
+    "build": "yarn build:slardar && tsdown",
+    "build:dev": "yarn build:slardar && MINIFY=false tsdown",
     "prune": "npm install --omit=dev",
     "test": "vitest run",
     "test:cov": "vitest --coverage",
