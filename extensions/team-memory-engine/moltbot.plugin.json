@@ -1,0 +1,39 @@
+{
+  "id": "team-memory-engine",
+  "description": "Team knowledge memory engine with Ebbinghaus decay and version management",
+  "homepage": "https://github.com/openclaw/team-memory-engine",
+  "kind": "memory",
+  "uiHints": {
+    "teamId": {
+      "label": "Team ID",
+      "placeholder": "openclaw-team",
+      "help": "Unique identifier for the team sharing memories"
+    },
+    "decayCheckInterval": {
+      "label": "Decay Check Interval",
+      "placeholder": "1800000",
+      "help": "Milliseconds between decay checks (default: 30 min = 1800000)"
+    },
+    "feishuChatId": {
+      "label": "Feishu Chat ID",
+      "placeholder": "oc_xxx",
+      "help": "Feishu group chat ID for review reminder push"
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "teamId": {
+        "type": "string"
+      },
+      "decayCheckInterval": {
+        "type": "number"
+      },
+      "feishuChatId": {
+        "type": "string"
+      }
+    },
+    "required": []
+  }
+}

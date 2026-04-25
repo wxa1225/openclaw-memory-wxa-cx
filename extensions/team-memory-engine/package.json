@@ -1,0 +1,50 @@
+{
+  "name": "team-memory-engine",
+  "version": "0.1.0",
+  "description": "Team knowledge memory engine with Ebbinghaus decay curve and version management",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://code.byted.org/inf/team-memory-engine.git"
+  },
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+  },
+  "dependencies": {
+    "@sinclair/typebox": "^0.34.48"
+  },
+  "keywords": [
+    "openclaw",
+    "plugin",
+    "memory",
+    "team",
+    "ebbinghaus"
+  ],
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "install": {
+      "minHostVersion": ">=2026.3.22"
+    }
+  },
+  "clawdbot": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "moltbot": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "jest": "^30.2.0",
+    "tsx": "^4.21.0"
+  }
+}
