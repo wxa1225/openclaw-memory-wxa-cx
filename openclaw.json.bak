@@ -1,7 +1,7 @@
 {
   "meta": {
     "lastTouchedVersion": "2026.4.11",
-    "lastTouchedAt": "2026-04-24T13:01:53.520Z"
+    "lastTouchedAt": "2026-04-24T14:07:39.241Z"
   },
   "wizard": {
     "lastRunAt": "2026-03-30T14:54:56.160Z",
@@ -204,7 +204,7 @@
   "agents": {
     "defaults": {
       "model": {
-        "primary": "miaoda/miaoda-model-auto"
+        "primary": "miaoda/doubao-seed-2.0-pro"
       },
       "imageModel": "miaoda/miaoda-auto-multimodal",
       "imageGenerationModel": {
@@ -559,7 +559,7 @@
       "openclaw-mem0-plugin",
       "openclaw-extension-miaoda",
       "openclaw-guardian-plugin",
-      "memory-core"
+      "team-memory-engine"
     ],
     "entries": {
       "feishu": {
@@ -573,6 +573,17 @@
       },
       "browser": {
         "enabled": true
+      },
+      "openclaw-guardian-plugin": {
+        "enabled": true
+      },
+      "team-memory-engine": {
+        "enabled": true,
+        "config": {
+          "teamId": "openclaw-team",
+          "decayCheckInterval": 60000,
+          "feishuChatId": ""
+        }
       },
       "openclaw-mem0-plugin": {
         "enabled": false
@@ -634,16 +645,14 @@
       },
       "openclaw-extension-miaoda": {
         "source": "npm",
-        "installPath": "./extensions/openclaw-extension-miaoda",
-        "version": "1.0.12",
-        "installedAt": "2026-04-21T02:30:40.576Z",
         "spec": "@lark-apaas/openclaw-extension-miaoda",
-        "resolvedVersion": "1.0.12",
+        "installPath": "./extensions/openclaw-extension-miaoda",
+        "version": "1.0.14",
         "resolvedName": "@lark-apaas/openclaw-extension-miaoda",
-        "resolvedSpec": "@lark-apaas/openclaw-extension-miaoda@1.0.12",
-        "resolvedAt": "2026-04-21T02:29:50.253Z",
-        "integrity": "sha512-T7Czxi3AQ/sx40yazS8MblkPehP5rlewN8uTYIGOUKkIdhLFlGXrcZGMJjZSkYE63wvoe+vb8DYc86vh9iAjFw==",
-        "shasum": "8c2467e6437eb324a7eeeed65d70858330dda8e1"
+        "resolvedVersion": "1.0.14",
+        "resolvedSpec": "@lark-apaas/openclaw-extension-miaoda@1.0.14",
+        "integrity": "sha512-saxgxvDDbO2acdEMXEC7w51lFQmF8sxruaP/lCvlPWG8QTFWGv9/klm5mrusyc/Wx2KvumX16GqCr78Je2MyEg==",
+        "shasum": "7bfe422b1e25c82c2dbd207ea08a6e7982b32160"
       },
       "openclaw-guardian-plugin": {
         "source": "npm",
@@ -657,6 +666,11 @@
         "shasum": "b6ff207400aa29943d399bf14cc87b20ac536c21",
         "resolvedAt": "2026-04-20T15:24:17.763Z",
         "installedAt": "2026-04-20T15:24:18.395Z"
+      },
+      "team-memory-engine": {
+        "source": "path",
+        "installPath": "./extensions/team-memory-engine",
+        "version": "0.1.0"
       }
     }
   }
