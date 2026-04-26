@@ -1,7 +1,7 @@
 {
   "meta": {
     "lastTouchedVersion": "2026.4.11",
-    "lastTouchedAt": "2026-04-24T14:07:39.241Z"
+    "lastTouchedAt": "2026-04-26T09:24:22.731Z"
   },
   "wizard": {
     "lastRunAt": "2026-03-30T14:54:56.160Z",
@@ -552,6 +552,9 @@
     }
   },
   "plugins": {
+    "slots": {
+      "memory": "team-memory-engine"
+    },
     "allow": [
       "openclaw-lark",
       "openclaw-extension-miaoda-coding",
@@ -559,7 +562,6 @@
       "openclaw-mem0-plugin",
       "openclaw-extension-miaoda",
       "openclaw-guardian-plugin",
-      "memory-core",
       "team-memory-engine"
     ],
     "entries": {
@@ -599,9 +601,6 @@
             ]
           }
         }
-      },
-      "openclaw-guardian-plugin": {
-        "enabled": true
       }
     },
     "installs": {
@@ -669,7 +668,7 @@
         "installedAt": "2026-04-20T15:24:18.395Z"
       },
       "team-memory-engine": {
-        "source": "local",
+        "source": "path",
         "installPath": "./extensions/team-memory-engine",
         "version": "0.1.0"
       }

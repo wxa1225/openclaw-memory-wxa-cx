@@ -27,6 +27,66 @@ import { TeamMemoryManager, type Mem0Provider } from "./lib/manager.js";
 import { formatReviewCard, type TeamMemoryMeta } from "./lib/decay.js";
 
 // ============================================================================
+// Feishu message push helper
+// ============================================================================
+
+async function sendFeishuMessage(
+  appId: string,
+  appSecret: string,
+  chatId: string,
+  content: string,
+  msgType: string = "text"
+): Promise<boolean> {
+  try {
+    // Step 1: Get tenant_access_token
+    const tokenResp = await fetch("https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ app_id: appId, app_secret: appSecret }),
+    });
+    if (!tokenResp.ok) return false;
+    const tokenData = await tokenResp.json();
+    if (tokenData.code !== 0) return false;
+    const token = tokenData.tenant_access_token;
+
+    // Step 2: Send message to chat
+    const msgResp = await fetch(`https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        receive_id: chatId,
+        msg_type: msgType,
+        content: msgType === "interactive" ? content : JSON.stringify({ text: content }),
+      }),
+    });
+    if (!msgResp.ok) return false;
+    const msgData = await msgResp.json();
+    return msgData.code === 0;
+  } catch {
+    return false;
+  }
+}
+
+/** Format reminder text as a Feishu interactive card JSON */
+async function formatReviewCardsForChat(reminder: string): Promise<string> {
+  const card = {
+    config: { wide_screen_mode: true },
+    header: {
+      title: { tag: "plain_text" as const, content: "🔔 Team Memory Review Reminder" },
+      template: "orange" as const,
+    },
+    elements: [
+      { tag: "markdown" as const, content: `**Memories needing review:**\n\n${reminder}` },
+      { tag: "note" as const, elements: [{ tag: "plain_text" as const, content: "Team Memory Engine — Ebbinghaus Spaced Repetition" }] },
+    ],
+  };
+  return JSON.stringify(card);
+}
+
+// ============================================================================
 // Config
 // ============================================================================
 
@@ -439,11 +499,27 @@ const plugin = {
         decayTimer = setInterval(async () => {
           try {
             const reminder = await manager.checkAndFormatReminders();
-            if (reminder) {
+            if (reminder && cfg.feishuChatId) {
+              // Try to send to Feishu group chat
+              const appId = (process.env as Record<string, string>)?.FEISHU_APP_ID ??
+                (api.config as any)?.channels?.feishu?.appId ?? "";
+              const appSecret = (process.env as Record<string, string>)?.FEISHU_APP_SECRET ??
+                (api.config as any)?.channels?.feishu?.appSecret ?? "";
+
+              if (appId && appSecret) {
+                const cardJson = await formatReviewCardsForChat(reminder);
+                const sent = await sendFeishuMessage(appId, appSecret, cfg.feishuChatId, cardJson, "interactive");
+                if (sent) {
+                  api.logger.info("team-memory-engine: review reminder pushed to Feishu successfully");
+                } else {
+                  api.logger.warn("team-memory-engine: failed to push reminder to Feishu, falling back to log");
+                  api.logger.info(`team-memory-engine: decay reminders due:\n${reminder}`);
+                }
+              } else {
+                api.logger.info(`team-memory-engine: decay reminders due (no Feishu credentials):\n${reminder}`);
+              }
+            } else if (reminder) {
               api.logger.info(`team-memory-engine: decay reminders due:\n${reminder}`);
-              // The reminder is logged and visible. In a full integration,
-              // this would trigger a Feishu message via the feishu_chat MCP tool.
-              // For the demo, the agent can read this log and push the reminder.
             }
           } catch (err) {
             api.logger.warn(`team-memory-engine: decay check failed: ${String(err)}`);
