@@ -584,8 +584,8 @@
         "enabled": true,
         "config": {
           "teamId": "openclaw-team",
-          "decayCheckInterval": 60000,
-          "feishuChatId": ""
+          "decayCheckInterval": 1800000,
+          "feishuChatId": "oc_83d25a1a702dd5e85aa4666b1d07554a"
         }
       },
       "openclaw-mem0-plugin": {

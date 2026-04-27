@@ -499,26 +499,7 @@ const plugin = {
         decayTimer = setInterval(async () => {
           try {
             const reminder = await manager.checkAndFormatReminders();
-            if (reminder && cfg.feishuChatId) {
-              // Try to send to Feishu group chat
-              const appId = (process.env as Record<string, string>)?.FEISHU_APP_ID ??
-                (api.config as any)?.channels?.feishu?.appId ?? "";
-              const appSecret = (process.env as Record<string, string>)?.FEISHU_APP_SECRET ??
-                (api.config as any)?.channels?.feishu?.appSecret ?? "";
-
-              if (appId && appSecret) {
-                const cardJson = await formatReviewCardsForChat(reminder);
-                const sent = await sendFeishuMessage(appId, appSecret, cfg.feishuChatId, cardJson, "interactive");
-                if (sent) {
-                  api.logger.info("team-memory-engine: review reminder pushed to Feishu successfully");
-                } else {
-                  api.logger.warn("team-memory-engine: failed to push reminder to Feishu, falling back to log");
-                  api.logger.info(`team-memory-engine: decay reminders due:\n${reminder}`);
-                }
-              } else {
-                api.logger.info(`team-memory-engine: decay reminders due (no Feishu credentials):\n${reminder}`);
-              }
-            } else if (reminder) {
+            if (reminder) {
               api.logger.info(`team-memory-engine: decay reminders due:\n${reminder}`);
             }
           } catch (err) {
