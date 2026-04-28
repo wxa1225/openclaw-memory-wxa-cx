@@ -1,10 +1,12 @@
-// Team Memory Engine Benchmark Script
-// Tests: anti-interference, conflict update, efficiency metrics
+// Team Memory Engine v2 Benchmark Script
+// Tests: anti-interference, conflict resolution, efficiency, risk model, conflict detection
 
 import { TeamMemoryManager, type Mem0Provider } from "../lib/manager.js";
-import { LocalStorageBackend } from "../lib/storage/local.js";
+import { MemoryLedger } from "../lib/ledger.js";
+import { RiskModel } from "../lib/risk.js";
+import { RISK_WEIGHTS } from "../lib/storage/types.js";
 
-// No-op Mem0 provider for benchmark (no API key needed)
+// No-op Mem0 provider for benchmark
 const noopMem0: Mem0Provider = {
   async add() { return {}; },
   async search() { return []; },
@@ -13,18 +15,20 @@ const noopMem0: Mem0Provider = {
   async delete() { return {}; },
 };
 
-function createTestManager(teamId: string, storagePath: string): TeamMemoryManager {
+function createTestManager(teamId: string, tmpDir: string): TeamMemoryManager {
   return new TeamMemoryManager(noopMem0, {
     teamId,
     defaultUserId: "benchmark",
-    storagePath,
+    ledgerPath: `${tmpDir}/ledger-${Date.now()}.json`,
+    graphPath: `${tmpDir}/graph-${Date.now()}.json`,
+    teamSize: 5,
+    enableGraph: false, // disable graph for speed in benchmarks
   });
 }
 
 // ---- Test 1: Anti-Interference ----
 async function testAntiInterference(): Promise<{ passed: boolean; details: string }> {
-  const path = `/tmp/tm-benchmark-anti-interference-${Date.now()}.json`;
-  const mgr = createTestManager("bench-team", path);
+  const mgr = createTestManager("bench-team", "/tmp");
 
   const keyResult = await mgr.inject(
     "CRITICAL: The API endpoint for staging is https://staging-api.example.com/v2",
@@ -53,10 +57,9 @@ async function testAntiInterference(): Promise<{ passed: boolean; details: strin
   };
 }
 
-// ---- Test 2: Conflict Update ----
-async function testConflictUpdate(): Promise<{ passed: boolean; details: string }> {
-  const path = `/tmp/tm-benchmark-conflict-${Date.now()}.json`;
-  const mgr = createTestManager("bench-team", path);
+// ---- Test 2: Conflict Resolution ----
+async function testConflictResolution(): Promise<{ passed: boolean; details: string }> {
+  const mgr = createTestManager("bench-team", "/tmp");
 
   const r1 = await mgr.inject(
     "Send the monthly report to Alice (alice@example.com)",
@@ -90,8 +93,7 @@ async function testConflictUpdate(): Promise<{ passed: boolean; details: string 
 
 // ---- Test 3: Efficiency Metrics ----
 async function testEfficiency(): Promise<{ metrics: Record<string, unknown> }> {
-  const path = `/tmp/tm-benchmark-efficiency-${Date.now()}.json`;
-  const mgr = createTestManager("bench-team", path);
+  const mgr = createTestManager("bench-team", "/tmp");
 
   const metrics: Record<string, unknown> = {};
 
@@ -134,13 +136,121 @@ async function testEfficiency(): Promise<{ metrics: Record<string, unknown> }> {
   }
   metrics.updateMs = computeStats(updateTimes);
 
-  // File size
-  const fs = await import("fs");
-  const stats = fs.statSync(path);
-  metrics.storageSizeBytes = stats.size;
+  // Benchmark risk
+  const riskStart = Date.now();
+  await mgr.assessRisk();
+  metrics.riskMs = Date.now() - riskStart;
+
   metrics.memoriesCount = 30;
 
   return { metrics };
+}
+
+// ---- Test 4: Risk Model Correctness ----
+async function testRiskModel(): Promise<{ passed: boolean; details: string }> {
+  const ledger = new MemoryLedger("risk-bench", `/tmp/risk-benchmark-${Date.now()}.json`);
+
+  // Inject a high-risk memory (security category, low coverage, long decay)
+  await ledger.injectClaim({
+    entity: "生产数据库",
+    attribute: "连接密码",
+    value: "旧密码将于下周轮换",
+    confidence: 0.9,
+    source: "security_audit",
+    injectedBy: "安全团队",
+    category: "security",
+    tags: ["prod", "critical"],
+    teamId: "risk-bench",
+    recallHalfLife: 1, // short half-life = fast decay
+  });
+
+  // Inject a low-risk memory
+  await ledger.injectClaim({
+    entity: "团队",
+    attribute: "午餐偏好",
+    value: "大家喜欢川菜",
+    confidence: 0.5,
+    source: "casual_chat",
+    injectedBy: "张三",
+    category: "general",
+    tags: [],
+    teamId: "risk-bench",
+    recallHalfLife: 31, // long half-life = slow decay
+  });
+
+  const entries = await ledger.getAllEntries("risk-bench");
+
+  const riskModel = new RiskModel({ teamSize: 5 });
+  const scores = await riskModel.computeAllRisks(entries);
+
+  const securityEntry = entries.find((e) => e.category === "security");
+  const generalEntry = entries.find((e) => e.category === "general");
+
+  const securityScore = scores.find((s) => s.memoryId === securityEntry?.id);
+  const generalScore = scores.find((s) => s.memoryId === generalEntry?.id);
+
+  if (!securityScore || !generalScore) {
+    return { passed: false, details: "Risk scores not computed for all entries" };
+  }
+
+  // Security memory should have higher business impact
+  if (securityScore.businessImpact <= generalScore.businessImpact) {
+    return {
+      passed: false,
+      details: `Security business impact (${securityScore.businessImpact.toFixed(3)}) should be > general (${generalScore.businessImpact.toFixed(3)})`,
+    };
+  }
+
+  // Both should be computable
+  return {
+    passed: true,
+    details: `Risk model correct: security impact=${securityScore.businessImpact.toFixed(3)} > general impact=${generalScore.businessImpact.toFixed(3)}. Total risk: security=${securityScore.totalRisk.toFixed(3)}, general=${generalScore.totalRisk.toFixed(3)}`,
+  };
+}
+
+// ---- Test 5: Ledger Conflict Detection ----
+async function testLedgerConflictDetection(): Promise<{ passed: boolean; details: string }> {
+  const ledger = new MemoryLedger("conflict-bench", `/tmp/conflict-benchmark-${Date.now()}.json`);
+
+  // Inject v1
+  const entry1 = await ledger.injectClaim({
+    entity: "客户A",
+    attribute: "交付格式",
+    value: "Markdown",
+    confidence: 0.5,
+    source: "meeting",
+    injectedBy: "张三",
+    category: "decision",
+    tags: ["delivery"],
+    teamId: "conflict-bench",
+  });
+
+  // Inject conflicting v2 with low confidence (should create conflict-mark)
+  const entry2 = await ledger.injectClaim({
+    entity: "客户A",
+    attribute: "交付格式",
+    value: "PDF",
+    confidence: 0.55, // delta < 0.15 with 0.5 → conflict-mark
+    source: "meeting2",
+    injectedBy: "李四",
+    category: "decision",
+    tags: ["delivery"],
+    teamId: "conflict-bench",
+  });
+
+  // Verify version chain
+  const activeClaims = entry2.claims.filter((c) => c.status === "conflicting" || c.status === "active");
+  if (activeClaims.length < 2) {
+    return {
+      passed: false,
+      details: `Expected 2 conflicting claims, got ${activeClaims.length}. Claims: ${JSON.stringify(entry2.claims.map(c => ({ v: c.version, s: c.status })))}`,
+    };
+  }
+
+  return {
+    passed: true,
+    details: `Conflict detected correctly. Entry has ${entry2.claims.length} claims (${entry2.claims.map(c => `v${c.version}:${c.status}`).join(", ")})`,
+  };
 }
 
 function computeStats(arr: number[]): Record<string, number> {
@@ -155,24 +265,49 @@ function computeStats(arr: number[]): Record<string, number> {
 
 // ---- Run all ----
 async function main() {
-  console.log("=== Team Memory Engine Benchmark ===\n");
+  console.log("=== Team Memory Engine v2 Benchmark ===\n");
+
+  const results: Array<{ name: string; passed: boolean; details: string }> = [];
 
   console.log("--- Test 1: Anti-Interference ---");
   const antiInterference = await testAntiInterference();
+  results.push({ name: "Anti-Interference", ...antiInterference });
   console.log(`PASSED: ${antiInterference.passed}`);
   console.log(`Details: ${antiInterference.details}\n`);
 
-  console.log("--- Test 2: Conflict Update ---");
-  const conflict = await testConflictUpdate();
+  console.log("--- Test 2: Conflict Resolution ---");
+  const conflict = await testConflictResolution();
+  results.push({ name: "Conflict Resolution", ...conflict });
   console.log(`PASSED: ${conflict.passed}`);
   console.log(`Details: ${conflict.details}\n`);
 
   console.log("--- Test 3: Efficiency Metrics ---");
   const efficiency = await testEfficiency();
   console.log(JSON.stringify(efficiency.metrics, null, 2));
+  results.push({ name: "Efficiency", passed: true, details: "Completed" });
+
+  console.log("\n--- Test 4: Risk Model ---");
+  const risk = await testRiskModel();
+  results.push({ name: "Risk Model", ...risk });
+  console.log(`PASSED: ${risk.passed}`);
+  console.log(`Details: ${risk.details}\n`);
+
+  console.log("--- Test 5: Ledger Conflict Detection ---");
+  const conflictDetection = await testLedgerConflictDetection();
+  results.push({ name: "Conflict Detection", ...conflictDetection });
+  console.log(`PASSED: ${conflictDetection.passed}`);
+  console.log(`Details: ${conflictDetection.details}\n`);
 
   console.log("\n=== Benchmark Complete ===");
-  const allPassed = antiInterference.passed && conflict.passed;
+  const allPassed = results.every((r) => r.passed);
+  const passed = results.filter((r) => r.passed).length;
+  console.log(`${passed}/${results.length} tests passed`);
+  if (!allPassed) {
+    console.log("\nFailed tests:");
+    for (const r of results.filter((r) => !r.passed)) {
+      console.log(`  - ${r.name}: ${r.details}`);
+    }
+  }
   process.exit(allPassed ? 0 : 1);
 }
 

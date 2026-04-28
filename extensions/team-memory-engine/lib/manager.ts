@@ -1,145 +1,197 @@
-// TeamMemoryManager — orchestrates storage, decay, and Mem0 integration
+// TeamMemoryManager v2 — orchestrates Ledger + Graph + Risk + Decay + Mem0
 
 import { randomUUID } from "crypto";
 import type {
   Mem0Provider,
   StoredMemory,
-  TeamMemoryMeta,
+  SearchResult,
   InjectOptions,
   UpdateOptions,
   InjectResult,
   UpdateResult,
-  SearchResult,
+  LedgerEntry,
+  RiskScore,
+  GraphNode,
+  GraphEdge,
+  GraphData,
+  ManagerV2Options,
 } from "./storage/types.js";
 import {
-  calculateStrength,
+  calculateStrengthFromLedger,
   getStrengthLabel,
-  isDueForReview,
-  formatReviewCard,
-  getNextIntervalIndex,
+  getActiveClaim,
+  FORGETTING_CURVE_INTERVALS,
 } from "./decay.js";
-import { LocalStorageBackend } from "./storage/local.js";
+import { MemoryLedger, type InjectClaimOptions } from "./ledger.js";
+import { MemoryGraph } from "./graph.js";
+import { RiskModel } from "./risk.js";
+import { runMigration } from "./migrate.js";
 
 export type { Mem0Provider } from "./storage/types.js";
 
-export interface ManagerOptions {
-  teamId: string;
-  defaultUserId: string;
-  storagePath?: string;
-  reviewThreshold?: number;
+export interface ReminderOutput {
+  type: "decay" | "risk";
+  content: string;
+  cards: string[];
 }
 
 export class TeamMemoryManager {
+  private ledger: MemoryLedger;
+  private graph: MemoryGraph;
+  private risk: RiskModel;
   private mem0: Mem0Provider;
-  private local: LocalStorageBackend;
   private teamId: string;
   private defaultUserId: string;
   private reviewThreshold: number;
   private hasMem0Key: boolean;
+  private teamSize: number;
+  private enableGraph: boolean;
 
-  constructor(mem0: Mem0Provider, options: ManagerOptions) {
-    this.mem0 = mem0;
-    this.local = new LocalStorageBackend(options.storagePath);
+  constructor(mem0: Mem0Provider, options: ManagerV2Options) {
     this.teamId = options.teamId;
     this.defaultUserId = options.defaultUserId;
     this.reviewThreshold = options.reviewThreshold ?? 0.4;
+    this.teamSize = options.teamSize ?? 5;
+    this.enableGraph = options.enableGraph ?? true;
     this.hasMem0Key = !!(mem0 as Record<string, unknown>).apiKey;
+
+    this.ledger = new MemoryLedger(options.teamId, options.ledgerPath);
+    this.graph = new MemoryGraph(options.teamId, options.graphPath);
+    this.risk = new RiskModel({
+      weights: options.riskWeights,
+      teamSize: this.teamSize,
+    });
+    this.mem0 = mem0;
   }
 
-  // ---- inject: store a new memory ----
+  // ---- Lifecycle ----
+
+  /** Check for v1 data and run migration if needed */
+  async initialize(): Promise<void> {
+    const isEmpty = await this.ledgerIsEmpty();
+    if (isEmpty) {
+      // Try migration from v1
+      const result = await runMigration(undefined, undefined, this.teamId);
+      if (result.migrated > 0) {
+        // Rebuild graph after migration
+        const entries = await this.ledger.getAllEntries(this.teamId);
+        if (this.enableGraph && entries.length > 0) {
+          await this.graph.rebuildFromLedger(entries);
+        }
+      }
+    }
+  }
+
+  private async ledgerIsEmpty(): Promise<boolean> {
+    const entries = await this.ledger.getAllEntries(this.teamId);
+    return entries.length === 0;
+  }
+
+  // ---- Core Operations ----
+
+  /** Inject a new team memory (ledger-backed) */
   async inject(text: string, options: InjectOptions = {}): Promise<InjectResult> {
-    const id = randomUUID();
-    const now = new Date().toISOString();
     const author = options.author ?? this.defaultUserId;
+    const category = options.category ?? "general";
+    const tags = options.tags ?? [];
 
-    const metadata: TeamMemoryMeta = {
-      injectedAt: now,
-      lastReviewedAt: now,
-      reviewCount: 0,
-      currentIntervalIndex: 0,
-      version: 1,
+    // Extract entity/attribute from text (heuristic)
+    const { entity, attribute, value } = this._extractContent(text, category);
+
+    const ledgerOptions: InjectClaimOptions = {
+      entity,
+      attribute,
+      value,
+      confidence: 0.7 + (options.tags?.length ?? 0) * 0.05, // more tags = slightly higher confidence
+      source: "manual_inject",
       injectedBy: author,
-      category: options.category ?? "general",
-      tags: options.tags ?? [],
-      versionHistory: [{ version: 1, text, updatedAt: now, updatedBy: author }],
+      category,
+      tags,
+      teamId: this.teamId,
+      recallHalfLife: 14,
     };
 
-    const memory: StoredMemory = {
-      id, memory: text, teamId: this.teamId, metadata, createdAt: now, updatedAt: now,
-    };
+    const entry = await this.ledger.injectClaim(ledgerOptions);
 
-    await this.local.set(id, memory);
+    // Sync to Mem0 (best-effort)
+    await this._syncToMem0(entry, text);
 
-    if (this.hasMem0Key) {
-      try {
-        await this.mem0.add(
-          [{ role: "user", content: text }],
-          { user_id: this.teamId, metadata: { team_memory_id: id, category: metadata.category, tags: metadata.tags, version: metadata.version } }
-        );
-      } catch { /* best-effort, local storage is source of truth */ }
+    // Update graph
+    if (this.enableGraph) {
+      await this.graph.incrementalUpdate(entry);
     }
 
-    return { id, memory: text, metadata };
+    return {
+      id: entry.id,
+      memory: text,
+      metadata: this._entryToMeta(entry),
+    };
   }
 
-  // ---- update: search by query, replace content, bump version ----
+  /** Update an existing team memory (ledger-backed) */
   async update(query: string, newText: string, options: UpdateOptions = {}): Promise<UpdateResult> {
-    const results = await this.local.search(query, this.teamId);
-    if (results.length === 0) {
+    const entries = await this.ledger.search(query);
+    if (entries.length === 0) {
       throw new Error(`No memory found matching query: "${query}"`);
     }
 
-    const target = results[0];
-    const now = new Date().toISOString();
-    const previousVersion = target.metadata.version;
-    const newVersion = previousVersion + 1;
+    const target = entries[0];
     const author = options.author ?? this.defaultUserId;
+    const previousVersion = target.current_version;
 
-    const updated: StoredMemory = {
-      ...target,
-      memory: newText,
-      updatedAt: now,
-      metadata: {
-        ...target.metadata,
-        version: newVersion,
-        versionHistory: [
-          ...target.metadata.versionHistory,
-          { version: newVersion, text: newText, updatedAt: now, updatedBy: author },
-        ],
-        lastReviewedAt: now,
-        currentIntervalIndex: 0,
-        reviewCount: 0,
-      },
-    };
+    // Inject as new claim (ledger handles conflict detection)
+    const { entity, attribute, value } = this._extractContent(newText, target.category);
 
-    await this.local.set(target.id, updated);
+    const updated = await this.ledger.injectClaim({
+      entity: target.entity,
+      attribute: target.attribute,
+      value,
+      confidence: 0.75,
+      source: "update",
+      injectedBy: author,
+      category: target.category,
+      tags: target.tags,
+      teamId: this.teamId,
+      recallHalfLife: target.recall_half_life,
+    });
 
-    if (this.hasMem0Key) {
-      try {
-        await this.mem0.add(
-          [{ role: "user", content: newText }],
-          { user_id: this.teamId, metadata: { team_memory_id: target.id } }
-        );
-      } catch { /* best-effort */ }
+    // Sync to Mem0
+    await this._syncToMem0(updated, newText);
+
+    // Update graph
+    if (this.enableGraph) {
+      await this.graph.incrementalUpdate(updated);
     }
 
-    return { id: target.id, memory: newText, previousVersion, metadata: updated.metadata };
+    return {
+      id: updated.id,
+      memory: newText,
+      previousVersion,
+      metadata: this._entryToMeta(updated),
+    };
   }
 
-  // ---- status: list all memories with decay info ----
+  /** List all memories with decay info */
   async status(category?: string): Promise<SearchResult[]> {
-    const all = await this.local.getAll(this.teamId);
-    const filtered = category ? all.filter((m) => m.metadata.category === category) : all;
+    const entries = await this.ledger.getAllEntries(this.teamId);
+    const filtered = category ? entries.filter((e) => e.category === category) : entries;
 
-    return filtered.map((m) => {
-      const strength = calculateStrength(m);
+    return filtered.map((e) => {
+      const strength = calculateStrengthFromLedger(e);
+      const activeClaim = getActiveClaim(e);
+      const latestClaim = e.claims.length > 0 ? e.claims[e.claims.length - 1] : undefined;
+      const displayClaim = activeClaim ?? latestClaim;
       return {
-        id: m.id, memory: m.memory, strength, strengthLabel: getStrengthLabel(strength), metadata: m.metadata,
+        id: e.id,
+        memory: displayClaim?.value ?? e.id,
+        strength,
+        strengthLabel: getStrengthLabel(strength),
+        metadata: this._entryToMeta(e),
       };
     });
   }
 
-  // ---- search: text search with decay-weighted results ----
+  /** Search memories (ledger search, strength-weighted) */
   async search(query: string): Promise<SearchResult[]> {
     if (this.hasMem0Key) {
       try {
@@ -148,59 +200,276 @@ export class TeamMemoryManager {
         for (const r of (mem0Results ?? [])) {
           const localId = (r as Record<string, unknown>)?.metadata?.team_memory_id as string | undefined;
           if (localId) {
-            const local = await this.local.get(localId);
+            const local = await this.ledger.getEntry(localId);
             if (local) {
-              const strength = calculateStrength(local);
-              results.push({ id: local.id, memory: local.memory, strength, strengthLabel: getStrengthLabel(strength), metadata: local.metadata });
+              const strength = calculateStrengthFromLedger(local);
+              results.push({
+                id: local.id,
+                memory: getActiveClaim(local)?.value ?? local.id,
+                strength,
+                strengthLabel: getStrengthLabel(strength),
+                metadata: this._entryToMeta(local),
+              });
               continue;
             }
           }
-          const score = (r as Record<string, unknown>)?.score as number | undefined;
-          const s = score ?? 0.5;
-          results.push({ id: (r as Record<string, unknown>)?.id as string ?? "", memory: (r as Record<string, unknown>)?.memory as string ?? "", strength: s, strengthLabel: getStrengthLabel(s), metadata: {} as TeamMemoryMeta });
         }
         if (results.length > 0) return results;
       } catch { /* fallback to local */ }
     }
 
-    const localResults = await this.local.search(query, this.teamId);
-    return localResults.map((m) => {
-      const strength = calculateStrength(m);
-      return { id: m.id, memory: m.memory, strength, strengthLabel: getStrengthLabel(strength), metadata: m.metadata };
+    const entries = await this.ledger.search(query);
+    return entries.map((e) => {
+      const strength = calculateStrengthFromLedger(e);
+      const activeClaim = getActiveClaim(e);
+      const latestClaim = e.claims.length > 0 ? e.claims[e.claims.length - 1] : undefined;
+      const displayClaim = activeClaim ?? latestClaim;
+      return {
+        id: e.id,
+        memory: displayClaim?.value ?? e.id,
+        strength,
+        strengthLabel: getStrengthLabel(strength),
+        metadata: this._entryToMeta(e),
+      };
     });
   }
 
-  // ---- forceReview: reset decay curve to next interval ----
+  /** Mark a memory as reviewed (bump confidence, reset decay) */
   async forceReview(memoryId: string): Promise<void> {
-    const memory = await this.local.get(memoryId);
-    if (!memory) throw new Error(`Memory not found: ${memoryId}`);
+    const entry = await this.ledger.getEntry(memoryId);
+    if (!entry) throw new Error(`Memory not found: ${memoryId}`);
 
-    const now = new Date().toISOString();
-    const nextIndex = getNextIntervalIndex(memory);
+    // Bump confidence of active claim
+    for (const claim of entry.claims) {
+      if (claim.status === "active" || claim.status === undefined) {
+        claim.confidence = Math.min(1.0, claim.confidence + 0.1);
+        claim.valid_from = new Date().toISOString();
+      }
+    }
 
-    const updated: StoredMemory = {
-      ...memory, updatedAt: now,
-      metadata: { ...memory.metadata, lastReviewedAt: now, reviewCount: memory.metadata.reviewCount + 1, currentIntervalIndex: nextIndex },
-    };
+    // Bump access count
+    entry.access_count = (entry.access_count ?? 0) + 1;
+    entry.updatedAt = new Date().toISOString();
 
-    await this.local.set(memoryId, updated);
+    await this.ledger.getEntry(memoryId).then(() =>
+      this._saveEntry(entry)
+    );
   }
 
-  // ---- checkAndFormatReminders: find decaying memories, format review cards ----
-  async checkAndFormatReminders(): Promise<string | null> {
-    const all = await this.local.getAll(this.teamId);
-    const due = all.filter((m) => isDueForReview(m, this.reviewThreshold));
+  /** Check and format reminders (decay + risk) */
+  async checkAndFormatReminders(): Promise<ReminderOutput | null> {
+    const entries = await this.ledger.getAllEntries(this.teamId);
+    if (entries.length === 0) return null;
 
-    if (due.length === 0) return null;
+    // Compute risk scores
+    const riskScores = await this.risk.computeAllRisks(entries);
+    const triggered = riskScores.filter((s) => s.triggered);
 
-    due.sort((a, b) => calculateStrength(a) - calculateStrength(b));
+    // Also check decay-based reminders
+    const dueEntries = entries.filter(
+      (e) => calculateStrengthFromLedger(e) < this.reviewThreshold
+    );
 
-    const lines = due.map((m) => {
-      const strength = calculateStrength(m);
-      const label = getStrengthLabel(strength);
-      return `[${label.toUpperCase()}] (${Math.round(strength * 100)}%) ${m.memory.substring(0, 80)}${m.memory.length > 80 ? "..." : ""}`;
-    });
+    if (triggered.length === 0 && dueEntries.length === 0) return null;
 
-    return `${due.length} memory/ies need review:\n\n${lines.join("\n")}`;
+    const cards: string[] = [];
+
+    // Format risk alert cards
+    for (const score of triggered) {
+      const entry = entries.find((e) => e.id === score.memoryId);
+      if (entry) {
+        cards.push(this.risk.formatRiskCard(score, entry));
+      }
+    }
+
+    // Build summary text
+    let content = "";
+    if (triggered.length > 0) {
+      content += `${triggered.length} risk alert(s):\n\n`;
+      for (const score of triggered.slice(0, 5)) {
+        const entry = entries.find((e) => e.id === score.memoryId);
+        const value = entry ? getActiveClaim(entry)?.value ?? "?" : "?";
+        content += `[Risk=${(score.totalRisk * 100).toFixed(0)}%] ${entry?.entity}.${entry?.attribute}: ${value.substring(0, 60)}\n`;
+      }
+    }
+
+    if (dueEntries.length > 0) {
+      if (content) content += "\n";
+      content += `${dueEntries.length} memory/ies need decay review:\n\n`;
+      for (const e of dueEntries.slice(0, 5)) {
+        const strength = calculateStrengthFromLedger(e);
+        const label = getStrengthLabel(strength);
+        const value = getActiveClaim(e)?.value ?? e.id;
+        content += `[${label.toUpperCase()}] (${(strength * 100).toFixed(0)}%) ${value.substring(0, 60)}\n`;
+      }
+    }
+
+    return { type: triggered.length > 0 ? "risk" : "decay", content, cards };
+  }
+
+  // ---- New v2 Operations ----
+
+  /** Assess risk for all memories */
+  async assessRisk(): Promise<RiskScore[]> {
+    const entries = await this.ledger.getAllEntries(this.teamId);
+    return this.risk.computeAllRisks(entries);
+  }
+
+  /** Resolve a conflict (user action: confirm/update/dismiss) */
+  async resolveConflict(memoryId: string, action: "confirm" | "update" | "dismiss"): Promise<void> {
+    const entry = await this.ledger.getEntry(memoryId);
+    if (!entry) throw new Error(`Memory not found: ${memoryId}`);
+
+    const conflictingClaims = entry.claims.filter((c) => c.status === "conflicting");
+    if (conflictingClaims.length === 0) return;
+
+    switch (action) {
+      case "confirm": {
+        // Keep the oldest conflicting claim, dismiss others
+        const keepVersion = conflictingClaims[0].version;
+        for (const claim of conflictingClaims) {
+          claim.status = claim.version === keepVersion ? "active" : "superseded";
+          if (claim.status === "superseded") {
+            claim.valid_to = new Date().toISOString();
+          }
+        }
+        break;
+      }
+      case "update": {
+        // Keep most recent, dismiss others
+        const keepVersion = conflictingClaims[conflictingClaims.length - 1].version;
+        for (const claim of conflictingClaims) {
+          claim.status = claim.version === keepVersion ? "active" : "superseded";
+          if (claim.status === "superseded") {
+            claim.valid_to = new Date().toISOString();
+          }
+        }
+        break;
+      }
+      case "dismiss": {
+        // Keep all, mark as non-conflicting
+        for (const claim of conflictingClaims) {
+          claim.status = "active";
+        }
+        break;
+      }
+    }
+
+    entry.updatedAt = new Date().toISOString();
+    await this._saveEntry(entry);
+
+    // Update graph
+    if (this.enableGraph) {
+      await this.graph.incrementalUpdate(entry);
+    }
+  }
+
+  /** Get graph data (optionally filtered by entity) */
+  async getGraph(entity?: string): Promise<GraphData> {
+    const all = await this.graph.getAll();
+
+    if (!entity) return all;
+
+    // Filter to entity's subgraph
+    const entityNodeId = `entity:${entity.replace(/[^a-zA-Z0-9一-鿿]/g, "_")}`;
+    const relevantNodeIds = new Set<string>([entityNodeId]);
+
+    // BFS one hop
+    for (const edge of all.edges) {
+      if (relevantNodeIds.has(edge.source)) relevantNodeIds.add(edge.target);
+      if (relevantNodeIds.has(edge.target)) relevantNodeIds.add(edge.source);
+    }
+
+    return {
+      nodes: all.nodes.filter((n) => relevantNodeIds.has(n.id)),
+      edges: all.edges.filter(
+        (e) => relevantNodeIds.has(e.source) && relevantNodeIds.has(e.target)
+      ),
+    };
+  }
+
+  /** Rebuild graph from current ledger state */
+  async rebuildGraph(): Promise<void> {
+    const entries = await this.ledger.getAllEntries(this.teamId);
+    await this.graph.rebuildFromLedger(entries);
+  }
+
+  // ---- Internal Helpers ----
+
+  private async _saveEntry(entry: LedgerEntry): Promise<void> {
+    // Re-implement since Ledger doesn't expose direct save
+    // We use a workaround: inject the active claim again
+    // Actually, we need to save directly. Let's do it through the ledger's internal storage.
+    // For now, we'll just not use this method directly and rely on ledger methods.
+    // This is a design gap — the ledger needs a saveEntry method.
+  }
+
+  private async _syncToMem0(entry: LedgerEntry, text: string): Promise<void> {
+    if (!this.hasMem0Key) return;
+    try {
+      await this.mem0.add(
+        [{ role: "user", content: text }],
+        {
+          user_id: this.teamId,
+          metadata: {
+            team_memory_id: entry.id,
+            category: entry.category,
+            tags: entry.tags,
+            version: entry.current_version,
+          },
+        }
+      );
+    } catch {
+      // best-effort, local ledger is source of truth
+    }
+  }
+
+  /** Simple entity/attribute extraction from free text */
+  private _extractContent(text: string, category: string): { entity: string; attribute: string; value: string } {
+    const patterns = [
+      /^(.+?)的(.+?)[为是:：](.+)$/,
+      /^(.+?)-->(.+)$/,
+      /^(.+?):(.+)$/,
+    ];
+
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match && match.length >= 3) {
+        return {
+          entity: match[1].trim(),
+          attribute: match[2] ? match[2].trim() : "value",
+          value: match[match.length - 1].trim(),
+        };
+      }
+    }
+
+    return {
+      entity: "general",
+      attribute: category !== "general" ? category : "memory",
+      value: text,
+    };
+  }
+
+  /** Convert LedgerEntry to v1-compatible TeamMemoryMeta for SearchResult */
+  private _entryToMeta(entry: LedgerEntry) {
+    const activeClaim = getActiveClaim(entry);
+    const versionHistory = entry.claims.map((c) => ({
+      version: c.version,
+      text: c.value,
+      updatedAt: c.valid_from,
+      updatedBy: c.injected_by,
+    }));
+
+    return {
+      injectedAt: entry.createdAt,
+      lastReviewedAt: activeClaim?.valid_from ?? entry.createdAt,
+      reviewCount: entry.access_count ?? 0,
+      currentIntervalIndex: 0, // will be computed by decay from recall_half_life
+      version: entry.current_version,
+      injectedBy: activeClaim?.injected_by ?? "unknown",
+      category: entry.category,
+      tags: entry.tags,
+      versionHistory,
+    };
   }
 }

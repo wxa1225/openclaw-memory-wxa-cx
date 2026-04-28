@@ -1,6 +1,6 @@
 // Ebbinghaus forgetting curve model and review card formatting
 
-import type { StoredMemory, TeamMemoryMeta } from "./storage/types.js";
+import type { StoredMemory, TeamMemoryMeta, LedgerEntry, LedgerClaim } from "./storage/types.js";
 
 // Ebbinghaus spaced repetition intervals (milliseconds)
 export const FORGETTING_CURVE_INTERVALS: number[] = [
@@ -122,3 +122,54 @@ export function formatReviewCard(memory: StoredMemory): string {
 
 // Re-export for index.ts compatibility
 export type { TeamMemoryMeta } from "./storage/types.js";
+
+// ============================================================================
+// LedgerEntry-compatible decay functions (v2)
+// ============================================================================
+
+/**
+ * Calculate strength for a LedgerEntry.
+ * Uses the active claim's valid_from as reference time,
+ * and recall_half_life (days) mapped to Ebbinghaus interval.
+ */
+export function calculateStrengthFromLedger(entry: LedgerEntry): number {
+  const activeClaim = entry.claims.find(
+    (c) => c.status === "active" || c.status === undefined
+  );
+  if (!activeClaim) return 0;
+
+  const now = Date.now();
+  const referenceTime = new Date(activeClaim.valid_from).getTime();
+  const elapsed = now - referenceTime;
+
+  // Map recall_half_life (days) to closest interval index
+  const halfLifeMs = entry.recall_half_life * 24 * 60 * 60 * 1000;
+  const intervalIndex = closestIntervalIndex(halfLifeMs);
+  const currentInterval =
+    FORGETTING_CURVE_INTERVALS[intervalIndex] ??
+    FORGETTING_CURVE_INTERVALS[FORGETTING_CURVE_INTERVALS.length - 1];
+
+  const strength = Math.pow(2, -elapsed / currentInterval);
+  return Math.max(0, Math.min(1, strength));
+}
+
+/** Get the active claim from a LedgerEntry */
+export function getActiveClaim(entry: LedgerEntry): LedgerClaim | undefined {
+  return entry.claims.find(
+    (c) => c.status === "active" || c.status === undefined
+  );
+}
+
+/** Map a half-life (ms) to the closest Ebbinghaus interval index */
+function closestIntervalIndex(targetMs: number): number {
+  let bestIndex = 0;
+  let bestDiff = Infinity;
+  for (let i = 0; i < FORGETTING_CURVE_INTERVALS.length; i++) {
+    const diff = Math.abs(FORGETTING_CURVE_INTERVALS[i] - targetMs);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      bestIndex = i;
+    }
+  }
+  return bestIndex;
+}
