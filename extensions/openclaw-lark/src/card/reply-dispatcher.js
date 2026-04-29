@@ -22,6 +22,7 @@ const lark_logger_1 = require("../core/lark-logger.js");
 const deliver_1 = require("../messaging/outbound/deliver.js");
 const send_1 = require("../messaging/outbound/send.js");
 const typing_1 = require("../messaging/outbound/typing.js");
+const builder_1 = require("./builder.js");
 const card_error_1 = require("./card-error.js");
 const reply_mode_1 = require("./reply-mode.js");
 const streaming_card_controller_1 = require("./streaming-card-controller.js");
@@ -32,7 +33,7 @@ const log = (0, lark_logger_1.larkLogger)('card/reply-dispatcher');
 // ---------------------------------------------------------------------------
 function createFeishuReplyDispatcher(params) {
     const core = lark_client_1.LarkClient.runtime;
-    const { cfg, agentId, sessionKey, chatId, replyToMessageId, accountId, replyInThread } = params;
+    const { cfg, agentId, chatId, sessionKey, replyToMessageId, accountId, replyInThread } = params;
     // Resolve account so we can read per-account config (e.g. replyMode)
     const account = (0, accounts_1.getLarkAccount)(cfg, accountId);
     const feishuCfg = account.config;
@@ -50,6 +51,7 @@ function createFeishuReplyDispatcher(params) {
     const useStreamingCards = replyMode === 'streaming';
     // ---- Block streaming for static mode ----
     const enableBlockStreaming = feishuCfg?.blockStreaming === true && !useStreamingCards;
+    const { toolUseDisplay } = params;
     const resolvedFooter = (0, footer_config_1.resolveFooterConfig)(feishuCfg?.footer);
     log.info('reply mode resolved', {
         effectiveReplyMode,
@@ -81,6 +83,7 @@ function createFeishuReplyDispatcher(params) {
             chatId,
             replyToMessageId,
             replyInThread,
+            toolUseDisplay,
             resolvedFooter,
         })
         : null;
@@ -171,9 +174,10 @@ function createFeishuReplyDispatcher(params) {
                 return;
             await typingCallbacks.onReplyStart?.();
         },
-        deliver: async (payload) => {
+        deliver: async (payload, meta) => {
             log.debug('deliver called', {
                 textPreview: payload.text?.slice(0, 100),
+                kind: meta?.kind,
             });
             if (shouldSkip('deliver.entry'))
                 return;
@@ -190,7 +194,7 @@ function createFeishuReplyDispatcher(params) {
                 return;
             }
             // 提取文本和媒体 URL
-            const text = payload.text ?? '';
+            const text = getVisiblePayloadText(payload);
             const payloadMediaUrls = payload.mediaUrls?.length
                 ? payload.mediaUrls
                 : payload.mediaUrl
@@ -202,15 +206,21 @@ function createFeishuReplyDispatcher(params) {
             }
             // ---- Streaming card mode ----
             if (controller) {
-                await controller.ensureCardCreated();
-                if (controller.isTerminated)
-                    return;
-                if (controller.cardMessageId) {
-                    await controller.onDeliver(payload);
+                if (meta?.kind === 'tool' && shouldRouteToolPayloadToCard(payload, toolUseDisplay.showToolUse)) {
+                    await controller.onToolPayload(payload);
                     return;
                 }
-                // Card creation failed — fall through to static delivery
-                log.warn('deliver: card creation failed, falling back to static delivery');
+                if (text.trim()) {
+                    await controller.ensureCardCreated();
+                    if (controller.isTerminated)
+                        return;
+                    if (controller.cardMessageId) {
+                        await controller.onDeliver({ ...payload, text });
+                        return;
+                    }
+                    // Card creation failed — fall through to static delivery
+                    log.warn('deliver: card creation failed, falling back to static delivery');
+                }
             }
             // ---- Static text delivery ----
             if (text.trim()) {
@@ -374,12 +384,21 @@ function createFeishuReplyDispatcher(params) {
         dispatcher,
         replyOptions: {
             ...replyOptions,
-            onModelSelected: prefixContext.onModelSelected,
+            ...(controller
+                ? {
+                    shouldEmitToolResult: () => false,
+                    shouldEmitToolOutput: () => false,
+                }
+                : {}),
+            onModelSelected: (ctx) => {
+                prefixContext.onModelSelected(ctx);
+            },
             disableBlockStreaming: !enableBlockStreaming,
             ...(controller
                 ? {
                     onReasoningStream: (payload) => controller.onReasoningStream(payload),
                     onPartialReply: (payload) => controller.onPartialReply(payload),
+                    onToolStart: (payload) => controller.onToolStart(payload),
                 }
                 : {}),
         },
@@ -390,4 +409,37 @@ function createFeishuReplyDispatcher(params) {
         },
         abortCard,
     };
+}
+function getVisiblePayloadText(payload) {
+    if (payload.isReasoning === true)
+        return '';
+    const rawText = payload.text ?? '';
+    if (!rawText)
+        return '';
+    const split = (0, builder_1.splitReasoningText)(rawText);
+    if (split.answerText != null) {
+        return split.answerText;
+    }
+    return (0, builder_1.stripReasoningTags)(rawText);
+}
+function shouldRouteToolPayloadToCard(payload, showToolUse) {
+    if (!showToolUse)
+        return false;
+    if (!getVisiblePayloadText(payload).trim())
+        return false;
+    if (payload.interactive)
+        return false;
+    if (payload.btw)
+        return false;
+    if (payload.audioAsVoice)
+        return false;
+    if (payload.mediaUrl || (payload.mediaUrls?.length ?? 0) > 0)
+        return false;
+    const execApproval = payload.channelData && typeof payload.channelData === 'object' && !Array.isArray(payload.channelData)
+        ? payload.channelData.execApproval
+        : undefined;
+    if (execApproval && typeof execApproval === 'object' && !Array.isArray(execApproval)) {
+        return false;
+    }
+    return true;
 }

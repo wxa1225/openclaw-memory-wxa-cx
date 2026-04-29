@@ -27,6 +27,7 @@
 import { Type } from "@sinclair/typebox";
 import { definePluginEntry, type OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
 import { TeamMemoryManager, type Mem0Provider } from "./lib/manager.js";
+import { EventLog } from "./lib/event-log.js";
 
 // ============================================================================
 // Feishu message push helper
@@ -81,11 +82,17 @@ interface TeamMemoryConfig {
   feishuChatId: string;
   teamSize: number;
   enableGraph: boolean;
+  projectRoot: string;
+  modelEndpoint: string;
+  modelApiKey: string;
+  modelName: string;
+  extractionBatchSize: number;
 }
 
 const ALLOWED_CONFIG_KEYS = [
   "teamId", "decayCheckInterval", "riskCheckInterval",
   "feishuChatId", "teamSize", "enableGraph",
+  "projectRoot", "modelEndpoint", "modelApiKey", "modelName", "extractionBatchSize",
 ];
 
 function parseConfig(value: Record<string, unknown>): TeamMemoryConfig {
@@ -96,6 +103,11 @@ function parseConfig(value: Record<string, unknown>): TeamMemoryConfig {
     feishuChatId: typeof value.feishuChatId === "string" && value.feishuChatId ? value.feishuChatId : "",
     teamSize: typeof value.teamSize === "number" && value.teamSize > 0 ? value.teamSize : 5,
     enableGraph: typeof value.enableGraph === "boolean" ? value.enableGraph : true,
+    projectRoot: typeof value.projectRoot === "string" && value.projectRoot ? value.projectRoot : "",
+    modelEndpoint: typeof value.modelEndpoint === "string" ? value.modelEndpoint : "",
+    modelApiKey: typeof value.modelApiKey === "string" ? value.modelApiKey : "",
+    modelName: typeof value.modelName === "string" && value.modelName ? value.modelName : "qwen-plus",
+    extractionBatchSize: typeof value.extractionBatchSize === "number" && value.extractionBatchSize > 0 ? value.extractionBatchSize : 20,
   };
 }
 
@@ -228,6 +240,11 @@ const plugin = {
       defaultUserId: "openclaw-user",
       teamSize: cfg.teamSize,
       enableGraph: cfg.enableGraph,
+      projectRoot: cfg.projectRoot,
+      modelEndpoint: cfg.modelEndpoint || undefined,
+      modelApiKey: cfg.modelApiKey || undefined,
+      modelName: cfg.modelName,
+      extractionBatchSize: cfg.extractionBatchSize,
     });
 
     // Initialize: check for v1 migration
@@ -412,6 +429,76 @@ const plugin = {
       { name: "team_memory_risk" },
     );
 
+    // NEW: Memory extraction tool
+    api.registerTool(
+      {
+        name: "team_memory_extract",
+        label: "Team Memory Extract",
+        description: "Run LLM-based memory extraction on unprocessed event log entries. Use after group discussions to automatically capture team decisions and facts.",
+        parameters: Type.Object({
+          limit: Type.Optional(Type.Number({ description: "Max events to process (default: 20)" })),
+        }),
+        async execute(_toolCallId, params) {
+          try {
+            const limit = (params as any)?.limit ?? cfg.extractionBatchSize;
+            if (!cfg.projectRoot) {
+              return { content: [{ type: "text", text: "Event log not configured. Set projectRoot in config." }] };
+            }
+            const eventLog = new EventLog(cfg.projectRoot);
+            const unprocessed = await eventLog.getUnprocessed();
+            const batch = unprocessed.slice(0, limit);
+            if (batch.length === 0) {
+              return { content: [{ type: "text", text: "No unprocessed events found." }] };
+            }
+            const extracted = await manager.injectFromEvent(batch);
+            await eventLog.markProcessed(batch.map((e) => e.id));
+            return {
+              content: [{ type: "text", text: `Extracted ${extracted.length} memories from ${batch.length} events.` }],
+              details: { extracted: extracted.length, processed: batch.length },
+            };
+          } catch (err) {
+            return { content: [{ type: "text", text: `Failed to extract: ${String(err)}` }], details: { error: String(err) } };
+          }
+        },
+      },
+      { name: "team_memory_extract" },
+    );
+
+    // NEW: TMS tool
+    api.registerTool(
+      {
+        name: "team_memory_tms",
+        label: "Team Capability Profile",
+        description: "Query which team members know which memories. Returns member expertise areas, known memories, and trust scores.",
+        parameters: Type.Object({
+          memberId: Type.Optional(Type.String({ description: "Filter by member ID" })),
+        }),
+        async execute(_toolCallId, params) {
+          try {
+            if (!cfg.projectRoot) {
+              return { content: [{ type: "text", text: "TMS not configured. Set projectRoot in config." }] };
+            }
+            const { TeamCapabilityModel } = await import("./lib/tms.js");
+            const tms = new TeamCapabilityModel(cfg.teamId, cfg.projectRoot);
+            await tms.load();
+            const memberId = (params as any)?.memberId;
+            if (memberId) {
+              const member = tms.getMember(memberId);
+              if (!member) return { content: [{ type: "text", text: `Member not found: ${memberId}` }] };
+              return { content: [{ type: "text", text: `${member.memberId} (${member.displayName})\nExpertise: ${member.expertiseAreas.join(", ") || "none"}\nKnown memories: ${member.knownMemoryIds.length}\nTrust: ${(member.trustScore * 100).toFixed(0)}%` }] };
+            }
+            const members = tms.getAllMembers();
+            if (members.length === 0) return { content: [{ type: "text", text: "No team members tracked yet." }] };
+            const lines = members.map((m) => `${m.memberId}: expertise=[${m.expertiseAreas.join(", ")}], memories=${m.knownMemoryIds.length}, trust=${(m.trustScore * 100).toFixed(0)}%`);
+            return { content: [{ type: "text", text: `${members.length} team members:\n\n${lines.join("\n")}` }] };
+          } catch (err) {
+            return { content: [{ type: "text", text: `Failed: ${String(err)}` }], details: { error: String(err) } };
+          }
+        },
+      },
+      { name: "team_memory_tms" },
+    );
+
     // ========================================================================
     // CLI Commands
     // ========================================================================
@@ -591,6 +678,78 @@ const plugin = {
               console.error(`Failed: ${String(err)}`);
             }
           });
+
+        // NEW: extract command
+        cmd
+          .command("extract")
+          .description("Run LLM memory extraction on unprocessed event log entries")
+          .option("-l, --limit <n>", "Max events to process", "20")
+          .action(async (opts: { limit: string }) => {
+            try {
+              if (!cfg.projectRoot) { console.error("projectRoot not configured"); return; }
+              const eventLog = new EventLog(cfg.projectRoot);
+              const unprocessed = await eventLog.getUnprocessed();
+              const limit = parseInt(opts.limit, 10);
+              const batch = unprocessed.slice(0, limit);
+              if (batch.length === 0) { console.log("No unprocessed events."); return; }
+              const extracted = await manager.injectFromEvent(batch);
+              await eventLog.markProcessed(batch.map((e) => e.id));
+              console.log(`Extracted ${extracted.length} memories from ${batch.length} events`);
+            } catch (err) {
+              console.error(`Failed: ${String(err)}`);
+            }
+          });
+
+        // NEW: tms command
+        cmd
+          .command("tms")
+          .description("Show team capability profile")
+          .argument("[memberId]", "Filter by member")
+          .action(async (memberId?: string) => {
+            try {
+              if (!cfg.projectRoot) { console.error("projectRoot not configured"); return; }
+              const { TeamCapabilityModel } = await import("./lib/tms.js");
+              const tms = new TeamCapabilityModel(cfg.teamId, cfg.projectRoot);
+              await tms.load();
+              if (memberId) {
+                const m = tms.getMember(memberId);
+                if (!m) { console.log("Member not found"); return; }
+                console.log(`${m.memberId} (${m.displayName})`);
+                console.log(`  Expertise: ${m.expertiseAreas.join(", ") || "none"}`);
+                console.log(`  Known memories: ${m.knownMemoryIds.length}`);
+                console.log(`  Trust: ${(m.trustScore * 100).toFixed(0)}%`);
+                return;
+              }
+              const members = tms.getAllMembers();
+              if (members.length === 0) { console.log("No members tracked."); return; }
+              for (const m of members) {
+                console.log(`${m.memberId}: expertise=[${m.expertiseAreas.join(", ")}], memories=${m.knownMemoryIds.length}, trust=${(m.trustScore * 100).toFixed(0)}%`);
+              }
+            } catch (err) {
+              console.error(`Failed: ${String(err)}`);
+            }
+          });
+
+        // NEW: pipeline command
+        cmd
+          .command("pipeline")
+          .description("Run the full event-log → extract → ledger → graph pipeline once")
+          .option("-b, --batch-size <n>", "Events to process per batch", "20")
+          .action(async (opts: { batchSize: string }) => {
+            try {
+              if (!cfg.projectRoot) { console.error("projectRoot not configured"); return; }
+              const eventLog = new EventLog(cfg.projectRoot);
+              const unprocessed = await eventLog.getUnprocessed();
+              const batchSize = parseInt(opts.batchSize, 10);
+              const batch = unprocessed.slice(0, batchSize);
+              if (batch.length === 0) { console.log("No unprocessed events."); return; }
+              const extracted = await manager.injectFromEvent(batch);
+              await eventLog.markProcessed(batch.map((e) => e.id));
+              console.log(`Pipeline: extracted ${extracted.length} memories from ${batch.length} events`);
+            } catch (err) {
+              console.error(`Failed: ${String(err)}`);
+            }
+          });
       },
       { commands: ["team-memory"] },
     );
@@ -652,6 +811,42 @@ const plugin = {
         if (decayTimer) { clearInterval(decayTimer); decayTimer = null; }
         if (riskTimer) { clearInterval(riskTimer); riskTimer = null; }
         api.logger.info("team-memory-engine: stopped");
+      },
+    });
+
+    // ========================================================================
+    // Pipeline service (event-log → extract → ledger → graph → TMS)
+    // ========================================================================
+
+    let pipelineTimer: ReturnType<typeof setInterval> | null = null;
+
+    api.registerService({
+      id: "team-memory-pipeline",
+      async start() {
+        if (!cfg.projectRoot) return; // Event log not configured
+
+        api.logger.info(`team-memory-pipeline: starting (5min interval, batchSize: ${cfg.extractionBatchSize})`);
+
+        pipelineTimer = setInterval(async () => {
+          try {
+            const eventLog = new EventLog(cfg.projectRoot);
+            const unprocessed = await eventLog.getUnprocessed();
+            if (unprocessed.length === 0) return;
+
+            const batch = unprocessed.slice(0, cfg.extractionBatchSize);
+            const extracted = await manager.injectFromEvent(batch);
+            if (extracted.length === 0) return;
+
+            await eventLog.markProcessed(batch.map((e) => e.id));
+            api.logger.info(`team-memory-pipeline: extracted ${extracted.length} memories from ${batch.length} events`);
+          } catch (err) {
+            api.logger.warn(`team-memory-pipeline: failed: ${String(err)}`);
+          }
+        }, 5 * 60 * 1000);
+      },
+      stop() {
+        if (pipelineTimer) { clearInterval(pipelineTimer); pipelineTimer = null; }
+        api.logger.info("team-memory-pipeline: stopped");
       },
     });
   },

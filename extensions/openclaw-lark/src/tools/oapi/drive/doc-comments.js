@@ -27,7 +27,7 @@ const ReplyElementSchema = typebox_1.Type.Object({
     url: typebox_1.Type.Optional(typebox_1.Type.String({ description: '链接URL(type=link时必填)' })),
 });
 const DocCommentsSchema = typebox_1.Type.Object({
-    action: (0, helpers_1.StringEnum)(['list', 'create', 'patch']),
+    action: (0, helpers_1.StringEnum)(['list', 'list_replies', 'create', 'reply', 'patch']),
     file_token: typebox_1.Type.String({
         description: '云文档token或wiki节点token(可从文档URL获取)。如果是wiki token，会自动转换为实际文档的obj_token',
     }),
@@ -43,13 +43,13 @@ const DocCommentsSchema = typebox_1.Type.Object({
     })),
     page_size: typebox_1.Type.Optional(typebox_1.Type.Integer({ description: '分页大小' })),
     page_token: typebox_1.Type.Optional(typebox_1.Type.String({ description: '分页标记' })),
-    // create action参数
+    // create / reply action参数
     elements: typebox_1.Type.Optional(typebox_1.Type.Array(ReplyElementSchema, {
-        description: '评论内容元素数组(action=create时必填)。' + '支持text(纯文本)、mention(@用户)、link(超链接)三种类型',
+        description: '评论内容元素数组(action=create/reply时必填)。' + '支持text(纯文本)、mention(@用户)、link(超链接)三种类型',
     })),
-    // patch action参数
+    // list_replies / reply / patch action参数
     comment_id: typebox_1.Type.Optional(typebox_1.Type.String({
-        description: '评论ID(action=patch时必填)',
+        description: '评论ID(action=list_replies/reply/patch时必填)',
     })),
     is_solved_value: typebox_1.Type.Optional(typebox_1.Type.Boolean({
         description: '解决状态:true=解决,false=恢复(action=patch时必填)',
@@ -109,7 +109,7 @@ async function assembleCommentsWithReplies(client, file_token, file_type, commen
                             page_size: 50,
                             user_id_type,
                         },
-                    }, opts), { as: 'user' });
+                    }, opts), { as: 'tenant' });
                     const replyData = replyRes.data;
                     if (replyRes.code === 0 && replyData?.items) {
                         replies.push(...(replyData.items || []));
@@ -145,8 +145,10 @@ function registerDocCommentsTool(api) {
         label: 'Feishu: Doc Comments',
         description: '【以用户身份】管理云文档评论。支持: ' +
             '(1) list - 获取评论列表(含完整回复); ' +
-            '(2) create - 添加全文评论(支持文本、@用户、超链接); ' +
-            '(3) patch - 解决/恢复评论。' +
+            '(2) list_replies - 获取指定评论的回复列表; ' +
+            '(3) create - 添加全文评论(支持文本、@用户、超链接); ' +
+            '(4) reply - 回复已有评论; ' +
+            '(5) patch - 解决/恢复评论。' +
             '支持 wiki token。',
         parameters: DocCommentsSchema,
         async execute(_toolCallId, params) {
@@ -176,7 +178,7 @@ function registerDocCommentsTool(api) {
                         }
                         actualFileToken = node.obj_token;
                         actualFileType = node.obj_type;
-                        log.info(`doc_comments: wiki token converted: obj_token="${actualFileToken}", obj_type="${actualFileType}"`);
+                        log.info(`doc_comments: wiki token converted, obj_type="${actualFileType}"`);
                     }
                     catch (err) {
                         log.error(`doc_comments: failed to convert wiki token: ${err}`);
@@ -187,7 +189,7 @@ function registerDocCommentsTool(api) {
                 }
                 // Action: list - 获取评论列表
                 if (p.action === 'list') {
-                    log.info(`doc_comments.list: file_token="${actualFileToken}", file_type=${actualFileType}`);
+                    log.info(`doc_comments.list: file_type=${actualFileType}`);
                     const res = await client.invoke('feishu_doc_comments.list', (sdk, opts) => sdk.drive.v1.fileComment.list({
                         path: { file_token: actualFileToken },
                         params: {
@@ -198,7 +200,7 @@ function registerDocCommentsTool(api) {
                             page_token: p.page_token,
                             user_id_type: userIdType,
                         },
-                    }, opts), { as: 'user' });
+                    }, opts), { as: 'tenant' });
                     (0, helpers_1.assertLarkOk)(res);
                     const items = res.data?.items || [];
                     log.info(`doc_comments.list: found ${items.length} comments`);
@@ -210,6 +212,35 @@ function registerDocCommentsTool(api) {
                         page_token: res.data?.page_token,
                     });
                 }
+                // Action: list_replies - 获取指定评论的回复列表
+                if (p.action === 'list_replies') {
+                    if (!p.comment_id) {
+                        return (0, helpers_1.json)({ error: 'comment_id 参数必填' });
+                    }
+                    log.info(`doc_comments.list_replies: comment_id="${p.comment_id}"`);
+                    // Single-page fetch — return items + pagination metadata,
+                    // consistent with the list action's API semantics.
+                    const replyRes = await client.invoke('feishu_doc_comments.list_replies', (sdk, opts) => sdk.drive.v1.fileCommentReply.list({
+                        path: {
+                            file_token: actualFileToken,
+                            comment_id: p.comment_id,
+                        },
+                        params: {
+                            file_type: actualFileType,
+                            page_token: p.page_token,
+                            page_size: p.page_size || 50,
+                            user_id_type: userIdType,
+                        },
+                    }, opts), { as: 'tenant' });
+                    (0, helpers_1.assertLarkOk)(replyRes);
+                    const replyData = replyRes.data;
+                    log.info(`doc_comments.list_replies: found ${replyData?.items?.length ?? 0} replies`);
+                    return (0, helpers_1.json)({
+                        items: replyData?.items ?? [],
+                        has_more: replyData?.has_more ?? false,
+                        page_token: replyData?.page_token,
+                    });
+                }
                 // Action: create - 创建评论
                 if (p.action === 'create') {
                     if (!p.elements || p.elements.length === 0) {
@@ -217,29 +248,67 @@ function registerDocCommentsTool(api) {
                             error: 'elements 参数必填且不能为空',
                         });
                     }
-                    log.info(`doc_comments.create: file_token="${actualFileToken}", elements=${p.elements.length}`);
+                    log.info(`doc_comments.create: file_type=${actualFileType}, elements=${p.elements.length}`);
                     const sdkElements = convertElementsToSDKFormat(p.elements);
+                    const commentData = {
+                        reply_list: {
+                            replies: [
+                                {
+                                    content: {
+                                        elements: sdkElements,
+                                    },
+                                },
+                            ],
+                        },
+                    };
                     const res = await client.invoke('feishu_doc_comments.create', (sdk, opts) => sdk.drive.v1.fileComment.create({
                         path: { file_token: actualFileToken },
                         params: {
                             file_type: actualFileType,
                             user_id_type: userIdType,
                         },
-                        data: {
-                            reply_list: {
-                                replies: [
-                                    {
-                                        content: {
-                                            elements: sdkElements,
-                                        },
-                                    },
-                                ],
-                            },
-                        },
-                    }, opts), { as: 'user' });
+                        data: commentData,
+                    }, opts), { as: 'tenant' });
                     (0, helpers_1.assertLarkOk)(res);
                     log.info(`doc_comments.create: created comment ${res.data?.comment_id}`);
                     return (0, helpers_1.json)(res.data);
+                }
+                // Action: reply - 回复已有评论
+                if (p.action === 'reply') {
+                    if (!p.comment_id) {
+                        return (0, helpers_1.json)({ error: 'comment_id 参数必填' });
+                    }
+                    if (!p.elements || p.elements.length === 0) {
+                        return (0, helpers_1.json)({ error: 'elements 参数必填且不能为空' });
+                    }
+                    log.info(`doc_comments.reply: comment_id="${p.comment_id}", elements=${p.elements.length}`);
+                    const sdkElements = convertElementsToSDKFormat(p.elements);
+                    // 使用 sdk.request() 发起请求（与 deliver.ts 一致），SDK 内部自动管理 TAT。
+                    // 双重 payload 格式兜底：先试 content.elements，失败再试 reply_elements。
+                    const replyUrl = `/open-apis/drive/v1/files/${actualFileToken}/comments/${p.comment_id}/replies`;
+                    const replyParams = { file_type: actualFileType, user_id_type: userIdType };
+                    let res;
+                    try {
+                        res = await client.invoke('feishu_doc_comments.reply', (sdk) => sdk.request({
+                            method: 'POST',
+                            url: replyUrl,
+                            params: replyParams,
+                            data: { content: { elements: sdkElements } },
+                        }), { as: 'tenant' });
+                    }
+                    catch (_firstErr) {
+                        // Fallback: 部分 API 版本使用 reply_elements 格式
+                        log.info(`doc_comments.reply: first attempt failed, trying reply_elements format`);
+                        res = await client.invoke('feishu_doc_comments.reply', (sdk) => sdk.request({
+                            method: 'POST',
+                            url: replyUrl,
+                            params: replyParams,
+                            data: { reply_elements: sdkElements },
+                        }), { as: 'tenant' });
+                    }
+                    (0, helpers_1.assertLarkOk)(res);
+                    log.info(`doc_comments.reply: created reply`);
+                    return (0, helpers_1.json)(res.data ?? res);
                 }
                 // Action: patch - 解决/恢复评论
                 if (p.action === 'patch') {

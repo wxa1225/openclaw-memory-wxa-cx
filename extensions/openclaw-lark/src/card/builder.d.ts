@@ -8,6 +8,7 @@
  * different agent response states (thinking, streaming, complete, confirm).
  */
 import type { FooterSessionMetrics } from './reply-dispatcher-types';
+import { type ToolUseDisplayStep } from './tool-use-display';
 /**
  * Element ID used for the streaming text area in cards. The CardKit
  * `cardElement.content()` API targets this element for typewriter-effect
@@ -15,12 +16,6 @@ import type { FooterSessionMetrics } from './reply-dispatcher-types';
  */
 export declare const STREAMING_ELEMENT_ID = "streaming_content";
 export declare const REASONING_ELEMENT_ID = "reasoning_content";
-export interface ToolCallInfo {
-    name: string;
-    status: 'running' | 'complete' | 'error';
-    args?: Record<string, unknown>;
-    result?: string;
-}
 export interface CardElement {
     tag: string;
     [key: string]: unknown;
@@ -77,6 +72,13 @@ export declare function formatReasoningDuration(ms: number): {
     en: string;
 };
 /**
+ * Format tool-use duration into a human-readable i18n pair.
+ */
+export declare function formatToolUseDuration(ms: number): {
+    zh: string;
+    en: string;
+};
+/**
  * Format milliseconds into a human-readable duration string.
  */
 export declare function formatElapsed(ms: number): string;
@@ -108,7 +110,13 @@ export declare function buildCardContent(state: CardState, data?: {
     text?: string;
     reasoningText?: string;
     reasoningElapsedMs?: number;
-    toolCalls?: ToolCallInfo[];
+    toolUseSteps?: ToolUseDisplayStep[];
+    toolUseTitleSuffix?: {
+        zh: string;
+        en: string;
+    };
+    toolUseElapsedMs?: number;
+    showToolUse?: boolean;
     confirmData?: ConfirmData;
     elapsedMs?: number;
     isError?: boolean;
@@ -127,4 +135,18 @@ export declare function buildCardContent(state: CardState, data?: {
  * Convert an old-format FeishuCard to CardKit JSON 2.0 format.
  * JSON 2.0 uses `body.elements` instead of top-level `elements`.
  */
+/**
+ * Build the initial CardKit 2.0 streaming card with a loading icon.
+ * Optionally includes a tool-use pending panel above the streaming area.
+ */
+export declare function buildStreamingThinkingCard(showToolUse?: boolean): Record<string, unknown>;
+/**
+ * Build a CardKit 2.0 card for the pre-answer streaming phase.
+ * Used both for the initial card and for live updates during tool calls.
+ */
+export declare function buildStreamingPreAnswerCard(params: {
+    steps?: ToolUseDisplayStep[];
+    elapsedMs?: number;
+    showToolUse?: boolean;
+}): Record<string, unknown>;
 export declare function toCardKit2(card: FeishuCard): Record<string, unknown>;

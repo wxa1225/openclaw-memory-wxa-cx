@@ -62,7 +62,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ToolClient = exports.UATDisabledError = exports.UserScopeInsufficientError = exports.UserAuthRequiredError = exports.AppScopeMissingError = exports.AppScopeCheckFailedError = exports.NeedAuthorizationError = exports.LARK_ERROR = void 0;
+exports.ToolClient = exports.UserScopeInsufficientError = exports.UserAuthRequiredError = exports.AppScopeMissingError = exports.AppScopeCheckFailedError = exports.NeedAuthorizationError = exports.LARK_ERROR = void 0;
 exports.createToolClient = createToolClient;
 const Lark = __importStar(require("@larksuiteoapi/node-sdk"));
 const accounts_1 = require("./accounts.js");
@@ -82,7 +82,6 @@ Object.defineProperty(exports, "AppScopeMissingError", { enumerable: true, get: 
 Object.defineProperty(exports, "LARK_ERROR", { enumerable: true, get: function () { return auth_errors_1.LARK_ERROR; } });
 Object.defineProperty(exports, "NeedAuthorizationError", { enumerable: true, get: function () { return auth_errors_1.NeedAuthorizationError; } });
 Object.defineProperty(exports, "UserAuthRequiredError", { enumerable: true, get: function () { return auth_errors_1.UserAuthRequiredError; } });
-Object.defineProperty(exports, "UATDisabledError", { enumerable: true, get: function () { return auth_errors_1.UATDisabledError; } });
 Object.defineProperty(exports, "UserScopeInsufficientError", { enumerable: true, get: function () { return auth_errors_1.UserScopeInsufficientError; } });
 const tcLog = (0, lark_logger_1.larkLogger)('core/tool-client');
 // ---------------------------------------------------------------------------
@@ -161,10 +160,6 @@ class ToolClient {
         // 2. 从 scope.ts 查询 API 需要的 scopes（Required Scopes）
         const requiredScopes = (0, scope_manager_1.getRequiredScopes)(toolAction);
         // 3. 决定 token 类型（默认 user，用户可通过 options.as 覆盖）
-        // ---- UAT 开关检查：uat.enabled === false 时禁止用户授权链路 ----
-        if (this.account.config.uat?.enabled === false && (options?.as === 'user' || options?.as === undefined)) {
-            throw new auth_errors_1.UATDisabledError(this.account.appId, toolAction);
-        }
         const tokenType = options?.as ?? 'user';
         // ---- App Granted Scopes 检查（应用已开通的权限）----
         // UAT 调用额外检查 offline_access（OAuth Device Flow 的前提权限），

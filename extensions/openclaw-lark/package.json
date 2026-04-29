@@ -1,6 +1,6 @@
 {
-  "name": "@lark-apaas/openclaw-lark",
-  "version": "2026.4.3",
+  "name": "@larksuite/openclaw-lark",
+  "version": "2026.4.8",
   "description": "OpenClaw Lark/Feishu channel plugin",
   "exports": {
     ".": {
@@ -12,7 +12,9 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "bin": "bin/openclaw-lark.js",
+  "bin": {
+    "openclaw-lark": "bin/openclaw-lark.js"
+  },
   "files": [
     "**/*"
   ],
@@ -52,7 +54,7 @@
       "quickstartAllowFrom": true
     },
     "install": {
-      "npmSpec": "@lark-apaas/openclaw-lark",
+      "npmSpec": "@larksuite/openclaw-lark",
       "localPath": "extensions/feishu",
       "defaultChoice": "npm"
     }

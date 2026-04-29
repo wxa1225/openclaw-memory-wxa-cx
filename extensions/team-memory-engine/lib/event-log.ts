@@ -1,0 +1,132 @@
+// Event Log — date-partitioned raw conversation capture (Layer 1)
+
+import * as fs from "fs";
+import * as path from "path";
+import type { EventLogEntry } from "./storage/types.js";
+
+export class EventLog {
+  private logDir: string;
+
+  constructor(projectRoot: string) {
+    this.logDir = path.join(projectRoot, "memory", "event-log");
+  }
+
+  /** Append a message to the event log */
+  async append(
+    entry: Omit<EventLogEntry, "id" | "storedAt" | "processedForExtraction">
+  ): Promise<EventLogEntry> {
+    await fs.promises.mkdir(this.logDir, { recursive: true });
+
+    const fullEntry: EventLogEntry = {
+      ...entry,
+      id: `evt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      storedAt: new Date().toISOString(),
+      processedForExtraction: false,
+    };
+    await this.appendToDailyFile(fullEntry);
+    return fullEntry;
+  }
+
+  /** Get all events for a date range */
+  async query(options: {
+    startDate?: string;
+    endDate?: string;
+    chatId?: string;
+    senderId?: string;
+  }): Promise<EventLogEntry[]> {
+    const files = await this.listFiles();
+    const results: EventLogEntry[] = [];
+
+    for (const file of files) {
+      const date = path.basename(file, ".json");
+      if (options.startDate && date < options.startDate) continue;
+      if (options.endDate && date > options.endDate) continue;
+
+      const entries = await this.readDailyFile(date);
+      for (const e of entries) {
+        if (options.chatId && e.chatId !== options.chatId) continue;
+        if (options.senderId && e.senderId !== options.senderId) continue;
+        results.push(e);
+      }
+    }
+
+    return results;
+  }
+
+  /** Get events not yet processed for memory extraction */
+  async getUnprocessed(): Promise<EventLogEntry[]> {
+    const all = await this.query({});
+    return all.filter((e) => !e.processedForExtraction);
+  }
+
+  /** Mark events as processed */
+  async markProcessed(ids: string[]): Promise<void> {
+    const idSet = new Set(ids);
+
+    // Group by date to minimize file I/O
+    const byDate = new Map<string, string[]>();
+    for (const entry of await this.query({})) {
+      if (idSet.has(entry.id)) {
+        const date = entry.storedAt.slice(0, 10);
+        if (!byDate.has(date)) byDate.set(date, []);
+        byDate.get(date)!.push(entry.id);
+      }
+    }
+
+    for (const [date, dateIds] of byDate) {
+      const entries = await this.readDailyFile(date);
+      let changed = false;
+      for (const e of entries) {
+        if (dateIds.includes(e.id) && !e.processedForExtraction) {
+          e.processedForExtraction = true;
+          changed = true;
+        }
+      }
+      if (changed) {
+        await this.writeDailyFile(date, entries);
+      }
+    }
+  }
+
+  // ---- Internal ----
+
+  private dateFilePath(date: string): string {
+    return path.join(this.logDir, `${date}.json`);
+  }
+
+  private async readDailyFile(date: string): Promise<EventLogEntry[]> {
+    const filePath = this.dateFilePath(date);
+    try {
+      const raw = await fs.promises.readFile(filePath, "utf-8");
+      return JSON.parse(raw);
+    } catch {
+      return [];
+    }
+  }
+
+  private async writeDailyFile(date: string, entries: EventLogEntry[]): Promise<void> {
+    const filePath = this.dateFilePath(date);
+    const tmpPath = filePath + ".tmp";
+    await fs.promises.writeFile(tmpPath, JSON.stringify(entries, null, 2), "utf-8");
+    await fs.promises.rename(tmpPath, filePath);
+  }
+
+  private async appendToDailyFile(entry: EventLogEntry): Promise<void> {
+    const date = entry.storedAt.slice(0, 10);
+    const entries = await this.readDailyFile(date);
+    entries.push(entry);
+    await this.writeDailyFile(date, entries);
+  }
+
+  private async listFiles(): Promise<string[]> {
+    try {
+      const files = await fs.promises.readdir(this.logDir);
+      return files
+        .filter((f) => f.endsWith(".json"))
+        .map((f) => path.join(this.logDir, f))
+        .sort();
+    } catch {
+      return [];
+    }
+  }
+}

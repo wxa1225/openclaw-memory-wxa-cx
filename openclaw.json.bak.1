@@ -1,7 +1,7 @@
 {
   "meta": {
     "lastTouchedVersion": "2026.4.11",
-    "lastTouchedAt": "2026-04-24T14:07:39.241Z"
+    "lastTouchedAt": "2026-04-26T09:24:22.731Z"
   },
   "wizard": {
     "lastRunAt": "2026-03-30T14:54:56.160Z",
@@ -365,27 +365,7 @@
         "provider": "miaoda-secret-provider",
         "id": "/channels_feishu_app_secret"
       },
-      "domain": "feishu",
-      "requireMention": true,
-      "dmPolicy": "allowlist",
-      "allowFrom": [
-        "ou_23ab1a1db6759ee9ae44a8e441a52153"
-      ],
-      "groupPolicy": "allowlist",
-      "groupAllowFrom": [
-        "ou_23ab1a1db6759ee9ae44a8e441a52153"
-      ],
-      "groups": {
-        "*": {
-          "enabled": true
-        }
-      },
-      "streaming": true,
-      "threadSession": true,
-      "footer": {
-        "elapsed": false,
-        "status": false
-      }
+      "domain": "feishu"
     }
   },
   "discovery": {
@@ -552,22 +532,20 @@
     }
   },
   "plugins": {
+    "slots": {
+      "memory": "team-memory-engine"
+    },
     "allow": [
-      "openclaw-lark",
       "openclaw-extension-miaoda-coding",
       "browser",
       "openclaw-mem0-plugin",
       "openclaw-extension-miaoda",
       "openclaw-guardian-plugin",
-      "memory-core",
       "team-memory-engine"
     ],
     "entries": {
       "feishu": {
         "enabled": false
-      },
-      "openclaw-lark": {
-        "enabled": true
       },
       "openclaw-extension-miaoda-coding": {
         "enabled": true
@@ -582,8 +560,8 @@
         "enabled": true,
         "config": {
           "teamId": "openclaw-team",
-          "decayCheckInterval": 60000,
-          "feishuChatId": ""
+          "decayCheckInterval": 1800000,
+          "feishuChatId": "oc_83d25a1a702dd5e85aa4666b1d07554a"
         }
       },
       "openclaw-mem0-plugin": {
@@ -599,9 +577,6 @@
             ]
           }
         }
-      },
-      "openclaw-guardian-plugin": {
-        "enabled": true
       }
     },
     "installs": {
@@ -669,7 +644,7 @@
         "installedAt": "2026-04-20T15:24:18.395Z"
       },
       "team-memory-engine": {
-        "source": "local",
+        "source": "path",
         "installPath": "./extensions/team-memory-engine",
         "version": "0.1.0"
       }

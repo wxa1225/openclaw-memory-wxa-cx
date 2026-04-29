@@ -1,4 +1,4 @@
-// TeamMemoryManager v2 — orchestrates Ledger + Graph + Risk + Decay + Mem0
+// TeamMemoryManager v2 — orchestrates Ledger + Graph + Risk + Decay + Mem0 + Extractor + TMS
 
 import { randomUUID } from "crypto";
 import type {
@@ -15,6 +15,7 @@ import type {
   GraphEdge,
   GraphData,
   ManagerV2Options,
+  EventLogEntry,
 } from "./storage/types.js";
 import {
   calculateStrengthFromLedger,
@@ -26,6 +27,8 @@ import { MemoryLedger, type InjectClaimOptions } from "./ledger.js";
 import { MemoryGraph } from "./graph.js";
 import { RiskModel } from "./risk.js";
 import { runMigration } from "./migrate.js";
+import { MemoryExtractor, type ExtractedMemory, type ExtractionConfig } from "./extractor.js";
+import { TeamCapabilityModel } from "./tms.js";
 
 export type { Mem0Provider } from "./storage/types.js";
 
@@ -40,6 +43,9 @@ export class TeamMemoryManager {
   private graph: MemoryGraph;
   private risk: RiskModel;
   private mem0: Mem0Provider;
+  private extractor: MemoryExtractor | null;
+  private tms: TeamCapabilityModel | null;
+  private projectRoot: string;
   private teamId: string;
   private defaultUserId: string;
   private reviewThreshold: number;
@@ -54,6 +60,7 @@ export class TeamMemoryManager {
     this.teamSize = options.teamSize ?? 5;
     this.enableGraph = options.enableGraph ?? true;
     this.hasMem0Key = !!(mem0 as Record<string, unknown>).apiKey;
+    this.projectRoot = options.projectRoot ?? "";
 
     this.ledger = new MemoryLedger(options.teamId, options.ledgerPath);
     this.graph = new MemoryGraph(options.teamId, options.graphPath);
@@ -62,6 +69,24 @@ export class TeamMemoryManager {
       teamSize: this.teamSize,
     });
     this.mem0 = mem0;
+
+    // LLM extractor (only if endpoint configured)
+    if (options.modelEndpoint && options.modelApiKey) {
+      this.extractor = new MemoryExtractor({
+        modelEndpoint: options.modelEndpoint,
+        modelApiKey: options.modelApiKey,
+        modelName: options.modelName ?? "qwen-plus",
+      });
+    } else {
+      this.extractor = null;
+    }
+
+    // TMS (only if project root configured)
+    if (this.projectRoot) {
+      this.tms = new TeamCapabilityModel(options.teamId, this.projectRoot);
+    } else {
+      this.tms = null;
+    }
   }
 
   // ---- Lifecycle ----
@@ -88,6 +113,63 @@ export class TeamMemoryManager {
   }
 
   // ---- Core Operations ----
+
+  /** Inject memories extracted from event log entries using LLM */
+  async injectFromEvent(entries: EventLogEntry[]): Promise<LedgerEntry[]> {
+    if (entries.length === 0) return [];
+
+    if (this.extractor) {
+      const extracted = await this.extractor.extract(entries, {
+        existingEntries: await this.ledger.getAllEntries(this.teamId),
+        teamId: this.teamId,
+      });
+      const results: LedgerEntry[] = [];
+      for (const mem of extracted) {
+        const entry = await this.ledger.injectClaim({
+          entity: mem.entity,
+          attribute: mem.attribute,
+          value: mem.value,
+          confidence: mem.confidence,
+          source: "llm_extraction",
+          injectedBy: "memory-extractor",
+          category: mem.category,
+          tags: mem.tags,
+          teamId: this.teamId,
+          recallHalfLife: 14,
+        });
+        results.push(entry);
+        await this._syncToMem0(entry, mem.value);
+        if (this.enableGraph) await this.graph.incrementalUpdate(entry);
+        for (const evt of entries) {
+          if (!evt.extractedMemoryIds) evt.extractedMemoryIds = [];
+          evt.extractedMemoryIds.push(entry.id);
+        }
+      }
+      await this._syncTms();
+      return results;
+    }
+
+    // Fallback: inject each event content as a raw memory (regex extraction)
+    const results: LedgerEntry[] = [];
+    for (const evt of entries) {
+      const entry = await this.ledger.injectClaim({
+        entity: "general",
+        attribute: "message",
+        value: evt.content,
+        confidence: 0.5,
+        source: "event_log_fallback",
+        injectedBy: evt.senderId || "unknown",
+        category: "general",
+        tags: [],
+        teamId: this.teamId,
+        recallHalfLife: 14,
+      });
+      results.push(entry);
+      if (this.enableGraph) await this.graph.incrementalUpdate(entry);
+    }
+    await this._syncTms();
+    return results;
+  }
 
   /** Inject a new team memory (ledger-backed) */
   async inject(text: string, options: InjectOptions = {}): Promise<InjectResult> {
@@ -120,6 +202,9 @@ export class TeamMemoryManager {
     if (this.enableGraph) {
       await this.graph.incrementalUpdate(entry);
     }
+
+    // Sync TMS
+    await this._syncTms();
 
     return {
       id: entry.id,
@@ -162,6 +247,9 @@ export class TeamMemoryManager {
     if (this.enableGraph) {
       await this.graph.incrementalUpdate(updated);
     }
+
+    // Sync TMS
+    await this._syncTms();
 
     return {
       id: updated.id,
@@ -395,6 +483,17 @@ export class TeamMemoryManager {
   }
 
   // ---- Internal Helpers ----
+
+  /** Sync TMS from current ledger state (best-effort) */
+  private async _syncTms(): Promise<void> {
+    if (!this.tms) return;
+    try {
+      const entries = await this.ledger.getAllEntries(this.teamId);
+      await this.tms.syncFromLedger(entries);
+    } catch {
+      // TMS sync failure — non-critical
+    }
+  }
 
   private async _saveEntry(entry: LedgerEntry): Promise<void> {
     // Re-implement since Ledger doesn't expose direct save

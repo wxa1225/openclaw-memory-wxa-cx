@@ -129,6 +129,9 @@ export declare const FeishuAccountConfigSchema: z.ZodObject<{
     }, z.core.$strip>]>>;
     streaming: z.ZodOptional<z.ZodBoolean>;
     blockStreaming: z.ZodOptional<z.ZodBoolean>;
+    toolUseDisplay: z.ZodOptional<z.ZodObject<{
+        showFullPaths: z.ZodOptional<z.ZodBoolean>;
+    }, z.core.$strip>>;
     tools: z.ZodOptional<z.ZodObject<{
         doc: z.ZodOptional<z.ZodBoolean>;
         wiki: z.ZodOptional<z.ZodBoolean>;
@@ -271,6 +274,9 @@ export declare const FeishuConfigSchema: z.ZodObject<{
     }, z.core.$strip>]>>;
     streaming: z.ZodOptional<z.ZodBoolean>;
     blockStreaming: z.ZodOptional<z.ZodBoolean>;
+    toolUseDisplay: z.ZodOptional<z.ZodObject<{
+        showFullPaths: z.ZodOptional<z.ZodBoolean>;
+    }, z.core.$strip>>;
     tools: z.ZodOptional<z.ZodObject<{
         doc: z.ZodOptional<z.ZodBoolean>;
         wiki: z.ZodOptional<z.ZodBoolean>;
@@ -412,6 +418,9 @@ export declare const FeishuConfigSchema: z.ZodObject<{
         }, z.core.$strip>]>>;
         streaming: z.ZodOptional<z.ZodBoolean>;
         blockStreaming: z.ZodOptional<z.ZodBoolean>;
+        toolUseDisplay: z.ZodOptional<z.ZodObject<{
+            showFullPaths: z.ZodOptional<z.ZodBoolean>;
+        }, z.core.$strip>>;
         tools: z.ZodOptional<z.ZodObject<{
             doc: z.ZodOptional<z.ZodBoolean>;
             wiki: z.ZodOptional<z.ZodBoolean>;

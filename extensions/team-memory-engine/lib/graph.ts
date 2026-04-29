@@ -43,191 +43,237 @@ export class MemoryGraph {
       if (!nodeMap.has(n.id)) nodeMap.set(n.id, n);
     };
     const addEdge = (e: GraphEdge) => {
-      // Deduplicate
       const existing = data.edges.find(
         (edge) => edge.source === e.source && edge.target === e.target && edge.type === e.type
       );
       if (!existing) data.edges.push(e);
     };
 
-    // Phase 1: Entity & Attribute extraction
     for (const entry of entries) {
-      const entityNode: GraphNode = {
-        id: nodeId("Entity", entry.entity),
-        type: "Entity",
-        label: entry.entity,
-        properties: { category: entry.category, tags: entry.tags },
-      };
-      addNode(entityNode);
-
-      const attrNode: GraphNode = {
-        id: nodeId("Attribute", `${entry.entity}.${entry.attribute}`),
-        type: "Attribute",
-        label: entry.attribute,
-        properties: { entity: entry.entity },
-      };
-      addNode(attrNode);
-
-      addEdge({
-        id: edgeId(entityNode.id, attrNode.id, "has_preference"),
-        source: entityNode.id,
-        target: attrNode.id,
-        type: "has_preference",
-      });
-
-      // Phase 2: Version chain linking
-      for (let i = 0; i < entry.claims.length; i++) {
-        const claim = entry.claims[i];
-        const memNode: GraphNode = {
-          id: nodeId("Memory", `${entry.id}-v${claim.version}`),
-          type: "Memory",
-          label: `v${claim.version}: ${claim.value.substring(0, 40)}`,
-          properties: {
-            version: claim.version,
-            confidence: claim.confidence,
-            status: claim.status,
-            valid_from: claim.valid_from,
-            valid_to: claim.valid_to,
-          },
-        };
-        addNode(memNode);
-
-        // Link entity → memory
-        addEdge({
-          id: edgeId(entityNode.id, memNode.id, "related_memory"),
-          source: entityNode.id,
-          target: memNode.id,
-          type: "related_memory",
-        });
-
-        // Link attribute → memory (current value)
-        if (claim.status === "active" || claim.status === undefined) {
-          addEdge({
-            id: edgeId(attrNode.id, memNode.id, "current_value"),
-            source: attrNode.id,
-            target: memNode.id,
-            type: "current_value",
-          });
-        } else if (claim.status === "superseded") {
-          addEdge({
-            id: edgeId(attrNode.id, memNode.id, "old_value"),
-            source: attrNode.id,
-            target: memNode.id,
-            type: "old_value",
-          });
-        }
-
-        // Supersedes edge (v(i+1) supersedes v(i))
-        if (i > 0) {
-          const prevClaim = entry.claims[i - 1];
-          addEdge({
-            id: edgeId(
-              nodeId("Memory", `${entry.id}-v${claim.version}`),
-              nodeId("Memory", `${entry.id}-v${prevClaim.version}`),
-              "supersedes"
-            ),
-            source: nodeId("Memory", `${entry.id}-v${claim.version}`),
-            target: nodeId("Memory", `${entry.id}-v${prevClaim.version}`),
-            type: "supersedes",
-          });
-        }
-      }
-
-      // Phase 3: Provenance linking
-      for (const claim of entry.claims) {
-        if (claim.source) {
-          const eventNode: GraphNode = {
-            id: nodeId("Event", claim.source),
-            type: "Event",
-            label: claim.source,
-            properties: { source: claim.source },
-          };
-          addNode(eventNode);
-
-          const memNode = nodeId("Memory", `${entry.id}-v${claim.version}`);
-          addEdge({
-            id: edgeId(memNode, eventNode.id, "derived_from"),
-            source: memNode,
-            target: eventNode.id,
-            type: "derived_from",
-          });
-        }
-      }
-
-      // Phase 4: Social linking
-      for (const claim of entry.claims) {
-        // injected_by
-        const injectorNode: GraphNode = {
-          id: nodeId("Person", claim.injected_by),
-          type: "Person",
-          label: claim.injected_by,
-          properties: { role: "injector" },
-        };
-        addNode(injectorNode);
-
-        const memNode = nodeId("Memory", `${entry.id}-v${claim.version}`);
-        addEdge({
-          id: edgeId(memNode, injectorNode.id, "injected_by"),
-          source: memNode,
-          target: injectorNode.id,
-          type: "injected_by",
-        });
-
-        // confirmed_by
-        for (const confirmer of claim.confirmed_by) {
-          const confirmerNode: GraphNode = {
-            id: nodeId("Person", confirmer),
-            type: "Person",
-            label: confirmer,
-            properties: { role: "confirmer" },
-          };
-          addNode(confirmerNode);
-
-          addEdge({
-            id: edgeId(memNode, confirmerNode.id, "confirmed_by"),
-            source: memNode,
-            target: confirmerNode.id,
-            type: "confirmed_by",
-          });
-        }
-      }
-
-      // Phase 5: Impact propagation
-      for (const depId of entry.dependency_graph) {
-        const taskNode: GraphNode = {
-          id: nodeId("Task", depId),
-          type: "Task",
-          label: depId,
-          properties: { type: "dependency" },
-        };
-        addNode(taskNode);
-
-        // Link active memory version to task
-        const activeClaim = entry.claims.find(
-          (c) => c.status === "active" || c.status === undefined
-        );
-        if (activeClaim) {
-          const memNode = nodeId("Memory", `${entry.id}-v${activeClaim.version}`);
-          addEdge({
-            id: edgeId(memNode, taskNode.id, "affects"),
-            source: memNode,
-            target: taskNode.id,
-            type: "affects",
-          });
-        }
-      }
+      const subgraph = this._buildEntrySubgraph(entry);
+      for (const n of subgraph.nodes) addNode(n);
+      for (const e of subgraph.edges) addEdge(e);
     }
 
     data.nodes = Array.from(nodeMap.values());
     await this.storage.replace(data);
   }
 
-  /** Incrementally update graph when a single entry changes */
+  /** True incremental update: remove old subgraph for entry, insert new */
   async incrementalUpdate(entry: LedgerEntry): Promise<void> {
-    // Simple approach: rebuild affected portion
-    // In production, this would be more granular
-    const allEntries = await this._getAllEntriesForGraph();
-    await this.rebuildFromLedger(allEntries);
+    const data = await this.storage.load();
+
+    // Remove old nodes/edges for this entry
+    const prefix = nodeId("Memory", `${entry.id}-`);
+    data.nodes = data.nodes.filter((n) => !n.id.startsWith(prefix));
+    data.edges = data.edges.filter(
+      (e) => !e.source.startsWith(prefix) && !e.target.startsWith(prefix)
+    );
+
+    // Also remove stale entity/attribute edges that pointed to old memory nodes
+    data.edges = data.edges.filter((e) => {
+      if (e.type === "related_memory" || e.type === "current_value" || e.type === "old_value") {
+        if (e.target.startsWith(prefix)) return false;
+      }
+      return true;
+    });
+
+    // Build and add new subgraph
+    const subgraph = this._buildEntrySubgraph(entry);
+
+    // Add nodes (deduplicate against existing)
+    for (const n of subgraph.nodes) {
+      if (!data.nodes.find((existing) => existing.id === n.id)) {
+        data.nodes.push(n);
+      }
+    }
+
+    // Add edges (deduplicate)
+    for (const e of subgraph.edges) {
+      if (!data.edges.find((existing) => existing.id === e.id)) {
+        data.edges.push(e);
+      }
+    }
+
+    await this.storage.replace(data);
+  }
+
+  /** Build graph subgraph for a single ledger entry */
+  private _buildEntrySubgraph(entry: LedgerEntry): { nodes: GraphNode[]; edges: GraphEdge[] } {
+    const nodes: GraphNode[] = [];
+    const edges: GraphEdge[] = [];
+
+    const addNode = (n: GraphNode) => {
+      if (!nodes.find((existing) => existing.id === n.id)) nodes.push(n);
+    };
+    const addEdge = (e: GraphEdge) => {
+      if (!edges.find((existing) => existing.id === e.id)) edges.push(e);
+    };
+
+    // Phase 1: Entity & Attribute
+    const entityNode: GraphNode = {
+      id: nodeId("Entity", entry.entity),
+      type: "Entity",
+      label: entry.entity,
+      properties: { category: entry.category, tags: entry.tags },
+    };
+    addNode(entityNode);
+
+    const attrNode: GraphNode = {
+      id: nodeId("Attribute", `${entry.entity}.${entry.attribute}`),
+      type: "Attribute",
+      label: entry.attribute,
+      properties: { entity: entry.entity },
+    };
+    addNode(attrNode);
+
+    addEdge({
+      id: edgeId(entityNode.id, attrNode.id, "has_preference"),
+      source: entityNode.id,
+      target: attrNode.id,
+      type: "has_preference",
+    });
+
+    // Phase 2: Version chain linking
+    for (let i = 0; i < entry.claims.length; i++) {
+      const claim = entry.claims[i];
+      const memNode: GraphNode = {
+        id: nodeId("Memory", `${entry.id}-v${claim.version}`),
+        type: "Memory",
+        label: `v${claim.version}: ${claim.value.substring(0, 40)}`,
+        properties: {
+          version: claim.version,
+          confidence: claim.confidence,
+          status: claim.status,
+          valid_from: claim.valid_from,
+          valid_to: claim.valid_to,
+        },
+      };
+      addNode(memNode);
+
+      // Link entity → memory
+      addEdge({
+        id: edgeId(entityNode.id, memNode.id, "related_memory"),
+        source: entityNode.id,
+        target: memNode.id,
+        type: "related_memory",
+      });
+
+      // Link attribute → memory (current vs old value)
+      if (claim.status === "active" || claim.status === undefined) {
+        addEdge({
+          id: edgeId(attrNode.id, memNode.id, "current_value"),
+          source: attrNode.id,
+          target: memNode.id,
+          type: "current_value",
+        });
+      } else if (claim.status === "superseded") {
+        addEdge({
+          id: edgeId(attrNode.id, memNode.id, "old_value"),
+          source: attrNode.id,
+          target: memNode.id,
+          type: "old_value",
+        });
+      }
+
+      // Supersedes edge
+      if (i > 0) {
+        const prevClaim = entry.claims[i - 1];
+        addEdge({
+          id: edgeId(
+            nodeId("Memory", `${entry.id}-v${claim.version}`),
+            nodeId("Memory", `${entry.id}-v${prevClaim.version}`),
+            "supersedes"
+          ),
+          source: nodeId("Memory", `${entry.id}-v${claim.version}`),
+          target: nodeId("Memory", `${entry.id}-v${prevClaim.version}`),
+          type: "supersedes",
+        });
+      }
+    }
+
+    // Phase 3: Provenance linking
+    for (const claim of entry.claims) {
+      if (claim.source) {
+        const eventNode: GraphNode = {
+          id: nodeId("Event", claim.source),
+          type: "Event",
+          label: claim.source,
+          properties: { source: claim.source },
+        };
+        addNode(eventNode);
+
+        const memNodeId = nodeId("Memory", `${entry.id}-v${claim.version}`);
+        addEdge({
+          id: edgeId(memNodeId, eventNode.id, "derived_from"),
+          source: memNodeId,
+          target: eventNode.id,
+          type: "derived_from",
+        });
+      }
+    }
+
+    // Phase 4: Social linking
+    for (const claim of entry.claims) {
+      const injectorNode: GraphNode = {
+        id: nodeId("Person", claim.injected_by),
+        type: "Person",
+        label: claim.injected_by,
+        properties: { role: "injector" },
+      };
+      addNode(injectorNode);
+
+      const memNodeId = nodeId("Memory", `${entry.id}-v${claim.version}`);
+      addEdge({
+        id: edgeId(memNodeId, injectorNode.id, "injected_by"),
+        source: memNodeId,
+        target: injectorNode.id,
+        type: "injected_by",
+      });
+
+      for (const confirmer of claim.confirmed_by) {
+        const confirmerNode: GraphNode = {
+          id: nodeId("Person", confirmer),
+          type: "Person",
+          label: confirmer,
+          properties: { role: "confirmer" },
+        };
+        addNode(confirmerNode);
+
+        addEdge({
+          id: edgeId(memNodeId, confirmerNode.id, "confirmed_by"),
+          source: memNodeId,
+          target: confirmerNode.id,
+          type: "confirmed_by",
+        });
+      }
+    }
+
+    // Phase 5: Impact propagation
+    for (const depId of entry.dependency_graph) {
+      const taskNode: GraphNode = {
+        id: nodeId("Task", depId),
+        type: "Task",
+        label: depId,
+        properties: { type: "dependency" },
+      };
+      addNode(taskNode);
+
+      const activeClaim = entry.claims.find(
+        (c) => c.status === "active" || c.status === undefined
+      );
+      if (activeClaim) {
+        const memNodeId = nodeId("Memory", `${entry.id}-v${activeClaim.version}`);
+        addEdge({
+          id: edgeId(memNodeId, taskNode.id, "affects"),
+          source: memNodeId,
+          target: taskNode.id,
+          type: "affects",
+        });
+      }
+    }
+
+    return { nodes, edges };
   }
 
   // ---- Node/Edge CRUD ----
@@ -299,14 +345,5 @@ export class MemoryGraph {
     }
 
     return { values, people: Array.from(people) };
-  }
-
-  // ---- Internal ----
-
-  private async _getAllEntriesForGraph(): Promise<LedgerEntry[]> {
-    // This is a circular dependency workaround — in the full implementation,
-    // the manager passes entries to the graph. Here we just return empty
-    // since incrementalUpdate is called by manager with the specific entry.
-    return [];
   }
 }

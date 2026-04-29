@@ -11,7 +11,7 @@
  * 其他模块应直接 import 此文件，或通过 tool-client / uat-client 的 re-export 使用。
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UATDisabledError = exports.UserScopeInsufficientError = exports.UserAuthRequiredError = exports.AppScopeMissingError = exports.AppScopeCheckFailedError = exports.NeedAuthorizationError = exports.TOKEN_RETRY_CODES = exports.MESSAGE_TERMINAL_CODES = exports.REFRESH_TOKEN_RETRYABLE = exports.LARK_ERROR = void 0;
+exports.UserScopeInsufficientError = exports.UserAuthRequiredError = exports.AppScopeMissingError = exports.AppScopeCheckFailedError = exports.NeedAuthorizationError = exports.TOKEN_RETRY_CODES = exports.MESSAGE_TERMINAL_CODES = exports.REFRESH_TOKEN_RETRYABLE = exports.LARK_ERROR = void 0;
 // ---------------------------------------------------------------------------
 // Feishu error code constants
 // ---------------------------------------------------------------------------
@@ -144,24 +144,6 @@ exports.UserAuthRequiredError = UserAuthRequiredError;
  *
  * 需要增量授权：用缺失的 scope 发起新 Device Flow。
  */
-/**
- * 配置中 uat.enabled 为 false，禁止使用用户授权链路。
- *
- * auto-auth 不识别此错误类型，会走 formatLarkError 兜底返回 error message，
- * 不会触发 OAuth Device Flow。
- */
-class UATDisabledError extends Error {
-    appId;
-    apiName;
-    constructor(appId, apiName) {
-        super(`User access token (UAT) is disabled for app ${appId}. ` +
-            `Set channels.feishu.uat.enabled to true to enable user authorization.`);
-        this.name = 'UATDisabledError';
-        this.appId = appId;
-        this.apiName = apiName;
-    }
-}
-exports.UATDisabledError = UATDisabledError;
 class UserScopeInsufficientError extends Error {
     userOpenId;
     apiName;

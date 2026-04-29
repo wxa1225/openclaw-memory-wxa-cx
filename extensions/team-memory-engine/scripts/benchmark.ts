@@ -253,6 +253,119 @@ async function testLedgerConflictDetection(): Promise<{ passed: boolean; details
   };
 }
 
+// ---- Test 6: Memory Retention (7-day correct rate) ----
+async function testMemoryRetention(): Promise<{ passed: boolean; details: string }> {
+  const mgr = createTestManager("retention-team", "/tmp");
+
+  // Inject 30 memories
+  const injected: Array<{ id: string; idx: number }> = [];
+  for (let i = 0; i < 30; i++) {
+    const r = await mgr.inject(`Retention test memory ${i}: important fact number ${i}`, {
+      category: "general", tags: [`retention-${i}`],
+    });
+    injected.push({ id: r.id, idx: i });
+  }
+
+  // Simulate time passing by directly modifying valid_from timestamps
+  const entries = await (mgr as any).ledger.getAllEntries("retention-team");
+  for (const entry of entries) {
+    for (const claim of entry.claims) {
+      if (claim.status === "active") {
+        claim.valid_from = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      }
+    }
+    await (mgr as any).ledger.storage.set(entry.id, entry);
+  }
+
+  // Search for each memory and check if found
+  let found = 0;
+  for (const { id, idx } of injected) {
+    const results = await mgr.search(`important fact number ${idx}`);
+    if (results.find((r) => r.id === id)) found++;
+  }
+
+  const rate = found / injected.length;
+  return {
+    passed: rate >= 0.8,
+    details: `7-day retention: ${found}/${injected.length} (${(rate * 100).toFixed(0)}%) memories still retrievable`,
+  };
+}
+
+// ---- Test 7: Noise Robustness (1000 items) ----
+async function testNoiseRobustness(): Promise<{ passed: boolean; details: string }> {
+  const mgr = createTestManager("noise-team", "/tmp");
+
+  // Inject signal
+  const signal = await mgr.inject("The production API key is prod-abc-123-xyz", {
+    category: "api", tags: ["critical", "production"],
+  });
+
+  // Inject 1000 noise items
+  const start = Date.now();
+  for (let i = 0; i < 1000; i++) {
+    await mgr.inject(`Noise item ${i}: random discussion about topic ${i % 20}`, {
+      category: "general", tags: [`noise-${i}`],
+    });
+  }
+  const injectTime = Date.now() - start;
+
+  // Search for signal
+  const results = await mgr.search("production API key");
+  const found = results.find((r) => r.id === signal.id);
+
+  return {
+    passed: !!found && results.indexOf(found!) < 5,
+    details: `Signal found at position ${found ? results.indexOf(found) + 1 : "NOT FOUND"}/1001. Inject time: ${injectTime}ms`,
+  };
+}
+
+// ---- Test 8: Over-Reminder Rate ----
+async function testOverReminderRate(): Promise<{ passed: boolean; details: string }> {
+  const mgr = createTestManager("reminder-team", "/tmp");
+
+  // Inject 20 memories with varied profiles
+  for (let i = 0; i < 20; i++) {
+    await mgr.inject(`Memory ${i}: some content for over-reminder test ${i}`, {
+      category: i < 5 ? "decision" : "general",
+      tags: i < 3 ? ["critical"] : [],
+    });
+  }
+
+  // Simulate moderate decay (14 days) and GOOD coverage (multiple confirmers)
+  const entries = await (mgr as any).ledger.getAllEntries("reminder-team");
+  for (const entry of entries) {
+    for (const claim of entry.claims) {
+      if (claim.status === "active") {
+        claim.valid_from = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+        // Add multiple confirmers to reduce coverage risk
+        claim.confirmed_by = ["alice", "bob", "charlie", "dave"];
+      }
+    }
+    entry.access_count = 8 + Math.floor(Math.random() * 5); // high usage
+    await (mgr as any).ledger.storage.set(entry.id, entry);
+  }
+
+  // Check reminders
+  const riskScores = await mgr.assessRisk();
+  const triggered = riskScores.filter((s) => s.triggered);
+
+  // Over-reminder = low business impact memories triggering alerts
+  // With good coverage and usage, general memories should NOT trigger
+  const overReminders = triggered.filter((s) => {
+    const entry = entries.find((e: any) => e.id === s.memoryId);
+    return entry && entry.category === "general" && !entry.tags?.includes("critical");
+  });
+
+  // Expected: only the 3 "critical" tagged general memories or high-impact decisions trigger
+  const totalTriggered = triggered.length;
+  const rate = totalTriggered > 0 ? overReminders.length / totalTriggered : 0;
+
+  return {
+    passed: rate < 0.3,
+    details: `Over-reminder rate: ${(rate * 100).toFixed(0)}% (${overReminders.length}/${totalTriggered} triggers are low-impact general memories. Total risk: ${triggered.map((s: any) => `${s.memoryId}=${(s.totalRisk * 100).toFixed(0)}%`).join(", ")})`,
+  };
+}
+
 function computeStats(arr: number[]): Record<string, number> {
   if (arr.length === 0) return { avg: 0, p50: 0, p95: 0 };
   const sorted = [...arr].sort((a, b) => a - b);
@@ -297,6 +410,24 @@ async function main() {
   results.push({ name: "Conflict Detection", ...conflictDetection });
   console.log(`PASSED: ${conflictDetection.passed}`);
   console.log(`Details: ${conflictDetection.details}\n`);
+
+  console.log("\n--- Test 6: Memory Retention (7-day) ---");
+  const retention = await testMemoryRetention();
+  results.push({ name: "Memory Retention", ...retention });
+  console.log(`PASSED: ${retention.passed}`);
+  console.log(`Details: ${retention.details}\n`);
+
+  console.log("--- Test 7: Noise Robustness (1000 items) ---");
+  const noise = await testNoiseRobustness();
+  results.push({ name: "Noise Robustness", ...noise });
+  console.log(`PASSED: ${noise.passed}`);
+  console.log(`Details: ${noise.details}\n`);
+
+  console.log("--- Test 8: Over-Reminder Rate ---");
+  const overReminder = await testOverReminderRate();
+  results.push({ name: "Over-Reminder Rate", ...overReminder });
+  console.log(`PASSED: ${overReminder.passed}`);
+  console.log(`Details: ${overReminder.details}\n`);
 
   console.log("\n=== Benchmark Complete ===");
   const allPassed = results.every((r) => r.passed);

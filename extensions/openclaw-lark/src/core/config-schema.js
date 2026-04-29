@@ -163,6 +163,11 @@ exports.FeishuAccountConfigSchema = zod_1.z.object({
     replyMode: ReplyModeSchema,
     streaming: zod_1.z.boolean().optional(),
     blockStreaming: zod_1.z.boolean().optional(),
+    toolUseDisplay: zod_1.z
+        .object({
+        showFullPaths: zod_1.z.boolean().optional(),
+    })
+        .optional(),
     tools: FeishuToolsFlagSchema,
     footer: FeishuFooterSchema,
     markdown: MarkdownConfigSchema,

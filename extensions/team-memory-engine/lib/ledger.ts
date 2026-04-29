@@ -34,7 +34,7 @@ export interface InjectClaimOptions {
 export interface ConflictResolution {
   action: "confirm" | "update" | "dismiss";
   entryId: string;
-  resolvedBy: string;
+  resolvedBy: string; // Feishu open_id of the resolver
 }
 
 export class MemoryLedger {
@@ -228,13 +228,22 @@ export class MemoryLedger {
 
     switch (resolution.action) {
       case "confirm": {
-        // Keep existing, dismiss new claim
+        // Keep existing, dismiss new claim, add resolver to confirmed_by
+        for (const claim of existingEntry.claims) {
+          if (claim.status === "active" || claim.status === "conflicting" || claim.status === undefined) {
+            if (!claim.confirmed_by.includes(resolution.resolvedBy)) {
+              claim.confirmed_by.push(resolution.resolvedBy);
+            }
+            if (claim.status === "conflicting") claim.status = "active";
+          }
+        }
         existingEntry.updatedAt = new Date().toISOString();
         await this.storage.set(existingEntry.id, existingEntry);
         return existingEntry;
       }
       case "update": {
-        // Supersede old claim, activate new claim
+        // Supersede old claim, activate new claim, add resolver
+        newClaim.confirmed_by = [resolution.resolvedBy];
         return this._applySupersede(existingEntry, newClaim);
       }
       case "dismiss": {
@@ -304,7 +313,7 @@ export class MemoryLedger {
     target: LedgerEntry,
     options: InjectClaimOptions,
     now: string
-  ): LedgerEntry {
+  ): Promise<LedgerEntry> {
     // Check if this is a confirmation (same value)
     const activeClaim = target.claims.find(
       (c) => c.status === "active" || c.status === undefined
@@ -446,4 +455,4 @@ export class MemoryLedger {
 }
 
 // Re-export types used by consumers
-export type { LedgerEntry, LedgerClaim, ConflictResult, ConflictResolution };
+export type { LedgerEntry, LedgerClaim, ConflictResult };

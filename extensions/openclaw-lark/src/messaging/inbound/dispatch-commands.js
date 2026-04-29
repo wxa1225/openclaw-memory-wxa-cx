@@ -14,6 +14,7 @@ exports.dispatchSystemCommand = dispatchSystemCommand;
 const lark_logger_1 = require("../../core/lark-logger.js");
 const lark_ticket_1 = require("../../core/lark-ticket.js");
 const reply_dispatcher_1 = require("../../card/reply-dispatcher.js");
+const tool_use_trace_store_1 = require("../../card/tool-use-trace-store.js");
 const send_1 = require("../outbound/send.js");
 const dispatch_builders_1 = require("./dispatch-builders.js");
 const log = (0, lark_logger_1.larkLogger)('inbound/dispatch-commands');
@@ -44,15 +45,22 @@ async function dispatchPermissionNotification(dc, permissionError, replyToMessag
         messageSid: `${dc.ctx.messageId}:permission-error`,
         wasMentioned: false,
     });
+    (0, tool_use_trace_store_1.startToolUseTraceRun)(dc.threadSessionKey ?? dc.route.sessionKey);
     const { dispatcher: permDispatcher, replyOptions: permReplyOptions, markDispatchIdle: markPermIdle, markFullyComplete: markPermComplete, } = (0, reply_dispatcher_1.createFeishuReplyDispatcher)({
         cfg: dc.accountScopedCfg,
         agentId: dc.route.agentId,
-        sessionKey: dc.threadSessionKey ?? dc.route.sessionKey,
         chatId: dc.ctx.chatId,
+        sessionKey: dc.threadSessionKey ?? dc.route.sessionKey,
         replyToMessageId: replyToMessageId ?? dc.ctx.messageId,
         accountId: dc.account.accountId,
         chatType: dc.ctx.chatType,
         replyInThread: dc.isThread,
+        toolUseDisplay: {
+            mode: 'off',
+            showToolUse: false,
+            showToolResultDetails: false,
+            showFullPaths: false,
+        },
     });
     dc.log(`feishu[${dc.account.accountId}]: dispatching permission error notification to agent`);
     await dc.core.channel.reply.dispatchReplyFromConfig({
@@ -74,13 +82,17 @@ async function dispatchPermissionNotification(dc, permissionError, replyToMessag
  */
 async function dispatchSystemCommand(dc, ctxPayload, replyToMessageId) {
     let delivered = false;
+    const suppressToolDetails = isLifecycleSessionCommand(dc.ctx.content);
     dc.log(`feishu[${dc.account.accountId}]: detected system command, using plain-text dispatch`);
     log.info('system command detected, plain-text dispatch');
     await dc.core.channel.reply.dispatchReplyWithBufferedBlockDispatcher({
         ctx: ctxPayload,
         cfg: dc.accountScopedCfg,
         dispatcherOptions: {
-            deliver: async (payload) => {
+            deliver: async (payload, info) => {
+                if (suppressToolDetails && info.kind === 'tool') {
+                    return;
+                }
                 const text = payload.text?.trim() ?? '';
                 if (!text)
                     return;
@@ -107,4 +119,13 @@ async function dispatchSystemCommand(dc, ctxPayload, replyToMessageId) {
     });
     dc.log(`feishu[${dc.account.accountId}]: system command dispatched (delivered=${delivered})`);
     log.info(`system command dispatched (delivered=${delivered}, elapsed=${(0, lark_ticket_1.ticketElapsed)()}ms)`);
+}
+function isLifecycleSessionCommand(text) {
+    if (!text)
+        return false;
+    const match = text.trim().match(/^\/([^\s@]+)/);
+    if (!match)
+        return false;
+    const command = match[1]?.toLowerCase();
+    return command === 'new' || command === 'reset';
 }

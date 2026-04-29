@@ -69,6 +69,8 @@ async function handleFeishuMessage(params) {
     ctx = enrichedCtx;
     log(`feishu[${account.accountId}]: received message from ${ctx.senderId} in ${ctx.chatId} (${ctx.chatType})`);
     logger.info(`received from ${ctx.senderId} in ${ctx.chatId} (${ctx.chatType})`);
+    // 3b. Event Log capture: record raw message for team-memory extraction
+    await captureEventToEventLog(ctx, accountId, accountFeishuCfg?.projectRoot);
     const historyLimit = Math.max(0, accountFeishuCfg?.historyLimit ?? accountScopedCfg.messages?.groupChat?.historyLimit ?? reply_history_1.DEFAULT_GROUP_HISTORY_LIMIT);
     // 4. Gate: policy / access-control checks (skipped for synthetic messages)
     const gate = forceMention
@@ -177,4 +179,31 @@ async function handleFeishuMessage(params) {
         logger.error(`dispatch failed: ${String(err)} (elapsed=${(0, lark_ticket_1.ticketElapsed)()}ms)`);
     }
 }
+
+// ---------------------------------------------------------------------------
+// Event Log capture hook (for team-memory-engine)
+// ---------------------------------------------------------------------------
+async function captureEventToEventLog(ctx, accountId, projectRoot) {
+    if (!projectRoot) return; // not enabled
+    try {
+        const { EventLog } = await import("../../../../team-memory-engine/lib/event-log.js");
+        const eventLog = new EventLog(projectRoot);
+        await eventLog.append({
+            chatId: ctx.chatId,
+            chatType: ctx.chatType === "group" ? "group" : "p2p",
+            senderId: ctx.senderId,
+            senderName: ctx.senderName,
+            content: ctx.content,
+            contentType: "text",
+            messageId: ctx.messageId || "",
+            threadId: ctx.threadId,
+            participants: ctx.participants,
+            tags: [],
+        });
+    }
+    catch {
+        // Memory engine not installed — silently ignore
+    }
+}
+
 (0, handler_registry_1.injectInboundHandler)(handleFeishuMessage);

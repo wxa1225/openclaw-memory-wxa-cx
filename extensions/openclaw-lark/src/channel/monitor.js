@@ -77,6 +77,8 @@ async function monitorSingleAccount(params) {
             'im.chat.access_event.bot_p2p_chat_entered_v1': async () => { },
             'im.chat.member.bot.added_v1': (data) => (0, event_handlers_1.handleBotMembershipEvent)(ctx, data, 'added'),
             'im.chat.member.bot.deleted_v1': (data) => (0, event_handlers_1.handleBotMembershipEvent)(ctx, data, 'removed'),
+            // Drive comment event — fires when a user adds a comment or reply on a document.
+            'drive.notice.comment_add_v1': (data) => (0, event_handlers_1.handleCommentEvent)(ctx, data),
             // 飞书 SDK EventDispatcher.register 不支持带返回值的处理器，此处 as any 是 SDK 类型限制的变通
             'card.action.trigger': ((data) => 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any

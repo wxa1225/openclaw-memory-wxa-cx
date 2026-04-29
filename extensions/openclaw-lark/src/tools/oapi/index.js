@@ -39,6 +39,7 @@ function registerOapiTools(api) {
     // Task tools
     (0, index_3.registerFeishuTaskTaskTool)(api);
     (0, index_3.registerFeishuTaskTasklistTool)(api);
+    (0, index_3.registerFeishuTaskSectionTool)(api);
     (0, index_3.registerFeishuTaskCommentTool)(api);
     (0, index_3.registerFeishuTaskSubtaskTool)(api);
     // Bitable tools

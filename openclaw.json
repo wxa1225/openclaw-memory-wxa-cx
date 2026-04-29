@@ -1,7 +1,7 @@
 {
   "meta": {
     "lastTouchedVersion": "2026.4.11",
-    "lastTouchedAt": "2026-04-26T09:24:22.731Z"
+    "lastTouchedAt": "2026-04-29T13:55:47.696Z"
   },
   "wizard": {
     "lastRunAt": "2026-03-30T14:54:56.160Z",
@@ -359,19 +359,24 @@
   "channels": {
     "feishu": {
       "enabled": true,
-      "appId": "cli_a961d51ee038dcd1",
+      "appId": "cli_a961d5100db85cca",
       "appSecret": {
         "source": "file",
         "provider": "miaoda-secret-provider",
         "id": "/channels_feishu_app_secret"
       },
       "domain": "feishu",
-      "requireMention": true,
+      "connectionMode": "websocket",
+      "webhookPath": "/feishu/events",
       "dmPolicy": "allowlist",
+      "groupPolicy": "allowlist",
+      "reactionNotifications": "own",
+      "typingIndicator": true,
+      "resolveSenderNames": true,
+      "requireMention": true,
       "allowFrom": [
         "ou_23ab1a1db6759ee9ae44a8e441a52153"
       ],
-      "groupPolicy": "allowlist",
       "groupAllowFrom": [
         "ou_23ab1a1db6759ee9ae44a8e441a52153"
       ],
@@ -401,13 +406,18 @@
       "allowedOrigins": [
         "http://localhost:8080",
         "https://jcneyh7qlo8i-app_4k09mf5wp0scv-1863341293335882.aiforce.run",
-        "https://miaoda.feishu.cn"
+        "https://miaoda.feishu.cn",
+        "https://jcneyh7qlo8i-app_4k09m1gdhbbdx-1863341243104443.aiforce.run"
       ],
       "dangerouslyDisableDeviceAuth": true
     },
     "auth": {
       "mode": "token",
-      "token": "3733daad0b39e160396511f15bc5f8ff89840bc47ab18247"
+      "token": {
+        "source": "file",
+        "provider": "miaoda-secret-provider",
+        "id": "/gateway_auth_token"
+      }
     },
     "trustedProxies": [
       "::1",
@@ -556,20 +566,17 @@
       "memory": "team-memory-engine"
     },
     "allow": [
-      "openclaw-lark",
       "openclaw-extension-miaoda-coding",
       "browser",
       "openclaw-mem0-plugin",
       "openclaw-extension-miaoda",
       "openclaw-guardian-plugin",
-      "team-memory-engine"
+      "team-memory-engine",
+      "openclaw-lark"
     ],
     "entries": {
       "feishu": {
         "enabled": false
-      },
-      "openclaw-lark": {
-        "enabled": true
       },
       "openclaw-extension-miaoda-coding": {
         "enabled": true
@@ -601,22 +608,12 @@
             ]
           }
         }
+      },
+      "openclaw-lark": {
+        "enabled": true
       }
     },
     "installs": {
-      "openclaw-lark": {
-        "source": "npm",
-        "spec": "@lark-apaas/openclaw-lark",
-        "installPath": "./extensions/openclaw-lark",
-        "version": "2026.4.3",
-        "resolvedName": "@lark-apaas/openclaw-lark",
-        "resolvedVersion": "2026.4.3",
-        "resolvedSpec": "@lark-apaas/openclaw-lark@2026.4.3",
-        "integrity": "sha512-1eJ2WCvAYsnM9TPwPbEoD3nJtqNSOP2zOBV/3Vb9YQRg1kJJspEly5yCjiZt1wew4UhyN8Tcrp/XV78Qn747GA==",
-        "shasum": "e8d8cf05f8cb96cf5de4bca097c527eb9116e655",
-        "resolvedAt": "2026-04-03T06:27:44.706Z",
-        "installedAt": "2026-04-03T06:28:10.547Z"
-      },
       "openclaw-extension-miaoda-coding": {
         "source": "npm",
         "spec": "@lark-apaas/openclaw-extension-miaoda-coding",
@@ -671,6 +668,13 @@
         "source": "path",
         "installPath": "./extensions/team-memory-engine",
         "version": "0.1.0"
+      },
+      "openclaw-lark": {
+        "source": "archive",
+        "sourcePath": "/tmp/openclaw-lark-Lr9gnD/larksuite-openclaw-lark-2026.4.8.tgz",
+        "installPath": "/home/gem/workspace/agent/extensions/openclaw-lark",
+        "version": "2026.4.8",
+        "installedAt": "2026-04-29T13:55:43.847Z"
       }
     }
   }

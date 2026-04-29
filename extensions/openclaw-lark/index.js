@@ -22,6 +22,8 @@ const diagnose_1 = require("./src/commands/diagnose.js");
 const index_3 = require("./src/commands/index.js");
 const lark_logger_1 = require("./src/core/lark-logger.js");
 const security_check_1 = require("./src/core/security-check.js");
+const tool_use_trace_store_1 = require("./src/card/tool-use-trace-store.js");
+const reasoning_utils_1 = require("./src/card/reasoning-utils.js");
 const log = (0, lark_logger_1.larkLogger)('plugin');
 // ---------------------------------------------------------------------------
 // Re-exports for external consumers
@@ -105,20 +107,37 @@ const plugin = {
         (0, oauth_batch_auth_1.registerFeishuOAuthBatchAuthTool)(api);
         // Register AskUserQuestion tool (interactive card-based user prompting)
         (0, ask_user_question_1.registerAskUserQuestionTool)(api);
-        // ---- Tool call hooks (trace Feishu-owned tool invocations only) ----
-        api.on('before_tool_call', (event) => {
+        api.on('before_tool_call', (event, ctx) => {
+            (0, tool_use_trace_store_1.recordToolUseStart)({
+                sessionKey: ctx.sessionKey,
+                toolName: event.toolName,
+                toolParams: event.params,
+                toolCallId: event.toolCallId ?? ctx.toolCallId,
+                runId: event.runId ?? ctx.runId,
+            });
             if (!event.toolName.startsWith('feishu_'))
                 return;
-            log.info(`tool call: ${event.toolName} params=${JSON.stringify(event.params)}`);
+            const paramsPreview = (0, reasoning_utils_1.sanitizeParamsForLog)(event.params);
+            log.info(`tool call: ${event.toolName} session=${ctx.sessionKey ?? '-'} params=${paramsPreview}`);
         });
-        api.on('after_tool_call', (event) => {
+        api.on('after_tool_call', (event, ctx) => {
+            (0, tool_use_trace_store_1.recordToolUseEnd)({
+                sessionKey: ctx.sessionKey,
+                toolName: event.toolName,
+                toolParams: event.params,
+                toolCallId: event.toolCallId ?? ctx.toolCallId,
+                runId: event.runId ?? ctx.runId,
+                result: event.result,
+                error: event.error,
+                durationMs: event.durationMs,
+            });
             if (!event.toolName.startsWith('feishu_'))
                 return;
             if (event.error) {
-                log.error(`tool fail: ${event.toolName} ${event.error} (${event.durationMs ?? 0}ms)`);
+                log.error(`tool fail: ${event.toolName} session=${ctx.sessionKey ?? '-'} ${event.error} (${event.durationMs ?? 0}ms)`);
             }
             else {
-                log.info(`tool done: ${event.toolName} ok (${event.durationMs ?? 0}ms)`);
+                log.info(`tool done: ${event.toolName} session=${ctx.sessionKey ?? '-'} ok (${event.durationMs ?? 0}ms)`);
             }
         });
         // ---- Diagnostic commands ----

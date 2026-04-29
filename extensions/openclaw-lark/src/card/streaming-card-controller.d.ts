@@ -24,6 +24,7 @@ export declare class StreamingCardController {
     private cardKit;
     private text;
     private reasoning;
+    private toolUse;
     private readonly flush;
     private readonly guard;
     private readonly imageResolver;
@@ -57,6 +58,10 @@ export declare class StreamingCardController {
     get terminalReason(): TerminalReason | null;
     /** @internal — exposed for test assertions only. */
     get currentPhase(): CardPhase;
+    private get shouldDisplayToolUse();
+    private computeToolUseDisplay;
+    private get visibleToolUseElapsedMs();
+    private computeToolUseTitleSuffix;
     /**
      * Unified callback guard — returns true if the pipeline is active
      * and the callback should proceed.
@@ -70,6 +75,8 @@ export declare class StreamingCardController {
     private isStaleCreate;
     private transition;
     private onEnterTerminalPhase;
+    private markToolUseActivity;
+    private captureToolUseElapsed;
     /**
      * Handle a deliver() call in streaming card mode.
      *
@@ -78,6 +85,11 @@ export declare class StreamingCardController {
      */
     onDeliver(payload: ReplyPayload): Promise<void>;
     onReasoningStream(payload: ReplyPayload): Promise<void>;
+    onToolStart(payload: {
+        name?: string;
+        phase?: string;
+    }): Promise<void>;
+    onToolPayload(_payload: ReplyPayload): Promise<void>;
     onPartialReply(payload: ReplyPayload): Promise<void>;
     onError(err: unknown, info: {
         kind: string;
@@ -89,6 +101,9 @@ export declare class StreamingCardController {
     private performFlush;
     private buildDisplayText;
     private throttledCardUpdate;
+    private lastToolUseStatusUpdateTime;
+    private throttledToolUseStatusUpdate;
+    private updateToolUseStatus;
     private finalizeCard;
     /**
      * Close streaming mode then update card content (shared by onError and abortCard).

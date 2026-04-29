@@ -13,9 +13,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.handleMessageEvent = handleMessageEvent;
 exports.handleReactionEvent = handleReactionEvent;
 exports.handleBotMembershipEvent = handleBotMembershipEvent;
+exports.handleCommentEvent = handleCommentEvent;
 exports.handleCardActionEvent = handleCardActionEvent;
 const handler_1 = require("../messaging/inbound/handler.js");
 const reaction_handler_1 = require("../messaging/inbound/reaction-handler.js");
+const comment_handler_1 = require("../messaging/inbound/comment-handler.js");
+const comment_context_1 = require("../messaging/inbound/comment-context.js");
 const dedup_1 = require("../messaging/inbound/dedup.js");
 const lark_ticket_1 = require("../core/lark-ticket.js");
 const lark_logger_1 = require("../core/lark-logger.js");
@@ -23,7 +26,27 @@ const auto_auth_1 = require("../tools/auto-auth.js");
 const ask_user_question_1 = require("../tools/ask-user-question.js");
 const chat_queue_1 = require("./chat-queue.js");
 const abort_detect_1 = require("./abort-detect.js");
+const interactive_dispatch_1 = require("./interactive-dispatch.js");
 const elog = (0, lark_logger_1.larkLogger)('channel/event-handlers');
+
+// ---------------------------------------------------------------------------
+// Team Memory review card action handler
+// ---------------------------------------------------------------------------
+async function handleMemoryReviewAction(data) {
+    const value = data?.action?.value;
+    if (!value || !value.action || !value.memory_id) return undefined;
+    if (!["confirm", "update", "dismiss"].includes(value.action)) return undefined;
+    try {
+        const { handleMemoryReviewAction } = await import("../../../../team-memory-engine/lib/card-action-handler.js");
+        return await handleMemoryReviewAction(data, {
+            teamId: process.env?.TEAM_MEMORY_TEAM_ID || "openclaw-team",
+        });
+    }
+    catch {
+        return undefined; // Memory engine not available
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Event ownership validation
 // ---------------------------------------------------------------------------
@@ -219,17 +242,72 @@ async function handleBotMembershipEvent(ctx, data, action) {
     }
 }
 // ---------------------------------------------------------------------------
+// Drive comment handler
+// ---------------------------------------------------------------------------
+async function handleCommentEvent(ctx, data) {
+    if (!isEventOwnershipValid(ctx, data))
+        return;
+    const { accountId, log, error } = ctx;
+    try {
+        const parsed = (0, comment_context_1.parseFeishuDriveCommentNoticeEventPayload)(data);
+        if (!parsed) {
+            log(`feishu[${accountId}]: invalid comment event payload, skipping`);
+            return;
+        }
+        const commentId = parsed.comment_id ?? '';
+        const replyId = parsed.reply_id ?? '';
+        // Parser has normalized notice_meta fields into canonical top-level fields
+        const _senderOpenId = parsed.user_id?.open_id ?? '';
+        const isMentioned = parsed.is_mention ?? false;
+        const eventTimestamp = parsed.action_time;
+        log(`feishu[${accountId}]: drive comment event: ` +
+            `type=${parsed.file_type}, comment=${commentId}` +
+            `${replyId ? `, reply=${replyId}` : ''}` +
+            `${isMentioned ? ', @bot' : ''}`);
+        // Dedup: build a deterministic key from the comment/reply IDs
+        const dedupKey = replyId ? `comment:${commentId}:reply:${replyId}` : `comment:${commentId}`;
+        if (!ctx.messageDedup.tryRecord(dedupKey, accountId)) {
+            log(`feishu[${accountId}]: duplicate comment event ${dedupKey}, skipping`);
+            return;
+        }
+        // Expiry check
+        if ((0, dedup_1.isMessageExpired)(eventTimestamp)) {
+            log(`feishu[${accountId}]: comment event expired, discarding`);
+            return;
+        }
+        // Dispatch the comment event (no queue serialization needed for comment threads)
+        await (0, comment_handler_1.handleFeishuCommentEvent)({
+            cfg: ctx.cfg,
+            event: parsed,
+            botOpenId: ctx.lark.botOpenId,
+            runtime: ctx.runtime,
+            chatHistories: ctx.chatHistories,
+            accountId,
+        });
+    }
+    catch (err) {
+        error(`feishu[${accountId}]: error handling comment event: ${String(err)}`);
+    }
+}
+// ---------------------------------------------------------------------------
 // Card action handler
 // ---------------------------------------------------------------------------
 async function handleCardActionEvent(ctx, data) {
     try {
-        // AskUserQuestion card interactions — injects synthetic message
-        // carrying user answers for the AI to receive in a new turn.
+        // AskUserQuestion：表单卡片交互（宿主内建能力优先）
         const askResult = (0, ask_user_question_1.handleAskUserAction)(data, ctx.cfg, ctx.accountId);
         if (askResult !== undefined)
             return askResult;
-        // Auto-auth card actions (OAuth device flow, app scope confirmation)
-        return await (0, auto_auth_1.handleCardAction)(data, ctx.cfg, ctx.accountId);
+        // auto-auth：授权/权限引导相关卡片交互（宿主内建能力优先）
+        const authResult = await (0, auto_auth_1.handleCardAction)(data, ctx.cfg, ctx.accountId);
+        if (authResult !== undefined)
+            return authResult;
+        // Team Memory review card actions (confirm/update/dismiss)
+        const memoryResult = await handleMemoryReviewAction(data);
+        if (memoryResult !== undefined)
+            return memoryResult;
+        // 业务自定义卡片交互：使用 SDK 标准 interactive dispatch 管道转发给业务插件。
+        return await (0, interactive_dispatch_1.dispatchFeishuPluginInteractiveHandler)({ cfg: ctx.cfg, accountId: ctx.accountId, data });
     }
     catch (err) {
         elog.warn(`card.action.trigger handler error: ${err}`);

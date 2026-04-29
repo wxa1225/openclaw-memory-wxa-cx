@@ -1,7 +1,7 @@
 {
   "meta": {
     "lastTouchedVersion": "2026.4.11",
-    "lastTouchedAt": "2026-04-24T14:07:39.241Z"
+    "lastTouchedAt": "2026-04-29T13:54:57.141Z"
   },
   "wizard": {
     "lastRunAt": "2026-03-30T14:54:56.160Z",
@@ -365,27 +365,7 @@
         "provider": "miaoda-secret-provider",
         "id": "/channels_feishu_app_secret"
       },
-      "domain": "feishu",
-      "requireMention": true,
-      "dmPolicy": "allowlist",
-      "allowFrom": [
-        "ou_23ab1a1db6759ee9ae44a8e441a52153"
-      ],
-      "groupPolicy": "allowlist",
-      "groupAllowFrom": [
-        "ou_23ab1a1db6759ee9ae44a8e441a52153"
-      ],
-      "groups": {
-        "*": {
-          "enabled": true
-        }
-      },
-      "streaming": true,
-      "threadSession": true,
-      "footer": {
-        "elapsed": false,
-        "status": false
-      }
+      "domain": "feishu"
     }
   },
   "discovery": {
@@ -552,8 +532,10 @@
     }
   },
   "plugins": {
+    "slots": {
+      "memory": "team-memory-engine"
+    },
     "allow": [
-      "openclaw-lark",
       "openclaw-extension-miaoda-coding",
       "browser",
       "openclaw-mem0-plugin",
@@ -564,9 +546,6 @@
     "entries": {
       "feishu": {
         "enabled": false
-      },
-      "openclaw-lark": {
-        "enabled": true
       },
       "openclaw-extension-miaoda-coding": {
         "enabled": true
@@ -581,8 +560,8 @@
         "enabled": true,
         "config": {
           "teamId": "openclaw-team",
-          "decayCheckInterval": 60000,
-          "feishuChatId": ""
+          "decayCheckInterval": 1800000,
+          "feishuChatId": "oc_83d25a1a702dd5e85aa4666b1d07554a"
         }
       },
       "openclaw-mem0-plugin": {
@@ -598,25 +577,9 @@
             ]
           }
         }
-      },
-      "openclaw-guardian-plugin": {
-        "enabled": true
       }
     },
     "installs": {
-      "openclaw-lark": {
-        "source": "npm",
-        "spec": "@lark-apaas/openclaw-lark",
-        "installPath": "./extensions/openclaw-lark",
-        "version": "2026.4.3",
-        "resolvedName": "@lark-apaas/openclaw-lark",
-        "resolvedVersion": "2026.4.3",
-        "resolvedSpec": "@lark-apaas/openclaw-lark@2026.4.3",
-        "integrity": "sha512-1eJ2WCvAYsnM9TPwPbEoD3nJtqNSOP2zOBV/3Vb9YQRg1kJJspEly5yCjiZt1wew4UhyN8Tcrp/XV78Qn747GA==",
-        "shasum": "e8d8cf05f8cb96cf5de4bca097c527eb9116e655",
-        "resolvedAt": "2026-04-03T06:27:44.706Z",
-        "installedAt": "2026-04-03T06:28:10.547Z"
-      },
       "openclaw-extension-miaoda-coding": {
         "source": "npm",
         "spec": "@lark-apaas/openclaw-extension-miaoda-coding",

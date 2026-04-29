@@ -21,9 +21,13 @@ const lark_logger_1 = require("../../core/lark-logger.js");
 const lark_ticket_1 = require("../../core/lark-ticket.js");
 const reply_dispatcher_1 = require("../../card/reply-dispatcher.js");
 const chat_queue_1 = require("../../channel/chat-queue.js");
+const tool_use_config_1 = require("../../card/tool-use-config.js");
+const tool_use_trace_store_1 = require("../../card/tool-use-trace-store.js");
 const abort_detect_1 = require("../../channel/abort-detect.js");
 const chat_info_cache_1 = require("../../core/chat-info-cache.js");
+const comment_target_1 = require("../../core/comment-target.js");
 const targets_1 = require("../../core/targets.js");
+const deliver_1 = require("../outbound/deliver.js");
 const doctor_1 = require("../../commands/doctor.js");
 const auth_1 = require("../../commands/auth.js");
 const index_1 = require("../../commands/index.js");
@@ -45,7 +49,58 @@ const log = (0, lark_logger_1.larkLogger)('inbound/dispatch');
  * system-command path — command handlers don't consume history context,
  * so the entries should be preserved for the next normal message.
  */
+/**
+ * Dispatch a comment-target message via the buffered block dispatcher.
+ *
+ * Comment targets cannot use the streaming card flow (IM APIs don't
+ * understand comment:... targets). Instead we use the SDK's buffered
+ * block dispatcher with a deliver callback that sends via the Drive
+ * comment reply API.
+ */
+async function dispatchCommentMessage(dc, ctxPayload, skillFilter) {
+    const effectiveSessionKey = dc.threadSessionKey ?? dc.route.sessionKey;
+    dc.log(`feishu[${dc.account.accountId}]: dispatching comment reply (session=${effectiveSessionKey})`);
+    log.info(`dispatching comment reply (session=${effectiveSessionKey})`);
+    let delivered = false;
+    await dc.core.channel.reply.dispatchReplyWithBufferedBlockDispatcher({
+        ctx: ctxPayload,
+        cfg: dc.accountScopedCfg,
+        dispatcherOptions: {
+            deliver: async (payload) => {
+                const text = payload.text?.trim() ?? '';
+                if (!text || text === 'NO_REPLY')
+                    return;
+                await (0, deliver_1.sendCommentReplyLark)({
+                    cfg: dc.accountScopedCfg,
+                    to: dc.ctx.chatId,
+                    text,
+                    accountId: dc.account.accountId,
+                });
+                delivered = true;
+            },
+            onSkip: (_payload, info) => {
+                if (info.reason !== 'silent') {
+                    dc.log(`feishu[${dc.account.accountId}]: comment reply skipped (reason=${info.reason})`);
+                }
+            },
+            onError: (err, info) => {
+                dc.error(`feishu[${dc.account.accountId}]: comment ${info.kind} reply failed: ${String(err)}`);
+            },
+        },
+        replyOptions: {
+            ...(skillFilter ? { skillFilter } : {}),
+        },
+    });
+    dc.log(`feishu[${dc.account.accountId}]: comment dispatch complete (delivered=${delivered})`);
+    log.info(`comment dispatch complete (delivered=${delivered}, elapsed=${(0, lark_ticket_1.ticketElapsed)()}ms)`);
+}
 async function dispatchNormalMessage(dc, ctxPayload, chatHistories, historyKey, historyLimit, replyToMessageId, skillFilter, skipTyping) {
+    // Comment targets bypass the streaming card / IM flow entirely —
+    // route through the Drive comment reply API.
+    if ((0, comment_target_1.isCommentTarget)(dc.ctx.chatId)) {
+        await dispatchCommentMessage(dc, ctxPayload, skillFilter);
+        return;
+    }
     // Abort messages should never create streaming cards — dispatch via the
     // plain-text system-command path so the SDK's abort handler can reply
     // without touching CardKit.
@@ -55,16 +110,31 @@ async function dispatchNormalMessage(dc, ctxPayload, chatHistories, historyKey, 
         await (0, dispatch_commands_1.dispatchSystemCommand)(dc, ctxPayload, replyToMessageId);
         return;
     }
+    const effectiveSessionKey = dc.threadSessionKey ?? dc.route.sessionKey;
+    const toolUseDisplay = (0, tool_use_config_1.resolveToolUseDisplayConfig)({
+        cfg: dc.accountScopedCfg,
+        feishuCfg: dc.account.config,
+        agentId: dc.route.agentId,
+        sessionKey: effectiveSessionKey,
+        body: dc.ctx.content,
+    });
+    if (toolUseDisplay.showToolUse) {
+        (0, tool_use_trace_store_1.startToolUseTraceRun)(effectiveSessionKey);
+    }
+    else {
+        (0, tool_use_trace_store_1.clearToolUseTraceRun)(effectiveSessionKey);
+    }
     const { dispatcher, replyOptions, markDispatchIdle, markFullyComplete, abortCard } = (0, reply_dispatcher_1.createFeishuReplyDispatcher)({
         cfg: dc.accountScopedCfg,
         agentId: dc.route.agentId,
-        sessionKey: dc.threadSessionKey ?? dc.route.sessionKey,
         chatId: dc.ctx.chatId,
+        sessionKey: effectiveSessionKey,
         replyToMessageId: replyToMessageId ?? dc.ctx.messageId,
         accountId: dc.account.accountId,
         chatType: dc.ctx.chatType,
         skipTyping,
         replyInThread: dc.isThread,
+        toolUseDisplay,
     });
     // Create an AbortController so the abort fast-path can cancel the
     // underlying LLM request (not just the streaming card UI).
@@ -73,7 +143,6 @@ async function dispatchNormalMessage(dc, ctxPayload, chatHistories, historyKey, 
     // terminate the streaming card before this task completes.
     const queueKey = (0, chat_queue_1.buildQueueKey)(dc.account.accountId, dc.ctx.chatId, dc.ctx.threadId);
     (0, chat_queue_1.registerActiveDispatcher)(queueKey, { abortCard, abortController });
-    const effectiveSessionKey = dc.threadSessionKey ?? dc.route.sessionKey;
     dc.log(`feishu[${dc.account.accountId}]: dispatching to agent (session=${effectiveSessionKey})`);
     log.info(`dispatching to agent (session=${effectiveSessionKey})`);
     try {
@@ -148,7 +217,10 @@ async function dispatchToAgent(params) {
     const messageBody = (0, dispatch_builders_1.buildMessageBody)(params.ctx, params.quotedContent);
     // 3. Permission-error notification (optional side-effect).
     //    Isolated so a failure here does not block the main message dispatch.
-    if (params.permissionError) {
+    //    Skipped for comment targets: the streaming card dispatcher inside
+    //    dispatchPermissionNotification sends via IM APIs which don't
+    //    understand comment:... targets.
+    if (params.permissionError && !(0, comment_target_1.isCommentTarget)(dc.ctx.chatId)) {
         try {
             await (0, dispatch_commands_1.dispatchPermissionNotification)(dc, params.permissionError, params.replyToMessageId);
         }
@@ -213,11 +285,15 @@ async function dispatchToAgent(params) {
     //     Must run BEFORE the SDK command check — the SDK does not recognise
     //     plugin-registered commands via isControlCommandMessage, so
     //     /feishu_* falls through to the AI agent otherwise.
+    //     Skipped for comment targets: comment text won't match /feishu_*
+    //     patterns in practice, and sendCardFeishu/sendMessageFeishu can't
+    //     deliver to comment:... targets.
     const contentTrimmed = (params.ctx.content ?? '').trim();
-    const isDoctorCommand = /^\/feishu[_ ]doctor\s*$/i.test(contentTrimmed);
-    const isAuthCommand = /^\/feishu[_ ](?:auth|onboarding)\s*$/i.test(contentTrimmed);
-    const isStartCommand = /^\/feishu[_ ]start\s*$/i.test(contentTrimmed);
-    const isHelpCommand = /^\/feishu(?:[_ ]help)?\s*$/i.test(contentTrimmed);
+    const isCommentFlow = (0, comment_target_1.isCommentTarget)(dc.ctx.chatId);
+    const isDoctorCommand = !isCommentFlow && /^\/feishu[_ ]doctor\s*$/i.test(contentTrimmed);
+    const isAuthCommand = !isCommentFlow && /^\/feishu[_ ](?:auth|onboarding)\s*$/i.test(contentTrimmed);
+    const isStartCommand = !isCommentFlow && /^\/feishu[_ ]start\s*$/i.test(contentTrimmed);
+    const isHelpCommand = !isCommentFlow && /^\/feishu(?:[_ ]help)?\s*$/i.test(contentTrimmed);
     const i18nCommandName = isDoctorCommand
         ? 'doctor'
         : isAuthCommand
@@ -269,7 +345,10 @@ async function dispatchToAgent(params) {
         return;
     }
     // 8. Dispatch: system command vs. normal message
-    const isCommand = dc.core.channel.commands.isControlCommandMessage(params.ctx.content, params.accountScopedCfg);
+    //    Comment targets always go to normal dispatch — system command
+    //    delivery uses sendMessageFeishu which can't reach comment threads.
+    const isCommand = !isCommentFlow &&
+        dc.core.channel.commands.isControlCommandMessage(params.ctx.content, params.accountScopedCfg);
     // Resolve per-group skill filter (per-group > default "*")
     const skillFilter = dc.isGroup ? (params.groupConfig?.skills ?? params.defaultGroupConfig?.skills) : undefined;
     if (isCommand) {

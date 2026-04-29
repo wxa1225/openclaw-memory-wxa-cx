@@ -131,17 +131,6 @@ export declare class UserAuthRequiredError extends Error {
     constructor(userOpenId: string, info: ScopeErrorInfo);
 }
 /**
- * 配置中 uat.enabled 为 false，禁止使用用户授权链路。
- *
- * auto-auth 不识别此错误类型，会走 formatLarkError 兜底返回 error message，
- * 不会触发 OAuth Device Flow。
- */
-export declare class UATDisabledError extends Error {
-    readonly appId: string;
-    readonly apiName: string;
-    constructor(appId: string, apiName: string);
-}
-/**
  * 服务端报 99991679 — 用户 token 的 scope 不足。
  *
  * 需要增量授权：用缺失的 scope 发起新 Device Flow。

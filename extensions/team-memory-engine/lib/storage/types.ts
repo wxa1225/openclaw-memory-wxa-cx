@@ -217,8 +217,55 @@ export interface ManagerV2Options {
   storagePath?: string;
   ledgerPath?: string;
   graphPath?: string;
+  projectRoot?: string;
   reviewThreshold?: number;
   teamSize?: number;
   enableGraph?: boolean;
   riskWeights?: Partial<typeof RISK_WEIGHTS>;
+  modelEndpoint?: string;
+  modelApiKey?: string;
+  modelName?: string;
+  extractionBatchSize?: number;
+}
+
+// ============================================================================
+// Event Log (Layer 1)
+// ============================================================================
+
+export interface EventLogEntry {
+  id: string;
+  storedAt: string;
+  chatId: string;
+  chatType: "p2p" | "group";
+  senderId: string;
+  senderName?: string;
+  content: string;
+  contentType: "text" | "image" | "file" | "post";
+  messageId: string;
+  threadId?: string;
+  participants?: string[];
+  processedForExtraction: boolean;
+  extractedMemoryIds?: string[];
+  tags?: string[];
+}
+
+// ============================================================================
+// TMS — Transactive Memory System (Who Knows What)
+// ============================================================================
+
+export interface MemberCapability {
+  memberId: string;
+  displayName: string;
+  expertiseAreas: string[];
+  knownMemoryIds: string[];
+  trustScore: number;
+  lastActiveAt: string;
+  contributionCount: number;
+  confirmationCount: number;
+}
+
+export interface TeamCapabilityProfile {
+  teamId: string;
+  members: Record<string, MemberCapability>;
+  updatedAt: string;
 }
