@@ -185,18 +185,6 @@
     "is_detected": true,
     "last_detect_ts": 1777471143008
   },
-  "miaoda-coding": {
-    "skill_name": "miaoda-coding",
-    "skill_hash": "d9d93838e7bd59a54efa3bbe3f4567b9370a4e253c0cf526c8e827ccde6df302",
-    "is_detected": true,
-    "last_detect_ts": 1777471143158
-  },
-  "miaoda-database-skill": {
-    "skill_name": "miaoda-database-skill",
-    "skill_hash": "4bd93439f61b8c495031b9e36aaa594944e5dd35ef7fd954a34a8ca9c5acc49b",
-    "is_detected": true,
-    "last_detect_ts": 1777471143303
-  },
   "feishu-bitable": {
     "skill_name": "feishu-bitable",
     "skill_hash": "1eae3343205bef972bee9648bc3b2e2ae610ec5520cb68aad762b8e8a88bbe4b",
