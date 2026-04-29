@@ -618,14 +618,12 @@
         "source": "npm",
         "spec": "@lark-apaas/openclaw-extension-miaoda-coding",
         "installPath": "./extensions/openclaw-extension-miaoda-coding",
-        "version": "1.0.14",
+        "version": "1.0.15",
         "resolvedName": "@lark-apaas/openclaw-extension-miaoda-coding",
-        "resolvedVersion": "1.0.14",
-        "resolvedSpec": "@lark-apaas/openclaw-extension-miaoda-coding@1.0.14",
-        "integrity": "sha512-MEb/XbfLj6mPC1zoJohI0hR1+qK3Ksm3VwLfUsp9VpkHfXt7kaQ+UQ5/UEPK4C08r+GDgSgyCZZwfr1jWWJ22w==",
-        "shasum": "b7b4d9bd995753b3748a6c4c11b5670c9f5c3e7d",
-        "resolvedAt": "2026-04-18T04:27:39.000Z",
-        "installedAt": "2026-04-18T04:27:39.000Z"
+        "resolvedVersion": "1.0.15",
+        "resolvedSpec": "@lark-apaas/openclaw-extension-miaoda-coding@1.0.15",
+        "integrity": "sha512-pAFp6OLU4XVrkPOpqjN77e0TS0HaRsGdvXRTl9F3JMIEN7zeTYocExciggfpc4IVKv5aOFzCvBZ8iDkX0kqj5g==",
+        "shasum": "2257298c698c31add3ef8c66484105260a5fc409"
       },
       "openclaw-mem0-plugin": {
         "source": "npm",

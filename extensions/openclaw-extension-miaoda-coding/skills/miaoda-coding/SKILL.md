@@ -207,9 +207,12 @@ tool 返回的 JSON 里如果有 `hint` 字段，严格按 hint 指示行事。
 3. 调 sessions_spawn
 4. 回复用户"交给妙搭了，稍等"
 5. **不要** 调 sessions_history、subagents、或任何 poll 操作
-6. subagent announce 回来后，**只发一条总结消息**：简短总结做了什么，并附上预览链接
-   - 预览链接获取方式：优先读 `workspace/app/<project_id>/.spark/meta.json`；如果不存在，再回退读 `workspace/<project_id>/.spark/meta.json`。从其中的 `appUrl` 字段拼上 `?mode=sidebar-semi`（如已有 query 参数则用 `&mode=sidebar-semi`）
-   - 如果 `meta.json` 中没有 `appUrl`，说明可能未部署成功，参考「查看执行详情」章节了解情况
+6. subagent announce 回来后，按 plugin 写的投递标记判断该不该带链接（路径默认 `workspace/app/<project_id>/.spark/`，如不存在再回退 `workspace/<project_id>/.spark/`）：
+   - 读 `.spark/delivery.json`（每次 run 开头 plugin 会 atomic 覆写成空对象，投递成功后再覆写成含 `deliveredAt` 的对象；所以它永远只反映**本次 run** 的状态）
+   - **`delivery.json` 里有 `deliveredAt` 字段**（plugin 本次 run 已自动投递预览链接）→ 只发一条简短纯文字总结，**不要带预览链接**（plugin 已经发过一条，主 agent 再带就是两条）
+   - **`delivery.json` 存在但没有 `deliveredAt` 字段 / 文件不存在 / 读不了**：读 `.spark/meta.json`
+     - **有 `appUrl`**（plugin 本次 run 没投递，常见于 subagent 把 target 填成 "none"）→ 主 agent **自己补发链接**：把 `appUrl` 拼上 `?mode=sidebar-semi`（如已有 query 参数则用 `&mode=sidebar-semi`），用加粗 Markdown 链接 `**[url](url)**` 放在简短总结里一起发，只发一条
+     - **没有 `appUrl`**（部署未成功）→ 按下方「处理失败和异常」第 4 条处理
    - **严禁发多条消息**
    - 不要提系统、子任务、announce、subagent 等内部细节
 7. `miaoda_check_progress` 用于两种场景：(a) 用户主动问进度时，(b) 任务失败且结果中有 `hint` 建议查进度时
@@ -227,7 +230,7 @@ subagent 返回的结果 JSON 中可能包含 `status: "error"` 或 `status: "ti
    - **重试时**：走**修改已有项目**流程，`generation_request` 填 `"继续"`。feida-ai 的 conversation 中已有完整上下文（需求 + 之前的代码 + 失败日志），发"继续"即可让 Agent 接着上次的进度工作。**禁止**用创建模板重复发送完整的原始需求——这会导致 Agent 看到重复的需求消息，浪费 token 并造成混乱
 2. **`hint` 包含"createSubApp 失败"**：createSubApp 是创建应用的前置步骤，失败原因可能是用户额度不足、权限不够、或服务异常等。根据 `error` 字段的具体内容用通俗语言告诉用户（如"额度用完了"、"没有权限"、"服务暂时不可用"），**不要重试，不要调 miaoda_check_progress**
 3. **`retryable: false` 或无 `retryable` 字段**：直接告诉用户失败了，附上错误信息，问用户怎么处理
-4. **结果里没有预览链接**（`hint` 提到"未检测到预览链接"）：调 `miaoda_check_progress` 查看最新状态，可能链接还没生成
+4. **subagent 总结里提到部署失败 / 没生成预览链接**：如实告诉用户"应用生成/部署失败"，根据错误信息用通俗语言说明原因，问用户要不要重试。**不要自己拼预览链接**，也**不要调 `miaoda_check_progress`**（这个 tool 不返回 appUrl，查了也拿不到链接）
 
 **禁止行为**：
 - 不要在用户不知情的情况下自动重试——先告诉用户情况，等用户确认

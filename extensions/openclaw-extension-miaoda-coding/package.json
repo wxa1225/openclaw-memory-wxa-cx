@@ -1,6 +1,6 @@
 {
   "name": "@lark-apaas/openclaw-extension-miaoda-coding",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "description": "妙搭 Coding Agent — 通过 AI 创建和修改妙搭应用",
   "type": "module",
   "scripts": {
