@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git clone *)",
+      "Bash(python3 -c 'import json; json.load\\(open\\('\\\\''__TRACKED_VAR__'\\\\''\\)\\); print\\('\\\\''OK'\\\\''\\)')",
+      "Bash(python3 *)",
+      "Bash(sh *)",
+      "Bash(crontab *)",
+      "Bash(chmod +x team/team-memory/scheduler-manager.sh)",
+      "Bash(bash team/team-memory/scheduler-manager.sh status)",
+      "Bash(bash *)",
+      "Bash(chmod +x team/team-memory/run_tests.sh)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(gh auth *)",
+      "Bash(openclaw message *)",
+      "Bash(git reset *)",
+      "Read(//tmp/**)",
+      "Bash(unzip -o \"/home/gem/workspace/agent/Memory 定义与架构白皮书 \\(1\\).docx\" -d docx_extract)",
+      "Bash(npm install *)",
+      "Bash(npx tsx *)"
+    ]
+  }
+}
