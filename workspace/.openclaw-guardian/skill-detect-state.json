@@ -3,240 +3,240 @@
     "skill_name": "miaoda-doc-parse",
     "skill_hash": "7231819ac3d12a7973b39fb1eae7720b6bf2e0eeffce7fe1ae9ee896b194a9ac",
     "is_detected": true,
-    "last_detect_ts": 1777560882582
+    "last_detect_ts": 1777647533044
   },
   "miaoda-image-understanding": {
     "skill_name": "miaoda-image-understanding",
     "skill_hash": "d3833100a0d781ba8b40db40ce0eb4f81678269a40bee0e808c92e37f914974d",
     "is_detected": true,
-    "last_detect_ts": 1777560882718
+    "last_detect_ts": 1777647533176
   },
   "miaoda-openclaw-guide": {
     "skill_name": "miaoda-openclaw-guide",
     "skill_hash": "10db1c13597eb01325208ff52555fd0e12e36940f7170bcaf3955dce5f246280",
     "is_detected": true,
-    "last_detect_ts": 1777560882862
+    "last_detect_ts": 1777647533313
   },
   "miaoda-skillhub": {
     "skill_name": "miaoda-skillhub",
     "skill_hash": "70a0373222049cf4ec3f4f3affd6897080b85863a3e2818667350c81fcc24b6f",
     "is_detected": true,
-    "last_detect_ts": 1777560882999
+    "last_detect_ts": 1777647533439
   },
   "miaoda-speech-to-text": {
     "skill_name": "miaoda-speech-to-text",
     "skill_hash": "dd3749c6d3a2dc9f956de8dad441f928ce930ea8184d00109377225fbe6dbe96",
     "is_detected": true,
-    "last_detect_ts": 1777560883138
+    "last_detect_ts": 1777647533563
   },
   "miaoda-text-gen-image": {
     "skill_name": "miaoda-text-gen-image",
     "skill_hash": "3d4f18cb60e49c05493f5bccef2132ab58f3e90014d59d48687a914d412b8e9b",
     "is_detected": true,
-    "last_detect_ts": 1777560883281
+    "last_detect_ts": 1777647533683
   },
   "miaoda-web-fetch": {
     "skill_name": "miaoda-web-fetch",
     "skill_hash": "a823253d7af63489686c6d5602f348d0f721acfacd2b302f0ee0bba2a52f9634",
     "is_detected": true,
-    "last_detect_ts": 1777560883426
+    "last_detect_ts": 1777647533828
   },
   "miaoda-web-search": {
     "skill_name": "miaoda-web-search",
     "skill_hash": "fc55af2721ded2f473da6ad580b081642a5f67808d655182577a24c6453f5e2c",
     "is_detected": true,
-    "last_detect_ts": 1777560883555
+    "last_detect_ts": 1777647533950
   },
   "lark-approval": {
     "skill_name": "lark-approval",
     "skill_hash": "27d9a7c4fe37ad6c94895d58121830131bbb953abfec03fcb5e0c98ee3ced1bd",
     "is_detected": true,
-    "last_detect_ts": 1777557876455
+    "last_detect_ts": 1777644526896
   },
   "lark-attendance": {
     "skill_name": "lark-attendance",
     "skill_hash": "66c1d474a18f4757d48255734537e867156488cb109b20c37bf14f312c3281c0",
     "is_detected": true,
-    "last_detect_ts": 1777557876602
+    "last_detect_ts": 1777644527015
   },
   "lark-base": {
     "skill_name": "lark-base",
     "skill_hash": "ce376a7804e635ff016c68bc31e0ed4ce1096579a8e193870a9048c91ec2bfc9",
     "is_detected": true,
-    "last_detect_ts": 1777557877053
+    "last_detect_ts": 1777644528248
   },
   "lark-calendar": {
     "skill_name": "lark-calendar",
     "skill_hash": "03177b501bee6279703b1fc094f95ade3145d989bf5b905a562812aa724aaf79",
     "is_detected": true,
-    "last_detect_ts": 1777557877210
+    "last_detect_ts": 1777644528397
   },
   "lark-contact": {
     "skill_name": "lark-contact",
     "skill_hash": "439071f8a4aee45b17c9f28207dfdbd454d51d9a100ecb842b2f21a940e61209",
     "is_detected": true,
-    "last_detect_ts": 1777557877347
+    "last_detect_ts": 1777644528535
   },
   "lark-doc": {
     "skill_name": "lark-doc",
     "skill_hash": "b56715a8f35a25fb2973918af6a5a8335a33000ca67fca33c188cb1767f3584d",
     "is_detected": true,
-    "last_detect_ts": 1777557877508
+    "last_detect_ts": 1777644528680
   },
   "lark-drive": {
     "skill_name": "lark-drive",
     "skill_hash": "4b4cee2171322231cc81bdb8431facfb2d47eedd006574e59a5db54a02143996",
     "is_detected": true,
-    "last_detect_ts": 1777557877690
+    "last_detect_ts": 1777644528861
   },
   "lark-event": {
     "skill_name": "lark-event",
     "skill_hash": "2d63f21aa443b45f570ba56999dcaca06043d6f72e6d7864343e3e2dfb36b4b2",
     "is_detected": true,
-    "last_detect_ts": 1777557877842
+    "last_detect_ts": 1777644528997
   },
   "lark-im": {
     "skill_name": "lark-im",
     "skill_hash": "a0ba0348eb8dbcf6ce9b12773289c82b5c3fd589d46c43dc039940005b7adbb2",
     "is_detected": true,
-    "last_detect_ts": 1777557877998
+    "last_detect_ts": 1777644529192
   },
   "lark-mail": {
     "skill_name": "lark-mail",
     "skill_hash": "6f6cf41bb65573560ad11d9a73a728f5585f1ee1a3c4ca2179da0f15691dfda0",
     "is_detected": true,
-    "last_detect_ts": 1777557878205
+    "last_detect_ts": 1777644529353
   },
   "lark-minutes": {
     "skill_name": "lark-minutes",
     "skill_hash": "d9063218f3da949ae3d62cf7edbf4f7fda7234c11669bef36f490462c956ebbe",
     "is_detected": true,
-    "last_detect_ts": 1777557878363
+    "last_detect_ts": 1777644529489
   },
   "lark-okr": {
     "skill_name": "lark-okr",
     "skill_hash": "973550ad4c1f6f1661c336ef508ab836fc842074c067045db99fb6d7f4810dc6",
     "is_detected": true,
-    "last_detect_ts": 1777557878518
+    "last_detect_ts": 1777644529607
   },
   "lark-openapi-explorer": {
     "skill_name": "lark-openapi-explorer",
     "skill_hash": "ecdcb56e1c4bc9aa134c65f42cd45009daad4b861728e08d03a5fa62976d634f",
     "is_detected": true,
-    "last_detect_ts": 1777557878657
+    "last_detect_ts": 1777644529746
   },
   "lark-shared": {
     "skill_name": "lark-shared",
     "skill_hash": "3d00b2046a1ae321a56d324d4216dbf89168b208c1b4f4be98e7aa66327b1126",
     "is_detected": true,
-    "last_detect_ts": 1777557878805
+    "last_detect_ts": 1777644529856
   },
   "lark-sheets": {
     "skill_name": "lark-sheets",
     "skill_hash": "1c60499a82c3cff03977a24218e637512987f47c7e0388c094cafd0dec5a4d4f",
     "is_detected": true,
-    "last_detect_ts": 1777557878981
+    "last_detect_ts": 1777644530030
   },
   "lark-skill-maker": {
     "skill_name": "lark-skill-maker",
     "skill_hash": "d9fa6fa70d346f700e46ddccd9d3986b8c2e50ce4802349034b7d73e7da8cd7e",
     "is_detected": true,
-    "last_detect_ts": 1777557879136
+    "last_detect_ts": 1777644530165
   },
   "lark-slides": {
     "skill_name": "lark-slides",
     "skill_hash": "1bf3d077374ed4f1c108d0fa4074462b49ea708249e6e399c98f099c85f756de",
     "is_detected": true,
-    "last_detect_ts": 1777557879382
+    "last_detect_ts": 1777644530316
   },
   "lark-task": {
     "skill_name": "lark-task",
     "skill_hash": "e8fbb1e7db4fd67d2712b6352375c8949c791d973369e67f19107ce39d7306f5",
     "is_detected": true,
-    "last_detect_ts": 1777557879543
+    "last_detect_ts": 1777644530463
   },
   "lark-vc": {
     "skill_name": "lark-vc",
     "skill_hash": "6562b75e5c2961f22e7c5323569289c411f7350d166a0d81a07011e26062254c",
     "is_detected": true,
-    "last_detect_ts": 1777557879690
+    "last_detect_ts": 1777644530593
   },
   "lark-whiteboard": {
     "skill_name": "lark-whiteboard",
     "skill_hash": "acca03c9fb7704643b6aa12b02c40c2598a399efa9fcdaedf56bd696fd58bb8b",
     "is_detected": true,
-    "last_detect_ts": 1777557879886
+    "last_detect_ts": 1777644530794
   },
   "lark-wiki": {
     "skill_name": "lark-wiki",
     "skill_hash": "67269a981414741dcc5d97d9f736f8847eecb827b52baef55d4e368e75725166",
     "is_detected": true,
-    "last_detect_ts": 1777557880025
+    "last_detect_ts": 1777644530907
   },
   "lark-workflow-meeting-summary": {
     "skill_name": "lark-workflow-meeting-summary",
     "skill_hash": "2c82255371aa94ca9f43279801a42fc7d49aa611e61df9d6173e31316fb6dbc5",
     "is_detected": true,
-    "last_detect_ts": 1777557880164
+    "last_detect_ts": 1777644531044
   },
   "lark-workflow-standup-report": {
     "skill_name": "lark-workflow-standup-report",
     "skill_hash": "c6474cf1dec4bce828516277f6a158b9ec50bf3f433e9a257b8a12bc78783ba6",
     "is_detected": true,
-    "last_detect_ts": 1777557880317
+    "last_detect_ts": 1777644531162
   },
   "feishu-bitable": {
     "skill_name": "feishu-bitable",
     "skill_hash": "1eae3343205bef972bee9648bc3b2e2ae610ec5520cb68aad762b8e8a88bbe4b",
     "is_detected": true,
-    "last_detect_ts": 1777557880472
+    "last_detect_ts": 1777644531307
   },
   "feishu-calendar": {
     "skill_name": "feishu-calendar",
     "skill_hash": "90e89a7fef077ad8ef3f6f2406ef8a61d8096d0af32f695368309e2cc6a55180",
     "is_detected": true,
-    "last_detect_ts": 1777557880609
+    "last_detect_ts": 1777644531386
   },
   "feishu-channel-rules": {
     "skill_name": "feishu-channel-rules",
     "skill_hash": "b1617037daa99291dd43caa2dac95236b62cfd5d469912f145e94897a915508c",
     "is_detected": true,
-    "last_detect_ts": 1777557880752
+    "last_detect_ts": 1777644531509
   },
   "feishu-create-doc": {
     "skill_name": "feishu-create-doc",
     "skill_hash": "f5c787138a3ab95b61bb2979cbb0dfc2e4ae08c8b7b027add6cd7b5e132ed457",
     "is_detected": true,
-    "last_detect_ts": 1777557880892
+    "last_detect_ts": 1777644531598
   },
   "feishu-fetch-doc": {
     "skill_name": "feishu-fetch-doc",
     "skill_hash": "211bafe3e1bbe673fde15bd93e0aff271c43f7a6e8733ea096a77ff54e30ac59",
     "is_detected": true,
-    "last_detect_ts": 1777557881043
+    "last_detect_ts": 1777644531717
   },
   "feishu-im-read": {
     "skill_name": "feishu-im-read",
     "skill_hash": "e54b685ddda29fe4955a5a60bd47537bbf92570ffe816405dcbc14dc30eebf46",
     "is_detected": true,
-    "last_detect_ts": 1777557881250
+    "last_detect_ts": 1777644531824
   },
   "feishu-task": {
     "skill_name": "feishu-task",
     "skill_hash": "90588748ca8746a4858507011435f2b95c8cb52efbc4e120377751cb24e407f8",
     "is_detected": true,
-    "last_detect_ts": 1777557881402
+    "last_detect_ts": 1777644531960
   },
   "feishu-troubleshoot": {
     "skill_name": "feishu-troubleshoot",
     "skill_hash": "297db77e448182cb21a3dbd4c764ee966c8d5fe0efa36c6326cd921e256f8208",
     "is_detected": true,
-    "last_detect_ts": 1777557881542
+    "last_detect_ts": 1777644532073
   },
   "feishu-update-doc": {
     "skill_name": "feishu-update-doc",
     "skill_hash": "178207afa94e6fa7619c72b11b0f9348dbb461b11f7dd29ae795abe1eb8268d7",
     "is_detected": true,
-    "last_detect_ts": 1777557881651
+    "last_detect_ts": 1777644532206
   }
 }
