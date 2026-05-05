@@ -299,6 +299,11 @@ export class MemoryLedger {
   }
 
   /** Increment access count for tracking usage */
+  /** Directly save an entry (used for in-place modifications like review/conflict resolution) */
+  async saveEntry(id: string, entry: LedgerEntry): Promise<void> {
+    await this.storage.set(id, entry);
+  }
+
   async bumpAccess(entryId: string): Promise<void> {
     const entry = await this.storage.get(entryId);
     if (!entry) return;

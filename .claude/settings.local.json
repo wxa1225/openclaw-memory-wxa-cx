@@ -20,7 +20,8 @@
       "Read(//tmp/**)",
       "Bash(unzip -o \"/home/gem/workspace/agent/Memory 定义与架构白皮书 \\(1\\).docx\" -d docx_extract)",
       "Bash(npm install *)",
-      "Bash(npx tsx *)"
+      "Bash(npx tsx *)",
+      "Bash(grep -v \"\\\\.d\\\\.ts$\")"
     ]
   }
 }

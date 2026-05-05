@@ -339,9 +339,7 @@ export class TeamMemoryManager {
     entry.access_count = (entry.access_count ?? 0) + 1;
     entry.updatedAt = new Date().toISOString();
 
-    await this.ledger.getEntry(memoryId).then(() =>
-      this._saveEntry(entry)
-    );
+    await this.ledger.saveEntry(memoryId, entry);
   }
 
   /** Check and format reminders (decay + risk) */
@@ -444,7 +442,7 @@ export class TeamMemoryManager {
     }
 
     entry.updatedAt = new Date().toISOString();
-    await this._saveEntry(entry);
+    await this.ledger.saveEntry(memoryId, entry);
 
     // Update graph
     if (this.enableGraph) {
@@ -493,14 +491,6 @@ export class TeamMemoryManager {
     } catch {
       // TMS sync failure — non-critical
     }
-  }
-
-  private async _saveEntry(entry: LedgerEntry): Promise<void> {
-    // Re-implement since Ledger doesn't expose direct save
-    // We use a workaround: inject the active claim again
-    // Actually, we need to save directly. Let's do it through the ledger's internal storage.
-    // For now, we'll just not use this method directly and rely on ledger methods.
-    // This is a design gap — the ledger needs a saveEntry method.
   }
 
   private async _syncToMem0(entry: LedgerEntry, text: string): Promise<void> {
