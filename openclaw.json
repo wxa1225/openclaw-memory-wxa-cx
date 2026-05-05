@@ -375,10 +375,12 @@
       "resolveSenderNames": true,
       "requireMention": true,
       "allowFrom": [
-        "ou_23ab1a1db6759ee9ae44a8e441a52153"
+        "ou_23ab1a1db6759ee9ae44a8e441a52153",
+        "ou_d38d8ebf8d6a2e1ffb35317a0a8188df"
       ],
       "groupAllowFrom": [
-        "ou_23ab1a1db6759ee9ae44a8e441a52153"
+        "ou_23ab1a1db6759ee9ae44a8e441a52153",
+        "ou_d38d8ebf8d6a2e1ffb35317a0a8188df"
       ],
       "groups": {
         "*": {
@@ -604,7 +606,8 @@
           "greeting": {
             "message": "👋 Hi，我是**AI**，一只生活在飞书里的 🦞 小龙虾，打个招呼，我们开始认识一下？",
             "targets": [
-              "ou_23ab1a1db6759ee9ae44a8e441a52153"
+              "ou_23ab1a1db6759ee9ae44a8e441a52153",
+              "ou_d38d8ebf8d6a2e1ffb35317a0a8188df"
             ]
           }
         }

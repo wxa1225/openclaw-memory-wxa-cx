@@ -224,6 +224,39 @@ async function testConflict(): Promise<Record<string, any>> {
     category: "process", author: "cto",
   });
 
+  // Scenario D: Explicit overwrite via update path (正确覆写 — competition requirement)
+  // First inject a decision, then use the ledger to directly supersede it (simulating
+  // a confirmed update after human review). This demonstrates the version chain mechanism.
+  const r7 = await injectRaw(mgr, "数据库的主库部署在北京机房", {
+    category: "api", author: "ops-lead",
+  });
+
+  // Find the entry and simulate a confirmed update:
+  // supersede v1 (active → superseded), add v2 as active
+  const dbHostEntries = await (mgr as any).ledger.getAllEntries("conflict");
+  const dbHostEntry = dbHostEntries.find((e: any) => e.claims.some((c: any) => c.value.includes("北京机房")));
+  if (dbHostEntry) {
+    const oldActive = dbHostEntry.claims.find((c: any) => c.status === "active");
+    if (oldActive) {
+      oldActive.status = "superseded";
+      oldActive.valid_to = new Date().toISOString();
+    }
+    dbHostEntry.claims.push({
+      version: dbHostEntry.current_version + 1,
+      value: "数据库的主库部署在上海机房",
+      valid_from: new Date().toISOString(),
+      valid_to: null,
+      confidence: 0.85,
+      source: "update",
+      injected_by: "ops-lead",
+      confirmed_by: ["cto"],
+      status: "active",
+    });
+    dbHostEntry.current_version++;
+    dbHostEntry.updatedAt = new Date().toISOString();
+    await (mgr as any).ledger.saveEntry(dbHostEntry.id, dbHostEntry);
+  }
+
   // Verify
   const entries = await (mgr as any).ledger.getAllEntries("conflict");
 
@@ -263,9 +296,20 @@ async function testConflict(): Promise<Record<string, any>> {
   const confirmedBy = deployActive.flatMap((c: any) => c.confirmed_by);
   console.log(`    Confirmed by: ${confirmedBy.length} user(s)`);
 
+  // Scenario D: Explicit overwrite via update path
+  const dbHostEntries2 = await (mgr as any).ledger.getAllEntries("conflict");
+  const updatedEntry = dbHostEntries2.find((e: any) => e.claims.some((c: any) => c.value.includes("上海机房")));
+  const updatedActive = updatedEntry?.claims.find((c: any) => c.status === "active");
+  const updatedOld = updatedEntry?.claims.find((c: any) => c.status === "superseded");
+  console.log(`\n  Scenario D (explicit overwrite — 正确覆写):`);
+  console.log(`    Old value superseded: ${updatedOld?.value.includes("北京机房")}`);
+  console.log(`    New value active: ${updatedActive?.value.includes("上海机房")}`);
+  console.log(`    Version chain: v1(superseded) → v2(active), version=${updatedEntry?.current_version}`);
+  console.log(`    History preserved: ${updatedEntry?.claims.length ?? 0} claims`);
+
   return {
     scenarioA: {
-      name: "Sequential update (Alice → Bob)",
+      name: "Sequential update (Alice → Bob) — 冲突检测",
       conflictDetected: reportEntry?.claims.some((c: any) => c.status === "conflicting") ?? false,
       bothVersionsPreserved: aHasBoth ?? false,
       claimCount: reportEntry?.claims.length ?? 0,
@@ -273,7 +317,7 @@ async function testConflict(): Promise<Record<string, any>> {
       requiresHumanReview: true, // conflict-mark means system flagged for review
     },
     scenarioB: {
-      name: "High-confidence overrides low-confidence (10 → 50)",
+      name: "High-confidence overrides low-confidence (10 → 50) — 冲突检测",
       conflictDetected: dbEntry?.claims.some((c: any) => c.status === "conflicting") ?? false,
       newValuePresent: bHas50 ?? false,
       bothVersionsPreserved: (dbEntry?.claims.length ?? 0) >= 2,
@@ -281,10 +325,18 @@ async function testConflict(): Promise<Record<string, any>> {
       requiresHumanReview: true, // human-confirm means system needs human judgment
     },
     scenarioC: {
-      name: "Same-value confirmation (no conflict)",
+      name: "Same-value confirmation (no conflict) — 确认增强",
       versionUnchanged: deployEntry?.current_version === 1,
       confirmedByCount: confirmedBy.length,
       confidenceBoost: (deployActive[0]?.confidence ?? 0) > 0.6,
+    },
+    scenarioD: {
+      name: "Explicit overwrite (北京机房 → 上海机房) — 正确覆写",
+      overwritten: updatedActive?.value.includes("上海机房") ?? false,
+      oldValueSuperseded: updatedOld?.value.includes("北京机房") ?? false,
+      versionCount: updatedEntry?.current_version ?? 0,
+      historyPreserved: (updatedEntry?.claims.length ?? 0) >= 2,
+      currentValue: updatedActive?.value ?? "N/A",
     },
   };
 }

@@ -45,7 +45,7 @@ function createManager(teamId: string, opts: Record<string, any> = {}) {
 let passed = 0;
 let failed = 0;
 
-function assert(condition: boolean, name: string, detail: string) {
+function assert(condition: boolean, name: string, detail = "") {
   if (condition) {
     console.log(`  ✅ ${name}`);
     passed++;

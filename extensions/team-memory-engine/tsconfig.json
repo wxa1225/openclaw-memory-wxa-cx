@@ -12,5 +12,5 @@
     "rootDir": ".",
     "types": ["jest", "node"]
   },
-  "include": ["lib/**/*.ts", "index.ts", "__tests__/**/*.ts", "scripts/**/*.ts"]
+  "include": ["lib/**/*.ts", "index.ts", "__tests__/**/*.ts", "scripts/**/*.ts", "openclaw-sdk.d.ts"]
 }

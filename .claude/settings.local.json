@@ -28,7 +28,11 @@
       "Bash(node *)",
       "Bash(npx tsc *)",
       "Bash(npm test *)",
-      "Bash(git *)"
+      "Bash(git *)",
+      "Bash(openclaw team-memory *)",
+      "Bash(echo \"Exit code: $?\")",
+      "Bash(rm -f /tmp/openclaw-gateway-new.log)",
+      "Bash(nohup openclaw gateway run --port 18789)"
     ]
   }
 }

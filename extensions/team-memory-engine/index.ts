@@ -237,6 +237,11 @@ const plugin = {
           feishuChatId: "",
           teamSize: 5,
           enableGraph: true,
+          projectRoot: "",
+          modelEndpoint: "",
+          modelApiKey: "",
+          modelName: "qwen-plus",
+          extractionBatchSize: 20,
         };
       }
       return parseConfig({ ...(value as Record<string, unknown>) });
@@ -300,10 +305,11 @@ const plugin = {
       const eventLog = new EventLog(cfg.projectRoot);
 
       // Capture user messages before agent processes them
-      api.on("before_agent_start", async (event, ctx) => {
-        if (!event.prompt || !event.prompt.trim()) return;
+      api.on("before_agent_start", async (event: unknown, ctx: unknown) => {
+        const evt = event as { prompt?: string };
+        if (!evt.prompt || !evt.prompt.trim()) return;
 
-        const prompt = event.prompt.trim();
+        const prompt = evt.prompt.trim();
         // Skip very short messages (likely noise or commands)
         if (prompt.length < 3) return;
 
@@ -332,14 +338,14 @@ const plugin = {
       });
 
       // Capture agent responses after they complete
-      api.on("agent_end", async (event, ctx) => {
-        if (!event.success || !event.messages || event.messages.length === 0) return;
+      api.on("agent_end", async (event: unknown, ctx: unknown) => {
+        const evt = event as { success?: boolean; messages?: unknown[] };
+        if (!evt.success || !evt.messages || evt.messages.length === 0) return;
 
         const sessionKey = (ctx as Record<string, unknown>)?.sessionKey as string | undefined;
 
         try {
-          // Extract the last assistant message
-          const messages = event.messages as Array<Record<string, unknown>>;
+          const messages = evt.messages as Array<{ role?: string; content?: string | Array<{ type: string; text: string }> }>;
           for (let i = messages.length - 1; i >= 0; i--) {
             const msg = messages[i];
             if (msg?.role === "assistant") {
@@ -394,7 +400,7 @@ const plugin = {
           category: Type.Optional(Type.String({ description: "Category: security, decision, api, process, experience, general" })),
           tags: Type.Optional(Type.Array(Type.String(), { description: "Additional tags for searchability" })),
         }),
-        async execute(_toolCallId, params) {
+        async execute(_toolCallId: unknown, params: unknown) {
           try {
             const { text, category, tags } = params as { text: string; category?: string; tags?: string[] };
             const result = await manager.inject(text, { category, tags, author: "agent" });
@@ -442,7 +448,7 @@ const plugin = {
           query: Type.String({ description: "Search query to find the memory to update" }),
           newText: Type.String({ description: "The new content" }),
         }),
-        async execute(_toolCallId, params) {
+        async execute(_toolCallId: unknown, params: unknown) {
           try {
             const { query, newText } = params as { query: string; newText: string };
             const result = await manager.update(query, newText, { author: "agent" });
@@ -469,7 +475,7 @@ const plugin = {
         parameters: Type.Object({
           category: Type.Optional(Type.String({ description: "Filter by category" })),
         }),
-        async execute(_toolCallId, params) {
+        async execute(_toolCallId: unknown, params: unknown) {
           try {
             const { category } = params as { category?: string };
             const memories = await manager.status(category);
@@ -511,7 +517,7 @@ const plugin = {
         parameters: Type.Object({
           memoryId: Type.String({ description: "The memory ID to mark as reviewed" }),
         }),
-        async execute(_toolCallId, params) {
+        async execute(_toolCallId: unknown, params: unknown) {
           try {
             const { memoryId } = params as { memoryId: string };
             await manager.forceReview(memoryId);
@@ -539,7 +545,7 @@ const plugin = {
         parameters: Type.Object({
           threshold: Type.Optional(Type.Number({ description: "Override risk threshold (default: 0.55)" })),
         }),
-        async execute(_toolCallId, params) {
+        async execute(_toolCallId: unknown, params: unknown) {
           try {
             const scores = await manager.assessRisk();
             const triggered = scores.filter((s) => s.triggered);
@@ -580,7 +586,7 @@ const plugin = {
         parameters: Type.Object({
           limit: Type.Optional(Type.Number({ description: "Max events to process (default: 20)" })),
         }),
-        async execute(_toolCallId, params) {
+        async execute(_toolCallId: unknown, params: unknown) {
           try {
             const limit = (params as any)?.limit ?? cfg.extractionBatchSize;
             if (!cfg.projectRoot) {
@@ -615,7 +621,7 @@ const plugin = {
         parameters: Type.Object({
           memberId: Type.Optional(Type.String({ description: "Filter by member ID" })),
         }),
-        async execute(_toolCallId, params) {
+        async execute(_toolCallId: unknown, params: unknown) {
           try {
             if (!cfg.projectRoot) {
               return { content: [{ type: "text", text: "TMS not configured. Set projectRoot in config." }] };
@@ -646,7 +652,8 @@ const plugin = {
     // ========================================================================
 
     api.registerCli(
-      ({ program }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ({ program }: { program: any }) => {
         const cmd = program
           .command("team-memory")
           .description("Team memory engine commands (v2 — Memory OS)");
