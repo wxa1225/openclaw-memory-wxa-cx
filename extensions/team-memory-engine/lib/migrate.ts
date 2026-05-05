@@ -4,6 +4,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { randomUUID } from "crypto";
 import type { StoredMemory, LedgerEntry, LedgerClaim, MigrationResult } from "./storage/types.js";
+import { extractEntityAttribute } from "./extract-utils.js";
 
 const DEFAULT_V1_PATH = path.join(
   process.env.HOME ?? "/tmp",
@@ -15,41 +16,6 @@ const DEFAULT_LEDGER_PATH = path.join(
   ".openclaw-memory-ledger.json"
 );
 
-/**
- * Simple entity/attribute extraction from free text.
- * Uses heuristic: "X的Y为Z" → entity=X, attribute=Y, value=Z
- * Falls back to general category if parsing fails.
- */
-function extractEntityAttribute(
-  text: string,
-  category: string
-): { entity: string; attribute: string; value: string } {
-  // Pattern: "X的Y为Z" or "X的Y是Z" or "X的Y:Z"
-  const patterns = [
-    /^(.+?)的(.+?)[为是:：](.+)$/,
-    /^(.+?)-->(.+)$/,
-    /^(.+?):(.+)$/,
-  ];
-
-  for (const pattern of patterns) {
-    const match = text.match(pattern);
-    if (match && match.length >= 3) {
-      return {
-        entity: match[1].trim(),
-        attribute: match[2] ? match[2].trim() : "value",
-        value: match[match.length - 1].trim(),
-      };
-    }
-  }
-
-  // Fallback: use category as attribute, text as value
-  return {
-    entity: "general",
-    attribute: category !== "general" ? category : "memory",
-    value: text,
-  };
-}
-
 /** Convert a single v1 StoredMemory to v2 LedgerEntry */
 function storedMemoryToLedgerEntry(
   memory: StoredMemory,
@@ -60,19 +26,25 @@ function storedMemoryToLedgerEntry(
     memory.metadata.category
   );
 
-  const claims: LedgerClaim[] = memory.metadata.versionHistory.map((vh, idx) => ({
-    version: vh.version,
-    value: vh.text,
-    valid_from: vh.updatedAt,
-    valid_to: idx < memory.metadata.versionHistory.length - 1
-      ? memory.metadata.versionHistory[idx + 1].updatedAt
-      : null,
-    confidence: 1.0, // v1 had no confidence tracking
-    source: "migration_v1",
-    injected_by: vh.updatedBy,
-    confirmed_by: [],
-    status: idx === memory.metadata.versionHistory.length - 1 ? "active" : "superseded",
-  }));
+  const claims: LedgerClaim[] = memory.metadata.versionHistory.map((vh, idx) => {
+    const isLast = idx === memory.metadata.versionHistory.length - 1;
+    // v1 had no confidence tracking. Use 0.7 as base,
+    // +0.05 per review (up to 0.2 bonus) to reflect historical validation.
+    const reviewBonus = Math.min(0.2, (memory.metadata.reviewCount ?? 0) * 0.05);
+    return {
+      version: vh.version,
+      value: vh.text,
+      valid_from: vh.updatedAt,
+      valid_to: isLast
+        ? null
+        : memory.metadata.versionHistory[idx + 1].updatedAt,
+      confidence: isLast ? 0.7 + reviewBonus : 0.5,
+      source: "migration_v1",
+      injected_by: vh.updatedBy,
+      confirmed_by: [],
+      status: isLast ? "active" : "superseded",
+    };
+  });
 
   const now = new Date().toISOString();
 

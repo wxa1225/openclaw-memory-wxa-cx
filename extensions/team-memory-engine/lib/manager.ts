@@ -29,6 +29,7 @@ import { RiskModel } from "./risk.js";
 import { runMigration } from "./migrate.js";
 import { MemoryExtractor, type ExtractedMemory, type ExtractionConfig } from "./extractor.js";
 import { TeamCapabilityModel } from "./tms.js";
+import { extractEntityAttribute, roleConfidenceAdjustment } from "./extract-utils.js";
 
 export type { Mem0Provider } from "./storage/types.js";
 
@@ -53,13 +54,14 @@ export class TeamMemoryManager {
   private teamSize: number;
   private enableGraph: boolean;
 
+
   constructor(mem0: Mem0Provider, options: ManagerV2Options) {
     this.teamId = options.teamId;
     this.defaultUserId = options.defaultUserId;
     this.reviewThreshold = options.reviewThreshold ?? 0.4;
     this.teamSize = options.teamSize ?? 5;
     this.enableGraph = options.enableGraph ?? true;
-    this.hasMem0Key = !!(mem0 as Record<string, unknown>).apiKey;
+    this.hasMem0Key = !!(mem0 as unknown as Record<string, unknown>).apiKey;
     this.projectRoot = options.projectRoot ?? "";
 
     this.ledger = new MemoryLedger(options.teamId, options.ledgerPath);
@@ -178,13 +180,13 @@ export class TeamMemoryManager {
     const tags = options.tags ?? [];
 
     // Extract entity/attribute from text (heuristic)
-    const { entity, attribute, value } = this._extractContent(text, category);
+    const { entity, attribute, value } = extractEntityAttribute(text, category);
 
     const ledgerOptions: InjectClaimOptions = {
       entity,
       attribute,
       value,
-      confidence: 0.7 + (options.tags?.length ?? 0) * 0.05, // more tags = slightly higher confidence
+      confidence: 0.7 + roleConfidenceAdjustment(author, this.defaultUserId), // Role-adjusted base confidence
       source: "manual_inject",
       injectedBy: author,
       category,
@@ -194,6 +196,10 @@ export class TeamMemoryManager {
     };
 
     const entry = await this.ledger.injectClaim(ledgerOptions);
+
+    // Check if a conflict was detected and resolved
+    const conflict = this.ledger.lastConflict;
+    this.ledger.lastConflict = null; // Clear for next call
 
     // Sync to Mem0 (best-effort)
     await this._syncToMem0(entry, text);
@@ -206,11 +212,18 @@ export class TeamMemoryManager {
     // Sync TMS
     await this._syncTms();
 
-    return {
+    const result: InjectResult = {
       id: entry.id,
       memory: text,
       metadata: this._entryToMeta(entry),
     };
+    if (conflict) {
+      result.conflict = {
+        type: conflict.type,
+        reason: conflict.reason,
+      };
+    }
+    return result;
   }
 
   /** Update an existing team memory (ledger-backed) */
@@ -225,7 +238,7 @@ export class TeamMemoryManager {
     const previousVersion = target.current_version;
 
     // Inject as new claim (ledger handles conflict detection)
-    const { entity, attribute, value } = this._extractContent(newText, target.category);
+    const { entity, attribute, value } = extractEntityAttribute(newText, target.category);
 
     const updated = await this.ledger.injectClaim({
       entity: target.entity,
@@ -286,9 +299,10 @@ export class TeamMemoryManager {
         const mem0Results = await this.mem0.search(query, { user_id: this.teamId, top_k: 10 });
         const results: SearchResult[] = [];
         for (const r of (mem0Results ?? [])) {
-          const localId = (r as Record<string, unknown>)?.metadata?.team_memory_id as string | undefined;
-          if (localId) {
-            const local = await this.ledger.getEntry(localId);
+          const localId = (r as Record<string, unknown>)?.metadata as Record<string, unknown> | undefined;
+          const localIdStr = localId?.team_memory_id as string | undefined;
+          if (localIdStr) {
+            const local = await this.ledger.getEntry(localIdStr);
             if (local) {
               const strength = calculateStrengthFromLedger(local);
               results.push({
@@ -327,11 +341,11 @@ export class TeamMemoryManager {
     const entry = await this.ledger.getEntry(memoryId);
     if (!entry) throw new Error(`Memory not found: ${memoryId}`);
 
-    // Bump confidence of active claim
+    // Bump confidence of active claim (+0.05, consistent with ledger confirmation)
     for (const claim of entry.claims) {
       if (claim.status === "active" || claim.status === undefined) {
-        claim.confidence = Math.min(1.0, claim.confidence + 0.1);
-        claim.valid_from = new Date().toISOString();
+        claim.confidence = Math.min(1.0, claim.confidence + 0.05);
+        claim.valid_from = new Date().toISOString(); // Reset decay clock
       }
     }
 
@@ -433,9 +447,14 @@ export class TeamMemoryManager {
         break;
       }
       case "dismiss": {
-        // Keep all, mark as non-conflicting
+        // Dismiss the newest conflicting claim (highest version), restore
+        // existing conflicting claims to "active" — the original values.
+        const maxVersion = Math.max(...entry.claims.map((c) => c.version));
         for (const claim of conflictingClaims) {
-          claim.status = "active";
+          claim.status = claim.version === maxVersion ? "superseded" : "active";
+          if (claim.status === "superseded") {
+            claim.valid_to = new Date().toISOString();
+          }
         }
         break;
       }
@@ -511,32 +530,6 @@ export class TeamMemoryManager {
     } catch {
       // best-effort, local ledger is source of truth
     }
-  }
-
-  /** Simple entity/attribute extraction from free text */
-  private _extractContent(text: string, category: string): { entity: string; attribute: string; value: string } {
-    const patterns = [
-      /^(.+?)的(.+?)[为是:：](.+)$/,
-      /^(.+?)-->(.+)$/,
-      /^(.+?):(.+)$/,
-    ];
-
-    for (const pattern of patterns) {
-      const match = text.match(pattern);
-      if (match && match.length >= 3) {
-        return {
-          entity: match[1].trim(),
-          attribute: match[2] ? match[2].trim() : "value",
-          value: match[match.length - 1].trim(),
-        };
-      }
-    }
-
-    return {
-      entity: "general",
-      attribute: category !== "general" ? category : "memory",
-      value: text,
-    };
   }
 
   /** Convert LedgerEntry to v1-compatible TeamMemoryMeta for SearchResult */

@@ -21,7 +21,14 @@
       "Bash(unzip -o \"/home/gem/workspace/agent/Memory 定义与架构白皮书 \\(1\\).docx\" -d docx_extract)",
       "Bash(npm install *)",
       "Bash(npx tsx *)",
-      "Bash(grep -v \"\\\\.d\\\\.ts$\")"
+      "Bash(grep -v \"\\\\.d\\\\.ts$\")",
+      "Bash(grep -oP '\\\\.on\\\\\\(`[^`]+`' /home/gem/workspace/agent/extensions/openclaw-guardian-plugin/dist/index.js)",
+      "Bash(grep -oP '\\\\.on\\\\\\(`[^`]+`' /home/gem/workspace/agent/extensions/openclaw-lark/index.js)",
+      "Bash(/home/gem/workspace/agent/extensions/team-memory-engine/node_modules/.bin/tsx *)",
+      "Bash(node *)",
+      "Bash(npx tsc *)",
+      "Bash(npm test *)",
+      "Bash(git *)"
     ]
   }
 }

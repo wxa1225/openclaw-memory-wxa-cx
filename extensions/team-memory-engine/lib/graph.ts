@@ -63,20 +63,61 @@ export class MemoryGraph {
   async incrementalUpdate(entry: LedgerEntry): Promise<void> {
     const data = await this.storage.load();
 
-    // Remove old nodes/edges for this entry
-    const prefix = nodeId("Memory", `${entry.id}-`);
-    data.nodes = data.nodes.filter((n) => !n.id.startsWith(prefix));
+    const memPrefix = nodeId("Memory", `${entry.id}-`);
+
+    // Find old entity/attribute nodes by reverse-lookup: edges pointing to memory nodes
+    // that are about to be removed. This catches entity/attribute renames.
+    const orphanedNodeIds = new Set<string>();
+    for (const edge of data.edges) {
+      if (edge.target.startsWith(memPrefix) || edge.source.startsWith(memPrefix)) {
+        // This edge connects to a memory node we're about to remove.
+        // If it's a has_preference/current_value/old_value/related_memory edge,
+        // check whether the source/target should also be cleaned up.
+        if (edge.type === "has_preference") {
+          // Only orphan the entity node if ALL its has_preference edges point to old memories
+          orphanedNodeIds.add(edge.source);
+        }
+        if (edge.type === "current_value" || edge.type === "old_value") {
+          orphanedNodeIds.add(edge.source); // attribute node
+        }
+        if (edge.type === "related_memory") {
+          orphanedNodeIds.add(edge.source); // entity node
+        }
+      }
+    }
+
+    // Verify orphaned nodes are truly orphaned (no other edges reference them)
+    const nodesToRemove = new Set<string>();
+    for (const nodeIdStr of orphanedNodeIds) {
+      const otherEdges = data.edges.filter(
+        (e) => (e.source === nodeIdStr || e.target === nodeIdStr) &&
+          !e.source.startsWith(memPrefix) && !e.target.startsWith(memPrefix)
+      );
+      // If only edges to old memory nodes exist, this node is truly orphaned
+      if (otherEdges.length === 0) {
+        nodesToRemove.add(nodeIdStr);
+      }
+    }
+
+    // Remove old nodes/edges for this entry's memory nodes
+    data.nodes = data.nodes.filter((n) => !n.id.startsWith(memPrefix));
     data.edges = data.edges.filter(
-      (e) => !e.source.startsWith(prefix) && !e.target.startsWith(prefix)
+      (e) => !e.source.startsWith(memPrefix) && !e.target.startsWith(memPrefix)
     );
 
     // Also remove stale entity/attribute edges that pointed to old memory nodes
     data.edges = data.edges.filter((e) => {
       if (e.type === "related_memory" || e.type === "current_value" || e.type === "old_value") {
-        if (e.target.startsWith(prefix)) return false;
+        if (e.target.startsWith(memPrefix)) return false;
       }
       return true;
     });
+
+    // Remove truly orphaned nodes and their edges
+    for (const orphanId of nodesToRemove) {
+      data.nodes = data.nodes.filter((n) => n.id !== orphanId);
+      data.edges = data.edges.filter((e) => e.source !== orphanId && e.target !== orphanId);
+    }
 
     // Build and add new subgraph
     const subgraph = this._buildEntrySubgraph(entry);

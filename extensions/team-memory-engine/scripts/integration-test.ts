@@ -17,9 +17,16 @@ const noopMem0: Mem0Provider = {
 };
 
 const TEST_ROOT = path.join("/tmp", `team-memory-int-test-${Date.now()}`);
+const TEST_STORAGE_DIR = path.join("/tmp", `team-memory-storage-${Date.now()}`);
+
+function setup() {
+  try { fs.mkdirSync(TEST_ROOT, { recursive: true }); } catch {}
+  try { fs.mkdirSync(TEST_STORAGE_DIR, { recursive: true }); } catch {}
+}
 
 function cleanup() {
   try { fs.rmSync(TEST_ROOT, { recursive: true, force: true }); } catch {}
+  try { fs.rmSync(TEST_STORAGE_DIR, { recursive: true, force: true }); } catch {}
 }
 
 function createManager(teamId: string, opts: Record<string, any> = {}) {
@@ -29,6 +36,8 @@ function createManager(teamId: string, opts: Record<string, any> = {}) {
     teamSize: 5,
     enableGraph: true,
     projectRoot: TEST_ROOT,
+    ledgerPath: path.join(TEST_STORAGE_DIR, `${teamId}-ledger.json`),
+    graphPath: path.join(TEST_STORAGE_DIR, `${teamId}-graph.json`),
     ...opts,
   });
 }
@@ -109,9 +118,20 @@ async function testGraphIncremental() {
   assert(graph2.nodes.length > initialNodes, "Graph grew after inject",
     `Before: ${initialNodes}, After: ${graph2.nodes.length}`);
 
-  // Verify entity nodes exist (entity extraction uses _extractContent which may group under category)
+  // Verify entity nodes exist — ensure extraction produces diverse entities,
+  // not just entity:"general" (graph degeneration into star topology).
   const entityNodes = graph2.nodes.filter(n => n.type === "Entity");
-  assert(entityNodes.length >= 1, "At least 1 Entity node", `Got ${entityNodes.length}`);
+  assert(entityNodes.length >= 2, "At least 2 distinct Entity nodes (no star degeneration)", `Got ${entityNodes.length}`);
+
+  // Verify no "general" entity node dominates (star topology check)
+  const generalEdges = graph2.edges.filter(e =>
+    e.type === "has_preference" &&
+    graph2.nodes.find(n => n.id === e.source && n.label === "general")
+  );
+  const totalPrefEdges = graph2.edges.filter(e => e.type === "has_preference").length;
+  const generalRatio = totalPrefEdges > 0 ? generalEdges.length / totalPrefEdges : 0;
+  assert(generalRatio < 0.5, "Less than 50% of edges attached to 'general' entity",
+    `General ratio: ${(generalRatio * 100).toFixed(0)}% (${generalEdges.length}/${totalPrefEdges})`);
 
   // Verify has_preference edges exist (one per unique entity.attribute)
   const prefEdges = graph2.edges.filter(e => e.type === "has_preference");
@@ -273,6 +293,8 @@ async function testFullPipeline() {
 async function main() {
   console.log("=== Team Memory Engine v2 — Integration Tests ===");
   console.log(`Test root: ${TEST_ROOT}\n`);
+
+  setup();
 
   try {
     await testEventLog();

@@ -4,6 +4,8 @@ import {
   calculateStrength,
   getStrengthLabel,
   FORGETTING_CURVE_INTERVALS,
+  closestIntervalIndex,
+  computeDecayStrength,
 } from "./decay.js";
 import type {
   LedgerEntry,
@@ -18,7 +20,16 @@ import {
   IMPORTANT_TAGS,
 } from "./storage/types.js";
 
-// Sigmoid coefficients for BusinessImpact
+// Sigmoid coefficients for BusinessImpact: σ(α * categoryWeight + β * tagScore)
+// α=0.6, β=0.4 means category contributes 1.5× more than tags.
+// Rationale: category is a deliberate classification (decision/security/etc.)
+// while tags are optional annotations that may be missing or incomplete.
+// With these values:
+//   - security (1.0) + no tags → σ(0.6) = 0.646
+//   - decision (0.8) + 1 tag (0.33) → σ(0.48+0.13) = σ(0.61) = 0.648
+//   - general (0.3) + no tags → σ(0.18) = 0.545
+// The gap between security and general (~0.10) is enough to push security
+// memories over the businessImpactTrigger (0.50) while keeping general below it.
 const SIGMOID_ALPHA = 0.6;
 const SIGMOID_BETA = 0.4;
 
@@ -118,12 +129,12 @@ export class RiskModel {
 
     // Map recall_half_life (days) to the closest Ebbinghaus interval index
     const halfLifeMs = entry.recall_half_life * 24 * 60 * 60 * 1000;
-    const intervalIndex = this._closestIntervalIndex(halfLifeMs);
+    const intervalIndex = closestIntervalIndex(halfLifeMs);
     const interval = FORGETTING_CURVE_INTERVALS[intervalIndex] ?? halfLifeMs;
 
-    // P_recall = 2^(-elapsed / interval)
-    const pRecall = Math.pow(2, -elapsed / interval);
-    return 1 - Math.max(0, Math.min(1, pRecall));
+    // P_recall = 2^(-elapsed / interval), using shared core function
+    const pRecall = computeDecayStrength(elapsed, interval);
+    return 1 - pRecall;
   }
 
   /** BusinessImpact(m) = sigmoid(alpha * category_weight + beta * tag_score) */
@@ -157,14 +168,28 @@ export class RiskModel {
     return 1 - coverage;
   }
 
-  /** VersionRisk(m) = based on conflicting claims and version count */
+  /** VersionRisk(m) = based on conflicting claims, version count, and change frequency.
+   *
+   * Factors:
+   * 1. Conflicting claims present → 0.6 (down from 0.8; conflict is tracked, not silently broken)
+   * 2. High version count (>5) + recent changes → 0.5 (unstable memory)
+   * 3. Moderate version count (2-5) → 0.3
+   * 4. Single version, no conflict → 0.1 (baseline)
+   */
   private _computeVersionRisk(entry: LedgerEntry): number {
     const hasConflicting = entry.claims.some((c) => c.status === "conflicting");
-    if (hasConflicting) return 0.8;
+    if (hasConflicting) return 0.6;
 
     const versionCount = entry.current_version;
-    if (versionCount > 3) return 0.5;
-    if (versionCount > 1) return 0.3;
+    if (versionCount > 5) {
+      // Check if recent versions are clustered in time (unstable)
+      const recentClaims = entry.claims.filter((c) => {
+        const age = Date.now() - new Date(c.valid_from).getTime();
+        return age < 7 * 24 * 60 * 60 * 1000; // last 7 days
+      });
+      if (recentClaims.length >= 3) return 0.5;
+    }
+    if (versionCount > 2) return 0.3;
     return 0.1;
   }
 
@@ -178,19 +203,6 @@ export class RiskModel {
 
   private _sigmoid(x: number): number {
     return 1 / (1 + Math.exp(-x));
-  }
-
-  private _closestIntervalIndex(targetMs: number): number {
-    let bestIndex = 0;
-    let bestDiff = Infinity;
-    for (let i = 0; i < FORGETTING_CURVE_INTERVALS.length; i++) {
-      const diff = Math.abs(FORGETTING_CURVE_INTERVALS[i] - targetMs);
-      if (diff < bestDiff) {
-        bestDiff = diff;
-        bestIndex = i;
-      }
-    }
-    return bestIndex;
   }
 
   // ---- Feishu Risk Card ----
@@ -264,7 +276,7 @@ export class RiskModel {
             "**Risk sources:**",
             ...sources,
             "",
-            "**Possible risk:** Team may be using outdated认知",
+            "**Possible risk:** Team may be using outdated information",
           ].join("\n"),
         },
         {

@@ -33,6 +33,29 @@ import { EventLog } from "./lib/event-log.js";
 // Feishu message push helper
 // ============================================================================
 
+/** Format a Feishu @mention message for conflict resolution */
+function formatConflictMention(entity: string, attribute: string, reason: string): string {
+  const card = {
+    config: { wide_screen_mode: true },
+    header: {
+      title: { tag: "plain_text" as const, content: "Memory Conflict — Human Confirmation Needed" },
+      template: "orange",
+    },
+    elements: [
+      {
+        tag: "markdown" as const,
+        content: [
+          `**Conflict detected:** ${reason}`,
+          "",
+          "Please review the conflicting values and confirm which one is correct.",
+          "Use `team_memory_review` or `team_memory_resolve` to resolve.",
+        ].join("\n"),
+      },
+    ],
+  };
+  return JSON.stringify(card, null, 2);
+}
+
 async function sendFeishuMessage(
   appId: string,
   appSecret: string,
@@ -230,11 +253,21 @@ const plugin = {
     const mem0ApiKey = process.env?.MEM0_API_KEY ?? api.resolveConfig?.("mem0.apiKey") ?? "";
     const mem0Host = process.env?.MEM0_HOST ?? api.resolveConfig?.("mem0.host") ?? "https://api.mem0.ai";
 
-    if (!mem0ApiKey) {
-      api.logger.warn("team-memory-engine: MEM0_API_KEY not set, memory operations will use local ledger only");
-    }
+    // Use a no-op provider when Mem0 is not configured — avoids unnecessary
+    // HTTP client creation and failed network requests.
+    const mem0Client: Mem0Provider = mem0ApiKey
+      ? new Mem0HttpClient(mem0ApiKey, mem0Host)
+      : {
+          async add() { return {}; },
+          async search() { return []; },
+          async getAll() { return []; },
+          async get() { return undefined; },
+          async delete() { return {}; },
+        };
 
-    const mem0Client = new Mem0HttpClient(mem0ApiKey, mem0Host);
+    if (!mem0ApiKey) {
+      api.logger.info("team-memory-engine: Mem0 not configured (MEM0_API_KEY unset), using local ledger only");
+    }
     const manager = new TeamMemoryManager(mem0Client, {
       teamId: cfg.teamId,
       defaultUserId: "openclaw-user",
@@ -259,6 +292,95 @@ const plugin = {
     );
 
     // ========================================================================
+    // Event Log Hooks — capture conversation flow into Event Log
+    // ========================================================================
+
+    // Only enable event logging if projectRoot is configured
+    if (cfg.projectRoot) {
+      const eventLog = new EventLog(cfg.projectRoot);
+
+      // Capture user messages before agent processes them
+      api.on("before_agent_start", async (event, ctx) => {
+        if (!event.prompt || !event.prompt.trim()) return;
+
+        const prompt = event.prompt.trim();
+        // Skip very short messages (likely noise or commands)
+        if (prompt.length < 3) return;
+
+        // Skip internal system/tool messages to avoid feedback loops
+        const skipPrefixes = ["<system", "<tool", "Team memory stored:", "Memory updated"];
+        if (skipPrefixes.some((p) => prompt.startsWith(p))) return;
+
+        const sessionKey = (ctx as Record<string, unknown>)?.sessionKey as string | undefined;
+        const agentId = (ctx as Record<string, unknown>)?.agentId as string | undefined;
+
+        try {
+          await eventLog.append({
+            chatId: sessionKey ?? "unknown-session",
+            chatType: "p2p",
+            senderId: "user",
+            senderName: undefined,
+            content: prompt,
+            contentType: "text",
+            messageId: `msg-${Date.now()}`,
+            threadId: undefined,
+            participants: agentId ? [agentId, "user"] : undefined,
+          });
+        } catch (err) {
+          api.logger.warn(`team-memory-engine: event log append failed: ${String(err)}`);
+        }
+      });
+
+      // Capture agent responses after they complete
+      api.on("agent_end", async (event, ctx) => {
+        if (!event.success || !event.messages || event.messages.length === 0) return;
+
+        const sessionKey = (ctx as Record<string, unknown>)?.sessionKey as string | undefined;
+
+        try {
+          // Extract the last assistant message
+          const messages = event.messages as Array<Record<string, unknown>>;
+          for (let i = messages.length - 1; i >= 0; i--) {
+            const msg = messages[i];
+            if (msg?.role === "assistant") {
+              const content = msg.content;
+              let textContent = "";
+              if (typeof content === "string") {
+                textContent = content;
+              } else if (Array.isArray(content)) {
+                for (const block of content) {
+                  if (
+                    block && typeof block === "object" &&
+                    (block as Record<string, unknown>).type === "text" &&
+                    typeof (block as Record<string, unknown>).text === "string"
+                  ) {
+                    textContent += (textContent ? "\n" : "") + (block as Record<string, unknown>).text;
+                  }
+                }
+              }
+              if (textContent.trim()) {
+                await eventLog.append({
+                  chatId: sessionKey ?? "unknown-session",
+                  chatType: "p2p",
+                  senderId: "agent",
+                  senderName: "AI",
+                  content: textContent.trim(),
+                  contentType: "text",
+                  messageId: `msg-${Date.now()}-agent`,
+                });
+              }
+              break;
+            }
+          }
+        } catch (err) {
+          api.logger.warn(`team-memory-engine: agent_end event log failed: ${String(err)}`);
+        }
+      });
+    } else {
+      api.logger.info("team-memory-engine: event logging disabled (projectRoot not configured)");
+    }
+
+    // ========================================================================
     // Tools
     // ========================================================================
 
@@ -276,9 +398,29 @@ const plugin = {
           try {
             const { text, category, tags } = params as { text: string; category?: string; tags?: string[] };
             const result = await manager.inject(text, { category, tags, author: "agent" });
+            const conflictMsg = result.conflict
+              ? `\nConflict detected (${result.conflict.type}): ${result.conflict.reason}`
+              : "";
+
+            // Send Feishu @mention for human-confirm conflicts
+            if (result.conflict?.type === "human-confirm" && cfg.feishuChatId) {
+              const card = formatConflictMention(
+                result.metadata.injectedBy,
+                result.metadata.category,
+                result.conflict.reason
+              );
+              await sendFeishuMessage(
+                process.env?.FEISHU_APP_ID ?? "",
+                process.env?.FEISHU_APP_SECRET ?? "",
+                cfg.feishuChatId,
+                card,
+                "interactive"
+              );
+            }
+
             return {
-              content: [{ type: "text", text: `Team memory stored: "${result.memory}" (id: ${result.id}, v${result.metadata.version})` }],
-              details: { action: "injected", id: result.id },
+              content: [{ type: "text", text: `Team memory stored: "${result.memory}" (id: ${result.id}, v${result.metadata.version})${conflictMsg}` }],
+              details: { action: "injected", id: result.id, conflict: result.conflict },
             };
           } catch (err) {
             return {

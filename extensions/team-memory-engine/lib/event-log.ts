@@ -1,4 +1,7 @@
 // Event Log — date-partitioned raw conversation capture (Layer 1)
+//
+// Processed IDs are tracked in a separate `processed-ids.json` file to avoid
+// rewriting daily log files when marking entries as processed.
 
 import * as fs from "fs";
 import * as path from "path";
@@ -6,9 +9,12 @@ import type { EventLogEntry } from "./storage/types.js";
 
 export class EventLog {
   private logDir: string;
+  private processedIdsPath: string;
+  private processedIdsCache: Set<string> | null = null;
 
   constructor(projectRoot: string) {
     this.logDir = path.join(projectRoot, "memory", "event-log");
+    this.processedIdsPath = path.join(projectRoot, "memory", "event-log", "processed-ids.json");
   }
 
   /** Append a message to the event log */
@@ -55,37 +61,18 @@ export class EventLog {
 
   /** Get events not yet processed for memory extraction */
   async getUnprocessed(): Promise<EventLogEntry[]> {
+    const processed = await this.loadProcessedIds();
     const all = await this.query({});
-    return all.filter((e) => !e.processedForExtraction);
+    return all.filter((e) => !processed.has(e.id));
   }
 
-  /** Mark events as processed */
+  /** Mark events as processed — appends IDs to processed-ids.json */
   async markProcessed(ids: string[]): Promise<void> {
-    const idSet = new Set(ids);
+    if (ids.length === 0) return;
 
-    // Group by date to minimize file I/O
-    const byDate = new Map<string, string[]>();
-    for (const entry of await this.query({})) {
-      if (idSet.has(entry.id)) {
-        const date = entry.storedAt.slice(0, 10);
-        if (!byDate.has(date)) byDate.set(date, []);
-        byDate.get(date)!.push(entry.id);
-      }
-    }
-
-    for (const [date, dateIds] of byDate) {
-      const entries = await this.readDailyFile(date);
-      let changed = false;
-      for (const e of entries) {
-        if (dateIds.includes(e.id) && !e.processedForExtraction) {
-          e.processedForExtraction = true;
-          changed = true;
-        }
-      }
-      if (changed) {
-        await this.writeDailyFile(date, entries);
-      }
-    }
+    const processed = await this.loadProcessedIds();
+    for (const id of ids) processed.add(id);
+    await this.saveProcessedIds(processed);
   }
 
   // ---- Internal ----
@@ -122,11 +109,34 @@ export class EventLog {
     try {
       const files = await fs.promises.readdir(this.logDir);
       return files
-        .filter((f) => f.endsWith(".json"))
+        .filter((f) => f.endsWith(".json") && f !== "processed-ids.json")
         .map((f) => path.join(this.logDir, f))
         .sort();
     } catch {
       return [];
     }
+  }
+
+  // ---- Processed IDs (separate file to avoid rewriting daily logs) ----
+
+  private async loadProcessedIds(): Promise<Set<string>> {
+    if (this.processedIdsCache) return this.processedIdsCache;
+
+    try {
+      const raw = await fs.promises.readFile(this.processedIdsPath, "utf-8");
+      const ids: string[] = JSON.parse(raw);
+      this.processedIdsCache = new Set(ids);
+    } catch {
+      this.processedIdsCache = new Set();
+    }
+    return this.processedIdsCache;
+  }
+
+  private async saveProcessedIds(ids: Set<string>): Promise<void> {
+    await fs.promises.mkdir(path.dirname(this.processedIdsPath), { recursive: true });
+    const tmpPath = this.processedIdsPath + ".tmp";
+    await fs.promises.writeFile(tmpPath, JSON.stringify(Array.from(ids)), "utf-8");
+    await fs.promises.rename(tmpPath, this.processedIdsPath);
+    this.processedIdsCache = ids;
   }
 }

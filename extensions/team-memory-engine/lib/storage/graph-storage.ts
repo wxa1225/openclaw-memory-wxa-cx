@@ -12,6 +12,8 @@ const DEFAULT_PATH = path.join(
 export class GraphStorageBackend {
   private filePath: string;
   private cache: GraphData | null = null;
+  // Write lock queue
+  private writeLock = Promise.resolve();
 
   constructor(filePath: string = DEFAULT_PATH) {
     this.filePath = filePath;
@@ -21,11 +23,11 @@ export class GraphStorageBackend {
     if (this.cache) return this.cache;
     try {
       const raw = await fs.promises.readFile(this.filePath, "utf-8");
-      this.cache = JSON.parse(raw);
+      this.cache = JSON.parse(raw) as GraphData;
     } catch {
       this.cache = { nodes: [], edges: [] };
     }
-    return this.cache;
+    return this.cache!;
   }
 
   async save(): Promise<void> {
@@ -35,17 +37,41 @@ export class GraphStorageBackend {
     await fs.promises.rename(tmpPath, this.filePath);
   }
 
+  /** Queue-based write lock */
+  private async withWriteLock<T>(fn: () => Promise<T>): Promise<T> {
+    let resolve: () => void;
+    let reject: (err: unknown) => void;
+    const nextLock = new Promise<void>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+
+    const currentLock = this.writeLock;
+    this.writeLock = nextLock;
+
+    try {
+      const result = await currentLock.then(fn);
+      resolve!();
+      return result;
+    } catch (err) {
+      reject!(err);
+      throw err;
+    }
+  }
+
   // --- Node operations ---
 
   async addNode(node: GraphNode): Promise<void> {
-    const data = await this.load();
-    const existing = data.nodes.findIndex((n) => n.id === node.id);
-    if (existing >= 0) {
-      data.nodes[existing] = node;
-    } else {
-      data.nodes.push(node);
-    }
-    await this.save();
+    await this.withWriteLock(async () => {
+      const data = await this.load();
+      const existing = data.nodes.findIndex((n) => n.id === node.id);
+      if (existing >= 0) {
+        data.nodes[existing] = node;
+      } else {
+        data.nodes.push(node);
+      }
+      await this.save();
+    });
   }
 
   async getNode(id: string): Promise<GraphNode | undefined> {
@@ -54,10 +80,12 @@ export class GraphStorageBackend {
   }
 
   async deleteNode(id: string): Promise<void> {
-    const data = await this.load();
-    data.nodes = data.nodes.filter((n) => n.id !== id);
-    data.edges = data.edges.filter((e) => e.source !== id && e.target !== id);
-    await this.save();
+    await this.withWriteLock(async () => {
+      const data = await this.load();
+      data.nodes = data.nodes.filter((n) => n.id !== id);
+      data.edges = data.edges.filter((e) => e.source !== id && e.target !== id);
+      await this.save();
+    });
   }
 
   async getAllNodes(type?: GraphNodeType): Promise<GraphNode[]> {
@@ -69,14 +97,16 @@ export class GraphStorageBackend {
   // --- Edge operations ---
 
   async addEdge(edge: GraphEdge): Promise<void> {
-    const data = await this.load();
-    const existing = data.edges.findIndex((e) => e.id === edge.id);
-    if (existing >= 0) {
-      data.edges[existing] = edge;
-    } else {
-      data.edges.push(edge);
-    }
-    await this.save();
+    await this.withWriteLock(async () => {
+      const data = await this.load();
+      const existing = data.edges.findIndex((e) => e.id === edge.id);
+      if (existing >= 0) {
+        data.edges[existing] = edge;
+      } else {
+        data.edges.push(edge);
+      }
+      await this.save();
+    });
   }
 
   async getEdges(source?: string, target?: string, type?: GraphEdgeType): Promise<GraphEdge[]> {
@@ -90,9 +120,11 @@ export class GraphStorageBackend {
   }
 
   async deleteEdge(id: string): Promise<void> {
-    const data = await this.load();
-    data.edges = data.edges.filter((e) => e.id !== id);
-    await this.save();
+    await this.withWriteLock(async () => {
+      const data = await this.load();
+      data.edges = data.edges.filter((e) => e.id !== id);
+      await this.save();
+    });
   }
 
   // --- Graph queries ---
@@ -114,7 +146,9 @@ export class GraphStorageBackend {
 
   /** Replace entire graph (used by rebuildFromLedger) */
   async replace(data: GraphData): Promise<void> {
-    this.cache = data;
-    await this.save();
+    await this.withWriteLock(async () => {
+      this.cache = data;
+      await this.save();
+    });
   }
 }

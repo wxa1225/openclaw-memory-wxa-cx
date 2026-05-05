@@ -18,6 +18,17 @@ export const FORGETTING_CURVE_INTERVALS: number[] = [
 export type StrengthLabel = "fresh" | "strong" | "fading" | "weak" | "critical";
 
 /**
+ * Core decay formula: S = 2^(-elapsed / currentInterval)
+ * This is the single source of truth for the Ebbinghaus forgetting curve computation.
+ * Both StoredMemory and LedgerEntry strength calculations delegate to this function.
+ */
+export function computeDecayStrength(elapsed: number, currentInterval: number): number {
+  if (currentInterval <= 0) return 1.0;
+  const strength = Math.pow(2, -elapsed / currentInterval);
+  return Math.max(0, Math.min(1, strength));
+}
+
+/**
  * Exponential decay: S = 2^(-elapsed / current_interval)
  * At the interval boundary, strength = 0.5
  */
@@ -33,8 +44,7 @@ export function calculateStrength(memory: StoredMemory): number {
     FORGETTING_CURVE_INTERVALS[intervalIndex] ??
     FORGETTING_CURVE_INTERVALS[FORGETTING_CURVE_INTERVALS.length - 1];
 
-  const strength = Math.pow(2, -elapsed / currentInterval);
-  return Math.max(0, Math.min(1, strength));
+  return computeDecayStrength(elapsed, currentInterval);
 }
 
 export function getStrengthLabel(strength: number): StrengthLabel {
@@ -139,18 +149,16 @@ export function calculateStrengthFromLedger(entry: LedgerEntry): number {
   if (!activeClaim) return 0;
 
   const now = Date.now();
-  const referenceTime = new Date(activeClaim.valid_from).getTime();
-  const elapsed = now - referenceTime;
+  const elapsed = now - new Date(activeClaim.valid_from).getTime();
 
-  // Map recall_half_life (days) to closest interval index
+  // Map recall_half_life (days) to closest Ebbinghaus interval
   const halfLifeMs = entry.recall_half_life * 24 * 60 * 60 * 1000;
   const intervalIndex = closestIntervalIndex(halfLifeMs);
   const currentInterval =
     FORGETTING_CURVE_INTERVALS[intervalIndex] ??
     FORGETTING_CURVE_INTERVALS[FORGETTING_CURVE_INTERVALS.length - 1];
 
-  const strength = Math.pow(2, -elapsed / currentInterval);
-  return Math.max(0, Math.min(1, strength));
+  return computeDecayStrength(elapsed, currentInterval);
 }
 
 /** Get the active claim from a LedgerEntry */
@@ -161,7 +169,7 @@ export function getActiveClaim(entry: LedgerEntry): LedgerClaim | undefined {
 }
 
 /** Map a half-life (ms) to the closest Ebbinghaus interval index */
-function closestIntervalIndex(targetMs: number): number {
+export function closestIntervalIndex(targetMs: number): number {
   let bestIndex = 0;
   let bestDiff = Infinity;
   for (let i = 0; i < FORGETTING_CURVE_INTERVALS.length; i++) {

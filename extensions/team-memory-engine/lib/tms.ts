@@ -4,6 +4,15 @@ import * as fs from "fs";
 import * as path from "path";
 import type { LedgerEntry, MemberCapability, TeamCapabilityProfile } from "./storage/types.js";
 
+// Tags that should not be treated as expertise areas
+const NOISE_TAGS = new Set([
+  "general", "todo", "wip", "test", "draft", "temp", "note",
+]);
+
+const EXPERTISE_CATEGORIES = new Set([
+  "decision", "api", "process", "experience", "security",
+]);
+
 export class TeamCapabilityModel {
   private profile: TeamCapabilityProfile;
   private storagePath: string;
@@ -121,10 +130,12 @@ export class TeamCapabilityModel {
   }
 
   private _updateExpertise(member: MemberCapability, entry: LedgerEntry): void {
-    if (entry.category !== "general" && !member.expertiseAreas.includes(entry.category)) {
+    if (EXPERTISE_CATEGORIES.has(entry.category) && !member.expertiseAreas.includes(entry.category)) {
       member.expertiseAreas.push(entry.category);
     }
     for (const tag of entry.tags) {
+      const tagLower = tag.toLowerCase();
+      if (NOISE_TAGS.has(tagLower)) continue;
       if (!member.expertiseAreas.includes(tag)) {
         member.expertiseAreas.push(tag);
       }

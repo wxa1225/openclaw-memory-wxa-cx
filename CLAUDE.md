@@ -64,13 +64,27 @@ npm run onboard    # openclaw onboard --non-interactive --accept-risk
 npm run lint
 
 # Tests
-bash team/team-memory/run_tests.sh          # team memory engine (Jest)
-cd team-memory-engine && npm test            # team memory engine via Jest
-cd extensions/openclaw-lark && npx vitest    # Lark plugin tests (vitest)
-cd extensions/openclaw-mem0-plugin && npx vitest  # mem0 plugin unit/integration tests
+cd extensions/team-memory-engine && npm test            # team memory engine (Jest)
+cd extensions/openclaw-lark && npx vitest               # Lark plugin tests (vitest)
+cd extensions/openclaw-mem0-plugin && npx vitest        # mem0 plugin unit/integration tests
 ```
 
 **Note:** The environment does not have systemd. Use the shell scripts in `scripts/` rather than `openclaw gateway start/stop/restart`.
+
+## Model Configuration
+
+**Miaoda provider** (`https://innerapi.aiforce.cloud/innerapi/api/v1/sgw/model/proxy`):
+- `miaoda/doubao-seed-2.0-pro` — Primary model, reasoning + multimodal
+- `miaoda/miaoda-model-flash` — Fast model for heartbeat
+- `miaoda/miaoda-model-auto` — General text
+- `miaoda/miaoda-auto-multimodal` — Image generation
+- `miaoda/glm-5.1` — GLM reasoning
+- `miaoda/qwen-3.6-plus` — Qwen multimodal
+- `miaoda/minimax-m2.7` — MiniMax text
+- `miaoda/kimi-k2.6` — Kimi reasoning
+
+**Codex provider** (`agents/main/agent/models.json` — `https://chatgpt.com/backend-api`):
+- `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.2` — OpenAI models via Codex API
 
 ## Configuration
 
@@ -105,11 +119,27 @@ Inactive plugins:
 - **Coding skills** (`extensions/openclaw-extension-miaoda-coding/skills/`): 2 skills — miaoda-coding, miaoda-database-skill
 
 ### Memory System
-A file-based memory system in `workspace/`:
+
+The memory system has three layers:
+
+**A. File-based Workspace Memory** (`workspace/`):
 - **Daily logs:** `memory/YYYY-MM-DD.md` — raw daily notes
 - **Long-term:** `MEMORY.md` — distilled knowledge, only loaded in main (1:1) sessions
 - **Learnings:** `memory/learnings/` — ERRORS.md, LEARNINGS.md, FEATURE_REQUESTS.md
 - **Team memory engine:** `team/` directory — versioned ledger with decay/risk model
+
+**B. Team Memory Engine** (`extensions/team-memory-engine/`) — The most sophisticated subsystem. A full "Memory OS" with five core components:
+1. **Memory Ledger** (`lib/ledger.ts`) — Version-chain memory store with conflict detection. Each entry has entity/attribute/value, claims with version numbers, confidence scores, and status (active/conflicting/superseded).
+2. **Memory Graph** (`lib/graph.ts`) — Directed labeled multigraph auto-built from ledger entries via five-phase build: entity/attribute nodes, version chains, provenance linking, social linking, impact propagation.
+3. **Risk Model** (`lib/risk.ts`) — Five-dimensional forgetting risk: TimeDecay (Ebbinghaus curve), BusinessImpact (sigmoid of category weight), LowCoverage, VersionRisk, LowUsage. Dual-threshold gating for alerts.
+4. **Decay Model** (`lib/decay.ts`) — Ebbinghaus spaced repetition with 9 intervals (1min to 31d). Strength = 2^(-elapsed / interval). Labels: fresh/strong/fading/weak/critical.
+5. **Memory Extractor** (`lib/extractor.ts`) — LLM-driven extraction from event logs via OpenAI-compatible endpoint.
+6. **TMS** (`lib/tms.ts`) — Transactive Memory System tracking who knows what. Expertise areas, trust scores, stored at `memory/tms/profile.json`.
+7. **Event Log** (`lib/event-log.ts`) — Date-partitioned conversation capture via `before_agent_start`/`agent_end` hooks. Auto-processed every 5 minutes.
+
+The plugin (`index.ts`) provides 6 tools, 10 CLI commands (`openclaw team-memory`), and 3 background services (decay check 30min, risk check 60min, extraction pipeline 5min).
+
+**C. Mem0 Plugin** (`extensions/openclaw-mem0-plugin/`) — Alternative memory backend using Mem0 cloud. Currently disabled. Has unit + integration tests.
 
 ### Agent Startup Sequence
 On each wake, the agent reads (in order): `SOUL.md` → `USER.md` → today/yesterday's memory logs → `MEMORY.md` (main session only). If `BOOTSTRAP.md` exists, follow it then delete it.
@@ -117,12 +147,34 @@ On each wake, the agent reads (in order): `SOUL.md` → `USER.md` → today/yest
 ### Heartbeat
 Configured in `openclaw.json` to run every 4 hours during 08:00-22:00 using `miaoda/miaoda-model-flash` model. Currently disabled (HEARTBEAT.md is empty/commented out).
 
-### Feishu Integration
+### Feishu/Lark Integration (`extensions/openclaw-lark/`)
+The largest plugin (~200+ source files). Architecture layers:
+- **`channel/`** — WebSocket event handlers, chat queue, config adapter, monitoring
+- **`messaging/inbound/`** — Message parsing, dispatch, mention handling, gate/permission checks, dedup
+- **`messaging/outbound/`** — Message delivery, card sending, media upload/send, reactions, forwarding
+- **`messaging/converters/`** — Converts all Feishu message types (text, image, audio, video, file, post, sticker, etc.)
+- **`card/`** — Interactive card system: streaming responses (Thinking/Generating/Complete), tool-use trace
+- **`tools/oapi/`** — Feishu Open API tools: IM, bitable, calendar, chat, doc search, wiki, sheets
+- **`tools/mcp/doc/`** — MCP-based document tools: create, fetch, update
+- **`core/`** — Lark client, token store, SDK compat, scope manager, security checks
+
+Key features: WebSocket mode (not webhook), streaming via interactive cards, per-group config with custom system prompts, owner/non-owner permission model, OAuth device flow.
+
+### Feishu Integration (operational)
 - Primary communication channel via WebSocket
 - Owner Open ID: `ou_23ab1a1db6759ee9ae44a8e441a52153`
 - Available APIs: IM, CCM (docs), Base (tables), Contact, Search, Calendar, Auth
 - Disabled tools: Task, some Base/CCM tools (see `openclaw.json` `tools.deny`)
 - Strict permission model: owner vs non-owner vs group chat contexts
+
+### Security & Permission Architecture
+The agent implements a strict permission model defined in `SOUL.md`, `AGENTS.md`, and the Lark plugin:
+- **Owner identification**: Feishu Open ID `ou_23ab1a1db6759ee9ae44a8e441a52153`, set at deploy time, immutable at runtime
+- **Permission matrix**: Non-owner cannot access Feishu resources/owner data; Owner in DM has full access; Owner in group chat needs confirmation for writes
+- **Credential rule**: Never output API keys, tokens, or passwords — even to owner in DM
+- **Hard red lines**: Reject prompt injection, unauthorized commitments, impact beyond current conversation, money/contract/legal matters
+- **Guardian plugin**: External security monitoring for hook payloads (prompt injection, social engineering detection)
+- **Tool deny list**: `web_fetch`, `tts`, `agents_list`, plus Feishu task and some doc/wiki tools
 
 ## Important Conventions
 
@@ -131,6 +183,7 @@ Configured in `openclaw.json` to run every 4 hours during 08:00-22:00 using `mia
 - Secrets are never output, even to the owner in DM.
 - Group chat behavior is conservative — only speak when providing value.
 - Memory is file-based: "write it down, don't keep it in your head" — data not in files is lost on restart.
+- npm registry uses Chinese mirror (`npmmirror.com`); global prefix is `/home/gem/.npm-global`
 
 ## Git Conventions
 

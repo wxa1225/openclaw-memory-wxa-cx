@@ -18,6 +18,44 @@ const CONFIDENCE_MARK_DELTA = 0.15;
 const CONFIDENCE_HIGH_THRESHOLD = 0.8;
 const CONFIDENCE_LOW_THRESHOLD = 0.6;
 
+/** Compute Levenshtein-based semantic similarity between two strings.
+ * Returns a value in [0, 1] where 1 means identical. */
+function semanticSimilarity(a: string, b: string): number {
+  const s1 = a.trim().toLowerCase();
+  const s2 = b.trim().toLowerCase();
+  if (s1 === s2) return 1.0;
+  if (s1.length === 0 || s2.length === 0) return 0.0;
+
+  // For short strings, use exact substring check
+  if (s1.includes(s2) || s2.includes(s1)) return 0.7;
+
+  // Levenshtein distance for longer strings
+  const maxLen = Math.max(s1.length, s2.length);
+  if (maxLen > 100) {
+    // For very long strings, use token overlap
+    const tokens1 = new Set(s1.split(/\s+/));
+    const tokens2 = new Set(s2.split(/\s+/));
+    const intersection = [...tokens1].filter((t) => tokens2.has(t)).length;
+    const union = new Set([...tokens1, ...tokens2]).size;
+    return union > 0 ? intersection / union : 0;
+  }
+
+  const dp: number[][] = [];
+  for (let i = 0; i <= s1.length; i++) {
+    dp[i] = [i];
+    for (let j = 1; j <= s2.length; j++) {
+      dp[i][j] = i === 0
+        ? j
+        : Math.min(
+            dp[i - 1][j] + 1,
+            dp[i][j - 1] + 1,
+            dp[i - 1][j - 1] + (s1[i - 1] === s2[j - 1] ? 0 : 1)
+          );
+    }
+  }
+  return 1 - dp[s1.length][s2.length] / maxLen;
+}
+
 export interface InjectClaimOptions {
   entity: string;
   attribute: string;
@@ -40,6 +78,8 @@ export interface ConflictResolution {
 export class MemoryLedger {
   private storage: LedgerStorageBackend;
   private teamId: string;
+  /** Set when injectClaim resolves a conflict — cleared on next call */
+  lastConflict: ConflictResult | null = null;
 
   constructor(teamId: string, ledgerPath?: string) {
     this.teamId = teamId;
@@ -176,7 +216,13 @@ export class MemoryLedger {
 
   // ---- Conflict Detection ----
 
-  /** Detect conflict between a new claim and existing entries */
+  /** Detect conflict between a new claim and existing entries.
+   *
+   * Uses both confidence delta and semantic similarity to determine conflict type:
+   * - auto-cover: high confidence new + low confidence existing (value overrides)
+   * - conflict-mark: similar confidence with semantically different values (both disputed)
+   * - human-confirm: significantly different confidence requiring human judgment
+   */
   async detectConflict(
     newClaim: LedgerClaim,
     existingEntries: LedgerEntry[]
@@ -194,15 +240,25 @@ export class MemoryLedger {
     );
     if (!activeClaim) return null;
 
-    // Check if values are semantically different
+    // Check if values are semantically equal (case-insensitive, whitespace-trimmed)
     if (this._valuesSemanticallyEqual(activeClaim.value, newClaim.value)) {
       return null; // Same value, not a conflict (this is a review/confirmation)
     }
 
+    // Check semantic similarity: high similarity means it's more of a refinement
+    // than a true conflict, so we auto-cover even with moderate confidence delta
+    const similarity = semanticSimilarity(activeClaim.value, newClaim.value);
+
     const delta = Math.abs(newClaim.confidence - activeClaim.confidence);
 
     let type: ConflictResult["type"];
-    if (newClaim.confidence > CONFIDENCE_HIGH_THRESHOLD && activeClaim.confidence < CONFIDENCE_LOW_THRESHOLD) {
+
+    // Auto-cover: high confidence new overrides low confidence existing,
+    // OR values are highly similar (refinement, not true conflict)
+    if (
+      (newClaim.confidence > CONFIDENCE_HIGH_THRESHOLD && activeClaim.confidence < CONFIDENCE_LOW_THRESHOLD) ||
+      (similarity > 0.8 && delta > CONFIDENCE_MARK_DELTA)
+    ) {
       type = "auto-cover";
     } else if (delta < CONFIDENCE_MARK_DELTA) {
       type = "conflict-mark";
@@ -210,12 +266,16 @@ export class MemoryLedger {
       type = "human-confirm";
     }
 
+    const reason = similarity > 0.5
+      ? `Similar but different values for ${matchingEntry.entity}.${matchingEntry.attribute}: "${activeClaim.value}" vs "${newClaim.value}" (similarity: ${(similarity * 100).toFixed(0)}%)`
+      : `Conflicting values for ${matchingEntry.entity}.${matchingEntry.attribute}: "${activeClaim.value}" vs "${newClaim.value}"`;
+
     return {
       type,
       existingEntry: matchingEntry,
       newClaim,
       confidenceDelta: delta,
-      reason: `Conflicting values for ${matchingEntry.entity}.${matchingEntry.attribute}: "${activeClaim.value}" vs "${newClaim.value}"`,
+      reason,
     };
   }
 
@@ -247,10 +307,16 @@ export class MemoryLedger {
         return this._applySupersede(existingEntry, newClaim);
       }
       case "dismiss": {
-        // Remove conflicting state, keep existing
+        // Dismiss the new conflicting claim (highest version), restore existing
+        // conflicting claims to "active". This preserves the original values
+        // while ignoring the injected claim that triggered the conflict.
+        const maxVersion = Math.max(...existingEntry.claims.map((c) => c.version));
         for (const claim of existingEntry.claims) {
           if (claim.status === "conflicting") {
-            claim.status = "active";
+            claim.status = claim.version === maxVersion ? "superseded" : "active";
+            if (claim.status === "superseded" && !claim.valid_to) {
+              claim.valid_to = new Date().toISOString();
+            }
           }
         }
         existingEntry.updatedAt = new Date().toISOString();
@@ -355,9 +421,14 @@ export class MemoryLedger {
   ): Promise<LedgerEntry> {
     const now = new Date().toISOString();
 
-    // Supersede all active claims
+    // Normalize legacy claims that lack explicit status (treat as active),
+    // then supersede only active ones. This prevents conflicting claims
+    // from being silently overwritten.
     for (const claim of entry.claims) {
-      if (claim.status === "active" || claim.status === undefined) {
+      if (claim.status === undefined) claim.status = "active";
+    }
+    for (const claim of entry.claims) {
+      if (claim.status === "active") {
         claim.status = "superseded";
         claim.valid_to = now;
       }
@@ -376,6 +447,7 @@ export class MemoryLedger {
     conflict: ConflictResult,
     options: InjectClaimOptions
   ): Promise<LedgerEntry> {
+    this.lastConflict = conflict;
     switch (conflict.type) {
       case "auto-cover": {
         // High confidence new claim overrides low confidence old
@@ -392,55 +464,61 @@ export class MemoryLedger {
         });
       }
       case "conflict-mark": {
-        // Mark both as conflicting
-        const entry = conflict.existingEntry;
-        for (const claim of entry.claims) {
-          if (claim.status === "active" || claim.status === undefined) {
-            claim.status = "conflicting";
-          }
-        }
-        // Still add the new claim as conflicting
-        entry.claims.push({
-          version: entry.current_version + 1,
+        // Values are too similar to auto-resolve; mark as conflicting for later review.
+        // This is a lower-priority conflict — log it but don't require immediate action.
+        return this._injectConflictingClaim(conflict.existingEntry, {
           value: options.value,
-          valid_from: new Date().toISOString(),
-          valid_to: null,
           confidence: options.confidence ?? 0.7,
           source: options.source,
           injected_by: options.injectedBy,
-          confirmed_by: [],
-          status: "conflicting",
         });
-        entry.current_version++;
-        entry.updatedAt = new Date().toISOString();
-        await this.storage.set(entry.id, entry);
-        return entry;
       }
       case "human-confirm": {
-        // Store as pending conflict — mark existing as conflicting
-        const entry = conflict.existingEntry;
-        for (const claim of entry.claims) {
-          if (claim.status === "active" || claim.status === undefined) {
-            claim.status = "conflicting";
-          }
-        }
-        entry.claims.push({
-          version: entry.current_version + 1,
+        // Significantly different confidence — requires human judgment.
+        // Mark as conflicting and flag for @mention notification.
+        const entry = await this._injectConflictingClaim(conflict.existingEntry, {
           value: options.value,
-          valid_from: new Date().toISOString(),
-          valid_to: null,
           confidence: options.confidence ?? 0.7,
           source: options.source,
           injected_by: options.injectedBy,
-          confirmed_by: [],
-          status: "conflicting",
         });
-        entry.current_version++;
-        entry.updatedAt = new Date().toISOString();
-        await this.storage.set(entry.id, entry);
+        // Attach a flag for the caller to send @mention in Feishu group chat
+        Object.defineProperty(entry, "requiresHumanConfirmation", {
+          value: true,
+          writable: true,
+          enumerable: true,
+          configurable: true,
+        });
         return entry;
       }
     }
+  }
+
+  /** Mark all active claims as conflicting and add a new conflicting claim */
+  private async _injectConflictingClaim(
+    entry: LedgerEntry,
+    claimData: { value: string; confidence: number; source?: string; injected_by: string }
+  ): Promise<LedgerEntry> {
+    for (const claim of entry.claims) {
+      if (claim.status === "active" || claim.status === undefined) {
+        claim.status = "conflicting";
+      }
+    }
+    entry.claims.push({
+      version: entry.current_version + 1,
+      value: claimData.value,
+      valid_from: new Date().toISOString(),
+      valid_to: null,
+      confidence: claimData.confidence,
+      source: claimData.source,
+      injected_by: claimData.injected_by,
+      confirmed_by: [],
+      status: "conflicting",
+    });
+    entry.current_version++;
+    entry.updatedAt = new Date().toISOString();
+    await this.storage.set(entry.id, entry);
+    return entry;
   }
 
   private _generateShortId(): string {
