@@ -3710,7 +3710,7 @@
   },
   "agent:main:feishu:direct:ou_d38d8ebf8d6a2e1ffb35317a0a8188df": {
     "sessionId": "046be3d0-e923-4a7f-8228-892e1865f70a",
-    "updatedAt": 1778051176608,
+    "updatedAt": 1778055381105,
     "systemSent": true,
     "abortedLastRun": false,
     "chatType": "direct",
@@ -4627,12 +4627,12 @@
       "version": 0
     },
     "status": "done",
-    "startedAt": 1778051140450,
+    "startedAt": 1778055321230,
     "modelProvider": "miaoda",
     "model": "doubao-seed-2.0-pro",
     "systemPromptReport": {
       "source": "run",
-      "generatedAt": 1778051140414,
+      "generatedAt": 1778055321137,
       "sessionId": "046be3d0-e923-4a7f-8228-892e1865f70a",
       "sessionKey": "agent:main:feishu:direct:ou_d38d8ebf8d6a2e1ffb35317a0a8188df",
       "provider": "miaoda",
@@ -4652,9 +4652,9 @@
         "sandboxed": false
       },
       "systemPrompt": {
-        "chars": 42308,
+        "chars": 42295,
         "projectContextChars": 9574,
-        "nonProjectContextChars": 32734
+        "nonProjectContextChars": 32721
       },
       "injectedWorkspaceFiles": [
         {
@@ -5296,16 +5296,16 @@
         ]
       }
     },
-    "cacheRead": 10552,
+    "cacheRead": 7480,
     "cacheWrite": 0,
     "totalTokensFresh": true,
     "contextTokens": 200000,
-    "inputTokens": 31655,
-    "outputTokens": 376,
+    "inputTokens": 69793,
+    "outputTokens": 241,
     "estimatedCostUsd": 0,
-    "totalTokens": 41384,
-    "endedAt": 1778051176573,
-    "runtimeMs": 36123
+    "totalTokens": 43238,
+    "endedAt": 1778055381067,
+    "runtimeMs": 59837
   },
   "agent:main:feishu:group:oc_f6f1aa63340872fddd40449da1e74b91": {
     "sessionId": "b6e259aa-dd87-44f8-b724-eba8f27dbfca",
