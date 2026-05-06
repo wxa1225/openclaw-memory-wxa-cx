@@ -6,10 +6,10 @@
       "agentId": "main",
       "sessionKey": "agent:main:feishu:direct:ou_d38d8ebf8d6a2e1ffb35317a0a8188df",
       "name": "提醒站起来活动一下",
-      "enabled": false,
+      "enabled": true,
       "deleteAfterRun": true,
       "createdAtMs": 1778034072936,
-      "updatedAtMs": 1778034101016,
+      "updatedAtMs": 1778034072936,
       "schedule": {
         "kind": "at",
         "at": "2026-05-06T02:21:41.000Z"
@@ -21,13 +21,8 @@
         "text": "提醒：你说1分钟后要站起来活动一下哦"
       },
       "state": {
-        "lastRunAtMs": 1778034101003,
-        "lastRunStatus": "skipped",
-        "lastStatus": "skipped",
-        "lastDurationMs": 13,
-        "lastError": "quiet-hours",
-        "lastDeliveryStatus": "not-requested",
-        "consecutiveErrors": 0
+        "nextRunAtMs": 1778034101000,
+        "runningAtMs": 1778034101001
       }
     }
   ]
