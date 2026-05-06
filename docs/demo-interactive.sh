@@ -164,40 +164,24 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo " Step 8/13  矛盾检测：「客户A的交付格式改回Markdown」"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "  模拟收到矛盾消息 —— 系统自动检测冲突，保留完整版本链："
+echo "  模拟收到矛盾消息 —— 系统自动检测冲突："
 echo ""
-python3 -c "
-import json, os, time
-path = os.path.expanduser('~/.openclaw-memory-ledger.json')
-data = json.load(open(path))
+oc team-memory inject "客户A的交付格式改回Markdown" --category decision --tags 交付,客户A
+echo ""
 
-# 找到 PDF 相关记忆，添加冲突版本
+# 展示冲突检测后的版本链状态
+python3 -c "
+import json, os
+data = json.load(open(os.path.expanduser('~/.openclaw-memory-ledger.json')))
 for mid, entry in data.items():
     claims = entry.get('claims', [])
-    for c in claims:
-        if 'PDF' in c.get('value', ''):
-            c['status'] = 'conflicting'
-            claims.append({
-                'version': 2,
-                'value': 'Markdown',
-                'valid_from': time.strftime('%Y-%m-%dT%H:%M:%SZ'),
-                'valid_to': None,
-                'confidence': 0.80,
-                'source': 'conversation',
-                'injected_by': 'demo',
-                'confirmed_by': [],
-                'status': 'conflicting',
-            })
-            print(f'  🔍 检测到矛盾更新：{mid}')
-            print(f'    v1 (PDF) → conflicting')
-            print(f'    v2 (Markdown) → conflicting')
-            print(f'  ⚡ 冲突已标记，等待人工裁决')
-            break
-    else:
-        continue
-    break
-
-json.dump(data, open(path, 'w'), ensure_ascii=False, indent=2)
+    if len(claims) >= 2 and any(c.get('status') == 'conflicting' for c in claims):
+        print(f'  🔍 检测到矛盾更新：{mid}')
+        for c in claims:
+            if c.get('status') == 'conflicting':
+                print(f'    v{c[\"version\"]} ({c.get(\"value\", \"\")}) → conflicting')
+        print(f'  ⚡ 冲突已标记，等待人工裁决')
+        break
 "
 echo ""
 pause

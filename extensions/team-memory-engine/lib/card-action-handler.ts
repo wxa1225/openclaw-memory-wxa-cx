@@ -4,7 +4,7 @@ import { MemoryLedger } from "./ledger.js";
 import type { LedgerEntry, ConflictResult } from "./storage/types.js";
 
 export interface MemoryCardActionValue {
-  action: "confirm" | "update" | "dismiss";
+  action: "confirm" | "update" | "dismiss" | "review" | "dismiss_warning";
   memory_id: string;
 }
 
@@ -90,13 +90,13 @@ function buildUpdatedCard(
           {
             tag: "button" as const,
             text: { tag: "plain_text" as const, content: buttonLabels.confirm },
-            type: (selectedAction === "confirm" ? "primary" : "default") as const,
+            type: selectedAction === "confirm" ? ("primary" as const) : ("default" as const),
             value: { action: "confirm", memory_id: entry.id },
           },
           {
             tag: "button" as const,
             text: { tag: "plain_text" as const, content: buttonLabels.update },
-            type: (selectedAction === "update" ? "danger" : "default") as const,
+            type: selectedAction === "update" ? ("danger" as const) : ("default" as const),
             value: { action: "update", memory_id: entry.id },
           },
           {

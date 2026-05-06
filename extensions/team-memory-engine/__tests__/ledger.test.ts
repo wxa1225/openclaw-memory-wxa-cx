@@ -379,4 +379,73 @@ describe("MemoryLedger", () => {
     expect(history).toHaveLength(2);
     expect(history.map((c) => c.version)).toEqual([1, 2]);
   });
+
+  // ---- Fuzzy entity/attribute lookup ----
+
+  test("fuzzy lookup finds matching entry when attribute names differ slightly", async () => {
+    const ledger = makeLedger();
+    // LLM extraction stored this entry
+    await ledger.injectClaim({
+      entity: "客户A",
+      attribute: "交付格式",
+      value: "PDF",
+      confidence: 0.8,
+      source: "llm_extraction",
+      injectedBy: "memory-extractor",
+      category: "decision",
+      tags: ["delivery"],
+      teamId: "test",
+    });
+
+    // CLI inject with slightly different attribute should still find it
+    const entry2 = await ledger.injectClaim({
+      entity: "客户A",
+      attribute: "格式",
+      value: "Markdown",
+      confidence: 0.7,
+      source: "manual_inject",
+      injectedBy: "demo",
+      category: "decision",
+      tags: ["delivery"],
+      teamId: "test",
+    });
+
+    // Should have found the existing entry and added a new claim (not created a new entry)
+    expect(entry2.entity).toBe("客户A");
+    expect(entry2.attribute).toBe("交付格式");
+    expect(entry2.claims).toHaveLength(2);
+    expect(entry2.claims[1].value).toBe("Markdown");
+  });
+
+  test("fuzzy lookup does not match unrelated entries", async () => {
+    const ledger = makeLedger();
+    await ledger.injectClaim({
+      entity: "生产环境",
+      attribute: "API端点",
+      value: "v3",
+      confidence: 0.8,
+      source: "llm_extraction",
+      injectedBy: "memory-extractor",
+      category: "api",
+      tags: [],
+      teamId: "test",
+    });
+
+    // Completely unrelated entity+attribute should create new entry
+    const entry2 = await ledger.injectClaim({
+      entity: "团队周报",
+      attribute: "收件人",
+      value: "李四",
+      confidence: 0.7,
+      source: "manual_inject",
+      injectedBy: "demo",
+      category: "process",
+      tags: [],
+      teamId: "test",
+    });
+
+    expect(entry2.entity).toBe("团队周报");
+    expect(entry2.attribute).toBe("收件人");
+    expect(entry2.claims).toHaveLength(1);
+  });
 });

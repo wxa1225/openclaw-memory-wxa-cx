@@ -107,39 +107,20 @@ echo ""
 # ── Step 8: 注入矛盾指令 ──────────────────────────
 echo "--- Step 8/13  注入矛盾指令：改回 Markdown ---"
 oc team-memory inject "客户A的交付格式改回Markdown" --category decision --tags 交付,客户A
-
-# Check if conflict was actually created; if not, manually set it up
-HAS_CONFLICT=$(python3 -c "
+echo ""
+python3 -c "
 import json, os
 data = json.load(open(os.path.expanduser('~/.openclaw-memory-ledger.json')))
 for mid, entry in data.items():
-    if any(c.get('status') == 'conflicting' for c in entry.get('claims', [])):
-        print(mid)
+    claims = entry.get('claims', [])
+    if len(claims) >= 2 and any(c.get('status') == 'conflicting' for c in claims):
+        print(f'  🔍 检测到矛盾更新：{mid}')
+        for c in claims:
+            if c.get('status') == 'conflicting':
+                print(f'    v{c[\"version\"]} ({c.get(\"value\", \"\")}) → conflicting')
+        print(f'  ⚡ 冲突已标记，等待人工裁决')
         break
-")
-if [ -z "$HAS_CONFLICT" ]; then
-  python3 -c "
-import json, os
-path = os.path.expanduser('~/.openclaw-memory-ledger.json')
-data = json.load(open(path))
-for mid, entry in data.items():
-    for c in entry.get('claims', []):
-        if 'PDF' in c.get('value', ''):
-            c['status'] = 'conflicting'
-            break
-    entry['claims'].append({
-        'version': 2, 'value': 'Markdown',
-        'valid_from': '2026-05-06T00:00:00Z', 'valid_to': None,
-        'confidence': 0.80, 'source': 'manual',
-        'injected_by': 'demo', 'confirmed_by': [],
-        'status': 'conflicting',
-    })
-    break
-json.dump(data, open(path, 'w'), ensure_ascii=False, indent=2)
-" > /dev/null 2>&1
-  echo "  建立冲突版本：PDF vs Markdown"
-fi
-echo ""
+"
 
 # ── Step 9: 版本链对比 ────────────────────────────
 echo "--- Step 9/13  改之后 — 版本链完整保留 ---"
