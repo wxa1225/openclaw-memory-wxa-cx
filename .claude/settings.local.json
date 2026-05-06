@@ -57,7 +57,10 @@
       "Bash(bash docs/demo-script.sh)",
       "Bash(chmod +x /home/gem/workspace/agent/docs/demo-script.sh)",
       "Bash(bash /home/gem/workspace/agent/docs/demo-script.sh)",
-      "Bash(bash -n /home/gem/workspace/agent/docs/demo-interactive.sh)"
+      "Bash(bash -n /home/gem/workspace/agent/docs/demo-interactive.sh)",
+      "Bash(bash *)",
+      "Bash(npm test *)",
+      "Bash(npx jest *)"
     ]
   }
 }

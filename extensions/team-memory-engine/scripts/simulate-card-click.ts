@@ -1,16 +1,28 @@
 #!/usr/bin/env npx tsx
-// Simulate clicking the "已复习" (confirm) button on a memory review card.
-// This calls ledger.resolveConflict(action: "confirm") directly.
+// Simulate clicking a memory review card button.
+// Usage: tsx scripts/simulate-card-click.ts <memoryId> [confirm|update|dismiss]
 
 import { MemoryLedger } from "../lib/ledger.js";
 
 const memoryId = process.argv[2];
 if (!memoryId) {
-  console.error("Usage: tsx scripts/simulate-card-click.ts <memoryId>");
+  console.error("Usage: tsx scripts/simulate-card-click.ts <memoryId> [confirm|update|dismiss]");
+  process.exit(1);
+}
+
+const action = (process.argv[3] || "confirm") as "confirm" | "update" | "dismiss";
+if (!["confirm", "update", "dismiss"].includes(action)) {
+  console.error("Invalid action. Use: confirm, update, or dismiss.");
   process.exit(1);
 }
 
 const ledger = new MemoryLedger("openclaw-team", process.env.HOME + "/.openclaw-memory-ledger.json");
+
+const actionLabels: Record<string, string> = {
+  confirm: "确认有效",
+  update: "更新记忆",
+  dismiss: "标记过期",
+};
 
 async function main() {
   const entry = await ledger.getEntry(memoryId);
@@ -32,19 +44,18 @@ async function main() {
   }
   console.log();
 
-  // Simulate "已复习" button click: callbackKey=memory_review, action=confirm
   const conflict = {
     type: "human-confirm" as const,
     existingEntry: entry,
     newClaim: entry.claims[entry.claims.length - 1],
     confidenceDelta: 0,
-    reason: "Card action resolution — user clicked '已复习'",
+    reason: `Card action resolution — user clicked '${actionLabels[action]}'`,
   };
 
   await ledger.resolveConflict(conflict, {
-    action: "confirm",
+    action,
     entryId: memoryId,
-    resolvedBy: "ou_23ab1a1db6759ee9ae44a8e441a52153", // demo user
+    resolvedBy: "ou_23ab1a1db6759ee9ae44a8e441a52153",
   });
 
   console.log("=== 点击后 ===");
@@ -54,7 +65,7 @@ async function main() {
       console.log(`  v${c.version}: ${c.value}  status=${c.status}  confirmed_by=${JSON.stringify(c.confirmed_by)}`);
     }
     console.log();
-    console.log("冲突已解决 — 所有版本标记 active，加入确认者列表");
+    console.log(`冲突已解决 — 用户点击「${actionLabels[action]}」`);
   }
 }
 
