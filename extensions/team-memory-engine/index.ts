@@ -56,6 +56,59 @@ function formatConflictMention(entity: string, attribute: string, reason: string
   return JSON.stringify(card, null, 2);
 }
 
+/** Format a Feishu interactive conflict card with action buttons (used by CLI inject) */
+function formatConflictCard(
+  memoryId: string,
+  category: string,
+  claims: Array<{ version: number; value: string; confidence: number }>,
+): string {
+  const claimsText = claims.map((c) =>
+    `**v${c.version}** [⚠️ 冲突] ${c.value} — 置信度 ${Math.round(c.confidence * 100)}%`
+  ).join("\n\n");
+
+  const v1Value = claims[0]?.value.substring(0, 8) ?? "";
+  const v2Value = claims[1]?.value.substring(0, 8) ?? "";
+
+  const card = {
+    config: { wide_screen_mode: true },
+    header: {
+      title: { tag: "plain_text" as const, content: "🧠 记忆冲突 — 需要裁决" },
+      template: "red",
+    },
+    elements: [
+      { tag: "div" as const, text: { tag: "plain_text" as const, content: "发现矛盾更新，请选择保留哪个版本" } },
+      {
+        tag: "markdown" as const,
+        content: `${claimsText}\n\n💡 选错可随时点击其他按钮切换`,
+      },
+      {
+        tag: "action" as const,
+        actions: [
+          {
+            tag: "button" as const,
+            text: { tag: "plain_text" as const, content: `保留 v1 (${v1Value})` },
+            type: "default" as const,
+            value: { memory_id: memoryId, action: "dismiss" },
+          },
+          {
+            tag: "button" as const,
+            text: { tag: "plain_text" as const, content: `保留 v2 (${v2Value})` },
+            type: "danger" as const,
+            value: { memory_id: memoryId, action: "update" },
+          },
+          {
+            tag: "button" as const,
+            text: { tag: "plain_text" as const, content: "两个都保留" },
+            type: "primary" as const,
+            value: { memory_id: memoryId, action: "confirm" },
+          },
+        ],
+      },
+    ],
+  };
+  return JSON.stringify(card);
+}
+
 async function sendFeishuMessage(
   appId: string,
   appSecret: string,
@@ -673,6 +726,29 @@ const plugin = {
               const tags = opts.tags ? opts.tags.split(",").map((t) => t.trim()).filter(Boolean) : [];
               const result = await manager.inject(text, { category: opts.category, tags });
               console.log(`Stored: ${result.memory} (id: ${result.id}, v${result.metadata.version})`);
+              if (result.conflict) {
+                console.log(`  ⚡ 冲突检测：${result.conflict.type} — 已标记 conflicting，等待人工裁决`);
+                console.log(`     原因：${result.conflict.reason}`);
+                // Push Feishu interactive card with action buttons
+                if (result.conflict.type !== "auto-cover" && cfg.feishuChatId) {
+                  const entry = await manager.getEntry(result.id);
+                  if (entry) {
+                    const conflictingClaims = entry.claims.filter((c) => c.status === "conflicting");
+                    const claimsForCard = conflictingClaims.length > 0
+                      ? conflictingClaims.map((c) => ({ version: c.version, value: c.value, confidence: c.confidence }))
+                      : entry.claims.slice(-2).map((c) => ({ version: c.version, value: c.value, confidence: c.confidence }));
+                    const card = formatConflictCard(result.id, entry.category, claimsForCard);
+                    await sendFeishuMessage(
+                      process.env?.FEISHU_APP_ID ?? "",
+                      process.env?.FEISHU_APP_SECRET ?? "",
+                      cfg.feishuChatId,
+                      card,
+                      "interactive"
+                    );
+                    console.log(`  📤 飞书冲突卡片已推送到群聊`);
+                  }
+                }
+              }
             } catch (err) {
               console.error(`Failed: ${String(err)}`);
             }

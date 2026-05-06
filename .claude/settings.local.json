@@ -60,7 +60,9 @@
       "Bash(bash -n /home/gem/workspace/agent/docs/demo-interactive.sh)",
       "Bash(bash *)",
       "Bash(npm test *)",
-      "Bash(npx jest *)"
+      "Bash(npx jest *)",
+      "Bash(git credential-manager *)",
+      "Bash(GIT_TRACE=1 GIT_CURL_VERBOSE=1 git push -u origin sprint/default)"
     ]
   }
 }
