@@ -1,4 +1,9 @@
-[
+import json
+import pathlib
+
+pathlib.Path("/home/gem/workspace/agent/memory/event-log").mkdir(parents=True, exist_ok=True)
+
+events = [
   {
     "id": "evt-001",
     "storedAt": "2026-05-06T10:00:00Z",
@@ -9,7 +14,7 @@
     "content": "客户A那边确认了，以后交付都用PDF格式，不要再发Markdown了",
     "contentType": "text",
     "messageId": "m1",
-    "processedForExtraction": false
+    "processedForExtraction": False
   },
   {
     "id": "evt-002",
@@ -21,7 +26,7 @@
     "content": "好的，记一下。另外生产环境的API端点已经改为v3了，旧端点本周五失效",
     "contentType": "text",
     "messageId": "m2",
-    "processedForExtraction": false
+    "processedForExtraction": False
   },
   {
     "id": "evt-003",
@@ -33,7 +38,7 @@
     "content": "收到，周报以后统一发给李四，不要再抄送我了",
     "contentType": "text",
     "messageId": "m3",
-    "processedForExtraction": false
+    "processedForExtraction": False
   },
   {
     "id": "evt-004",
@@ -45,7 +50,7 @@
     "content": "今天中午吃什么？我提议吃楼下的黄焖鸡",
     "contentType": "text",
     "messageId": "m4",
-    "processedForExtraction": false
+    "processedForExtraction": False
   },
   {
     "id": "evt-005",
@@ -57,6 +62,11 @@
     "content": "哈哈哈好的，那我也点一份",
     "contentType": "text",
     "messageId": "m5",
-    "processedForExtraction": false
-  }
+    "processedForExtraction": False
+  },
 ]
+
+with open("/home/gem/workspace/agent/memory/event-log/2026-05-06.json", "w") as f:
+    json.dump(events, f, ensure_ascii=False, indent=2)
+
+print("Done: 5 events written")

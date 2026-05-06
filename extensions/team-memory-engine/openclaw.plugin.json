@@ -49,6 +49,7 @@
       "modelEndpoint": { "type": "string" },
       "modelApiKey": { "type": "string" },
       "modelName": { "type": "string" },
+      "modelXApiKey": { "type": "string" },
       "extractionBatchSize": { "type": "number" }
     },
     "required": []

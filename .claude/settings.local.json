@@ -52,7 +52,12 @@
       "Bash(curl -s -X POST https://innerapi.aiforce.cloud/innerapi/api/v1/sgw/model/proxy -H 'Content-Type: application/json' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIs...' -d '{\"model\":\"doubao-seed-2.0-pro\",\"messages\":[{\"role\":\"user\",\"content\":\"hello\"}],\"max_tokens\":10}')",
       "Bash(curl -s -X POST https://innerapi.aiforce.cloud/innerapi/api/v1/sgw/model/proxy/v1/chat/completions -H 'Content-Type: application/json' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIyMzc5MTE2NTc4X2FwcF80azA5bWY1d3Awc2N2X3ByZXZpZXciLCJleHAiOjE3NzgzMDY1ODQsIm5iZiI6MTc3ODA0NzM4NCwiaWF0IjoxNzc4MDQ3Mzg0LCJqdGkiOiI4Nzk4YzAxOS1kYmJkLWRkNjAtYzllOC1mOGYxZThhMjZjMjYiLCJ0ZW5hbnRfaWQiOjIzNzkxMTY1NzgsInVzZXJfaWQiOjE4NjMxNjExMzA2OTk4MTIsImFwcF9pZCI6ImFwcF80azA5bWY1d3Awc2N2IiwiYXBwX2VudiI6InByZXZpZXciLCJhY2Nlc3Nfa2V5IjoiMjM3OTExNjU3OF9hcHBfNGswOW1mNXdwMHNjdl9wcmV2aWV3Iiwic2FuZGJveF9pZCI6IjE4NjMzNDEyOTMzMzU4ODIifQ.r5NJ5jSUOiCHoBbAMoFlpmvywDxfUi8P_URGkKFQ-F8' -d '{\"model\":\"doubao-seed-2.0-pro\",\"messages\":[{\"role\":\"user\",\"content\":\"hello\"}],\"max_tokens\":10}')",
       "Bash(curl -s -X POST https://innerapi.aiforce.cloud/innerapi/api/v1/sgw/model/proxy -H 'Content-Type: application/json' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIyMzc5MTE2NTc4X2FwcF80azA5bWY1d3Awc2N2X3ByZXZpZXciLCJleHAiOjE3NzgzMDY1ODQsIm5iZiI6MTc3ODA0NzM4NCwiaWF0IjoxNzc4MDQ3Mzg0LCJqdGkiOiI4Nzk4YzAxOS1kYmJkLWRkNjAtYzllOC1mOGYxZThhMjZjMjYiLCJ0ZW5hbnRfaWQiOjIzNzkxMTY1NzgsInVzZXJfaWQiOjE4NjMxNjExMzA2OTk4MTIsImFwcF9pZCI6ImFwcF80azA5bWY1d3Awc2N2IiwiYXBwX2VudiI6InByZXZpZXciLCJhY2Nlc3Nfa2V5IjoiMjM3OTExNjU3OF9hcHBfNGswOW1mNXdwMHNjdl9wcmV2aWV3Iiwic2FuZGJveF9pZCI6IjE4NjMzNDEyOTMzMzU4ODIifQ.r5NJ5jSUOiCHoBbAMoFlpmvywDxfUi8P_URGkKFQ-F8' -H 'x-api-key: 2379116578_app_4k09mf5wp0scv_preview' -d '{\"model\":\"doubao-seed-2.0-pro\",\"messages\":[{\"role\":\"user\",\"content\":\"hello\"}],\"max_tokens\":10}')",
-      "Bash(curl *)"
+      "Bash(curl *)",
+      "Bash(chmod +x docs/demo-script.sh)",
+      "Bash(bash docs/demo-script.sh)",
+      "Bash(chmod +x /home/gem/workspace/agent/docs/demo-script.sh)",
+      "Bash(bash /home/gem/workspace/agent/docs/demo-script.sh)",
+      "Bash(bash -n /home/gem/workspace/agent/docs/demo-interactive.sh)"
     ]
   }
 }
