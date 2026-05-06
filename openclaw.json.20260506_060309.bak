@@ -359,7 +359,7 @@
   "channels": {
     "feishu": {
       "enabled": true,
-      "appId": "cli_a961d51ee038dcd1",
+      "appId": "cli_a961d5100db85cca",
       "appSecret": {
         "source": "file",
         "provider": "miaoda-secret-provider",
@@ -594,15 +594,7 @@
         "config": {
           "teamId": "openclaw-team",
           "decayCheckInterval": 1800000,
-          "feishuChatId": "oc_83d25a1a702dd5e85aa4666b1d07554a",
-          "projectRoot": "/home/gem/workspace/agent",
-          "enableGraph": true,
-          "teamSize": 5,
-          "modelEndpoint": "https://innerapi.aiforce.cloud/innerapi/api/v1/sgw/model/proxy/chat/completions",
-          "modelApiKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIyMzc5MTE2NTc4X2FwcF80azA5bWY1d3Awc2N2X3ByZXZpZXciLCJleHAiOjE3NzgzMDY1ODQsIm5iZiI6MTc3ODA0NzM4NCwiaWF0IjoxNzc4MDQ3Mzg0LCJqdGkiOiI4Nzk4YzAxOS1kYmJkLWRkNjAtYzllOC1mOGYxZThhMjZjMjYiLCJ0ZW5hbnRfaWQiOjIzNzkxMTY1NzgsInVzZXJfaWQiOjE4NjMxNjExMzA2OTk4MTIsImFwcF9pZCI6ImFwcF80azA5bWY1d3Awc2N2IiwiYXBwX2VudiI6InByZXZpZXciLCJhY2Nlc3Nfa2V5IjoiMjM3OTExNjU3OF9hcHBfNGswOW1mNXdwMHNjdl9wcmV2aWV3Iiwic2FuZGJveF9pZCI6IjE4NjMzNDEyOTMzMzU4ODIifQ.r5NJ5jSUOiCHoBbAMoFlpmvywDxfUi8P_URGkKFQ-F8",
-          "modelXApiKey": "2379116578_app_4k09mf5wp0scv_preview",
-          "modelName": "doubao-seed-2.0-pro",
-          "extractionBatchSize": 20
+          "feishuChatId": "oc_83d25a1a702dd5e85aa4666b1d07554a"
         }
       },
       "openclaw-mem0-plugin": {

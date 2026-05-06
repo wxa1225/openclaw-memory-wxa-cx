@@ -109,13 +109,14 @@ interface TeamMemoryConfig {
   modelEndpoint: string;
   modelApiKey: string;
   modelName: string;
+  modelXApiKey: string;
   extractionBatchSize: number;
 }
 
 const ALLOWED_CONFIG_KEYS = [
   "teamId", "decayCheckInterval", "riskCheckInterval",
   "feishuChatId", "teamSize", "enableGraph",
-  "projectRoot", "modelEndpoint", "modelApiKey", "modelName", "extractionBatchSize",
+  "projectRoot", "modelEndpoint", "modelApiKey", "modelName", "modelXApiKey", "extractionBatchSize",
 ];
 
 function parseConfig(value: Record<string, unknown>): TeamMemoryConfig {
@@ -130,6 +131,7 @@ function parseConfig(value: Record<string, unknown>): TeamMemoryConfig {
     modelEndpoint: typeof value.modelEndpoint === "string" ? value.modelEndpoint : "",
     modelApiKey: typeof value.modelApiKey === "string" ? value.modelApiKey : "",
     modelName: typeof value.modelName === "string" && value.modelName ? value.modelName : "qwen-plus",
+    modelXApiKey: typeof value.modelXApiKey === "string" ? value.modelXApiKey : "",
     extractionBatchSize: typeof value.extractionBatchSize === "number" && value.extractionBatchSize > 0 ? value.extractionBatchSize : 20,
   };
 }
@@ -241,6 +243,7 @@ const plugin = {
           modelEndpoint: "",
           modelApiKey: "",
           modelName: "qwen-plus",
+          modelXApiKey: "",
           extractionBatchSize: 20,
         };
       }
@@ -282,6 +285,7 @@ const plugin = {
       modelEndpoint: cfg.modelEndpoint || undefined,
       modelApiKey: cfg.modelApiKey || undefined,
       modelName: cfg.modelName,
+      modelXApiKey: cfg.modelXApiKey || undefined,
       extractionBatchSize: cfg.extractionBatchSize,
     });
 

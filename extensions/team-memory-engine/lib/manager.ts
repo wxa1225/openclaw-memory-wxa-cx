@@ -78,6 +78,7 @@ export class TeamMemoryManager {
         modelEndpoint: options.modelEndpoint,
         modelApiKey: options.modelApiKey,
         modelName: options.modelName ?? "qwen-plus",
+        xApiKey: options.modelXApiKey,
       });
     } else {
       this.extractor = null;

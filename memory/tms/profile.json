@@ -1,0 +1,53 @@
+{
+  "teamId": "openclaw-team",
+  "members": {
+    "openclaw-user": {
+      "memberId": "openclaw-user",
+      "displayName": "openclaw-user",
+      "expertiseAreas": [
+        "decision",
+        "交付",
+        "客户A",
+        "api",
+        "prod",
+        "critical",
+        "process"
+      ],
+      "knownMemoryIds": [
+        "mem-0be03e2e",
+        "mem-ef81ceb7",
+        "mem-36977c75",
+        "mem-356b0851"
+      ],
+      "trustScore": 0.8637341034829937,
+      "lastActiveAt": "2026-05-06T06:43:31.594Z",
+      "contributionCount": 9,
+      "confirmationCount": 4
+    },
+    "memory-extractor": {
+      "memberId": "memory-extractor",
+      "displayName": "memory-extractor",
+      "expertiseAreas": [
+        "decision",
+        "交付",
+        "客户A",
+        "api",
+        "生产环境",
+        "API配置",
+        "process",
+        "周报",
+        "流程"
+      ],
+      "knownMemoryIds": [
+        "mem-3ba0b093",
+        "mem-3e88fd8c",
+        "mem-7488e6ca"
+      ],
+      "trustScore": 0.6295908896591411,
+      "lastActiveAt": "2026-05-06T07:21:46.361Z",
+      "contributionCount": 3,
+      "confirmationCount": 0
+    }
+  },
+  "updatedAt": "2026-05-06T07:21:46.361Z"
+}

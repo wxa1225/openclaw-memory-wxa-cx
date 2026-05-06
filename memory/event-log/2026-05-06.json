@@ -1,0 +1,62 @@
+[
+  {
+    "id": "evt-sim-001",
+    "storedAt": "2026-05-06T07:00:30.930Z",
+    "chatId": "oc_test",
+    "chatType": "group",
+    "senderId": "user_zhangsan",
+    "senderName": "张三",
+    "content": "客户A那边确认了，以后交付都用PDF格式，不要再发Markdown了",
+    "contentType": "text",
+    "messageId": "msg-001",
+    "processedForExtraction": false
+  },
+  {
+    "id": "evt-sim-002",
+    "storedAt": "2026-05-06T07:00:30.930Z",
+    "chatId": "oc_test",
+    "chatType": "group",
+    "senderId": "user_lisi",
+    "senderName": "李四",
+    "content": "好的，记一下。另外生产环境的API端点已经改为v3了，旧端点本周五失效",
+    "contentType": "text",
+    "messageId": "msg-002",
+    "processedForExtraction": false
+  },
+  {
+    "id": "evt-sim-003",
+    "storedAt": "2026-05-06T07:00:30.930Z",
+    "chatId": "oc_test",
+    "chatType": "group",
+    "senderId": "user_wangwu",
+    "senderName": "王五",
+    "content": "收到，周报以后统一发给李四，不要再抄送我了",
+    "contentType": "text",
+    "messageId": "msg-003",
+    "processedForExtraction": false
+  },
+  {
+    "id": "evt-sim-004",
+    "storedAt": "2026-05-06T07:00:30.930Z",
+    "chatId": "oc_test",
+    "chatType": "group",
+    "senderId": "user_zhangsan",
+    "senderName": "张三",
+    "content": "今天中午吃什么？我提议吃楼下的黄焖鸡",
+    "contentType": "text",
+    "messageId": "msg-004",
+    "processedForExtraction": false
+  },
+  {
+    "id": "evt-sim-005",
+    "storedAt": "2026-05-06T07:00:30.930Z",
+    "chatId": "oc_test",
+    "chatType": "group",
+    "senderId": "user_lisi",
+    "senderName": "李四",
+    "content": "哈哈哈好的，那我也点一份",
+    "contentType": "text",
+    "messageId": "msg-005",
+    "processedForExtraction": false
+  }
+]

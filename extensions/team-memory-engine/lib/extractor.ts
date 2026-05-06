@@ -16,6 +16,7 @@ export interface ExtractionConfig {
   modelEndpoint: string;
   modelApiKey: string;
   modelName: string;
+  xApiKey?: string;
 }
 
 const CATEGORIES = ["decision", "api", "process", "experience", "security", "general"] as const;
@@ -126,12 +127,17 @@ confidence 反映你对提取内容的确定程度：
   }
 
   protected async callModel(prompt: string): Promise<string> {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${this.config.modelApiKey}`,
+    };
+    if (this.config.xApiKey) {
+      headers["x-api-key"] = this.config.xApiKey;
+    }
+
     const response = await fetch(this.config.modelEndpoint, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.config.modelApiKey}`,
-      },
+      headers,
       body: JSON.stringify({
         model: this.config.modelName,
         messages: [{ role: "user", content: prompt }],
