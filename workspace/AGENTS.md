@@ -47,7 +47,9 @@ https://miaoda.feishu.cn/app/app_4k09mf5wp0scv/
 
 - 记忆有限。想留住什么，写进文件。
 - "脑子里的笔记"活不过一次重启。文件可以。
-- 有人说"记住这个"，更新 memory 相关文件。
+- 有人说"记住这个"，优先使用 `team_memory_inject` 工具存入团队记忆系统。
+- 有人问"之前决定的XXX是什么"，使用 `team_memory_search` 工具查找。
+- 有人问"我们记住了哪些事"，使用 `team_memory_status` 工具。
 - 学到了教训，更新 AGENTS.md、TOOLS.md 或对应的地方。
 - 犯了错，记下来。让下一个你不再重蹈覆辙。
 - 落笔为准，脑记为空。

@@ -285,16 +285,14 @@ const plugin = {
       extractionBatchSize: cfg.extractionBatchSize,
     });
 
-    // Initialize: check for v1 migration
-    try {
-      await manager.initialize();
-    } catch (err) {
-      api.logger.warn(`team-memory-engine: initialization failed: ${String(err)}`);
-    }
-
     api.logger.info(
       `team-memory-engine v2: registered (team: ${cfg.teamId}, decayInterval: ${cfg.decayCheckInterval}ms, riskInterval: ${cfg.riskCheckInterval}ms, feishuChat: ${cfg.feishuChatId || "not set"}, graph: ${cfg.enableGraph})`,
     );
+
+    // Async init (migration) — fire-and-forget so it doesn't block tool registration
+    manager.initialize().catch((err: unknown) => {
+      api.logger.warn(`team-memory-engine: initialization failed: ${String(err)}`);
+    });
 
     // ========================================================================
     // Event Log Hooks — capture conversation flow into Event Log

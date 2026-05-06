@@ -32,7 +32,10 @@
       "Bash(openclaw team-memory *)",
       "Bash(echo \"Exit code: $?\")",
       "Bash(rm -f /tmp/openclaw-gateway-new.log)",
-      "Bash(nohup openclaw gateway run --port 18789)"
+      "Bash(nohup openclaw gateway run --port 18789)",
+      "Bash(openclaw gateway *)",
+      "Bash(echo \"Started with PID $!\")",
+      "Bash(kill -9 245792 245765)"
     ]
   }
 }
