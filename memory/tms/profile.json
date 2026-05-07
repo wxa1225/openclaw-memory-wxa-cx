@@ -38,11 +38,16 @@
         "mem-3f2d1a8e",
         "mem-2f61d412",
         "mem-dce00b19",
-        "mem-646c417e"
+        "mem-646c417e",
+        "mem-8a32582c",
+        "mem-cb4c1371",
+        "mem-7ab5edf3",
+        "mem-b17a9c1c",
+        "mem-74bdac73"
       ],
-      "trustScore": 0.998878566140257,
-      "lastActiveAt": "2026-05-06T16:28:23.000Z",
-      "contributionCount": 57,
+      "trustScore": 0.999319815981226,
+      "lastActiveAt": "2026-05-07T03:21:41.974Z",
+      "contributionCount": 62,
       "confirmationCount": 4
     },
     "memory-extractor": {
@@ -68,7 +73,8 @@
         "内部流程",
         "周报流程",
         "团队协作",
-        "交付规范"
+        "交付规范",
+        "流程规范"
       ],
       "knownMemoryIds": [
         "mem-3ba0b093",
@@ -149,13 +155,31 @@
         "mem-673991e0",
         "mem-646c417e",
         "mem-355fdb7e",
-        "mem-11f28acf"
+        "mem-11f28acf",
+        "mem-8a32582c",
+        "mem-d2b1586c",
+        "mem-5ff13bf0",
+        "mem-cb4c1371",
+        "mem-2d17fe12",
+        "mem-ffa27ebf",
+        "mem-7ab5edf3",
+        "mem-cb4c4620",
+        "mem-8317affd",
+        "mem-b17a9c1c",
+        "mem-f7f68e98",
+        "mem-862b9b75",
+        "mem-2f3b3956",
+        "mem-1a8fafc8",
+        "mem-7eb786f0",
+        "mem-74bdac73",
+        "mem-e0c8df14",
+        "mem-d10b9ae6"
       ],
-      "trustScore": 0.999999999156235,
-      "lastActiveAt": "2026-05-06T16:28:23.000Z",
-      "contributionCount": 202,
+      "trustScore": 0.9999999999688793,
+      "lastActiveAt": "2026-05-07T03:21:41.974Z",
+      "contributionCount": 235,
       "confirmationCount": 0
     }
   },
-  "updatedAt": "2026-05-06T16:28:23.000Z"
+  "updatedAt": "2026-05-07T03:21:41.974Z"
 }
