@@ -43,11 +43,14 @@
         "mem-cb4c1371",
         "mem-7ab5edf3",
         "mem-b17a9c1c",
-        "mem-74bdac73"
+        "mem-74bdac73",
+        "mem-3a2ed527",
+        "mem-2106a314",
+        "mem-153abc89"
       ],
-      "trustScore": 0.999319815981226,
-      "lastActiveAt": "2026-05-07T03:21:41.974Z",
-      "contributionCount": 62,
+      "trustScore": 0.9998757415864461,
+      "lastActiveAt": "2026-05-07T07:30:31.725Z",
+      "contributionCount": 79,
       "confirmationCount": 4
     },
     "memory-extractor": {
@@ -173,13 +176,22 @@
         "mem-7eb786f0",
         "mem-74bdac73",
         "mem-e0c8df14",
-        "mem-d10b9ae6"
+        "mem-d10b9ae6",
+        "mem-3a2ed527",
+        "mem-c01155dd",
+        "mem-439a821d",
+        "mem-2106a314",
+        "mem-77935a03",
+        "mem-7908eee4",
+        "mem-153abc89",
+        "mem-13719dfc",
+        "mem-fbbe1849"
       ],
-      "trustScore": 0.9999999999688793,
-      "lastActiveAt": "2026-05-07T03:21:41.974Z",
-      "contributionCount": 235,
+      "trustScore": 0.9999999999999228,
+      "lastActiveAt": "2026-05-07T07:30:31.725Z",
+      "contributionCount": 295,
       "confirmationCount": 0
     }
   },
-  "updatedAt": "2026-05-07T03:21:41.974Z"
+  "updatedAt": "2026-05-07T07:30:31.725Z"
 }

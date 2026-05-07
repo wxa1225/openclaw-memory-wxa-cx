@@ -1,0 +1,44 @@
+[
+  {
+    "chatId": "agent:main:feishu:direct:ou_23ab1a1db6759ee9ae44a8e441a52153",
+    "chatType": "p2p",
+    "senderId": "user",
+    "content": "System: [2026-05-07 06:22:03 UTC] Feishu[default] DM | ou_23ab1a1db6759ee9ae44a8e441a52153 [msg:om_x100b5005c25460a8c10fe0cfdfc1b4d:reaction:WOW:f71ed311-b964-472b-bf70-88f1b2c657c8]\n\nConversation info (untrusted metadata):\n```json\n{\n  \"message_id\": \"om_x100b5005c25460a8c10fe0cfdfc1b4d:reaction:WOW:f71ed311-b964-472b-bf70-88f1b2c657c8\",\n  \"sender_id\": \"ou_23ab1a1db6759ee9ae44a8e441a52153\",\n  \"sender\": \"ou_23ab1a1db6759ee9ae44a8e441a52153\",\n  \"timestamp\": \"Thu 2026-05-07 06:22 UTC\"\n}\n```\n\nSender (untrusted metadata):\n```json\n{\n  \"label\": \"ou_23ab1a1db6759ee9ae44a8e441a52153\",\n  \"id\": \"ou_23ab1a1db6759ee9ae44a8e441a52153\",\n  \"name\": \"ou_23ab1a1db6759ee9ae44a8e441a52153\"\n}\n```\n\n[reacted with WOW to message om_x100b5005c25460a8c10fe0cfdfc1b4d: \"<card>\n嘿，我刚上线，很高兴认识你～🦞\n\n我是你的个人助手，但现在还是一张白纸——没有记忆，没有上下文，一切从这里开始。\n\n怎么称呼你比较好？正式一点还是日常一些，或者有其他习惯的称呼？\n\n另外，关于我，你期望我扮演什么角色？比如：\n- **管家型** —— 帮你打理日程、整理信息、处理杂务\n- **搭档型** —— 和你一起讨论、头脑风暴、并肩做事\n- **军师型** —— 在背后帮你调…\"]",
+    "contentType": "text",
+    "messageId": "msg-1778134926294",
+    "participants": [
+      "main",
+      "user"
+    ],
+    "id": "evt-1778134926294-be44mn",
+    "storedAt": "2026-05-07T06:22:06.294Z",
+    "processedForExtraction": false
+  },
+  {
+    "chatId": "agent:main:feishu:direct:ou_23ab1a1db6759ee9ae44a8e441a52153",
+    "chatType": "p2p",
+    "senderId": "user",
+    "content": "System: [2026-05-07 06:22:03 UTC] Feishu[default] DM | ou_23ab1a1db6759ee9ae44a8e441a52153 [msg:om_x100b5005c25460a8c10fe0cfdfc1b4d:reaction:WOW:f71ed311-b964-472b-bf70-88f1b2c657c8]\n\nConversation info (untrusted metadata):\n```json\n{\n  \"message_id\": \"om_x100b5005c25460a8c10fe0cfdfc1b4d:reaction:WOW:f71ed311-b964-472b-bf70-88f1b2c657c8\",\n  \"sender_id\": \"ou_23ab1a1db6759ee9ae44a8e441a52153\",\n  \"sender\": \"ou_23ab1a1db6759ee9ae44a8e441a52153\",\n  \"timestamp\": \"Thu 2026-05-07 06:22 UTC\"\n}\n```\n\nSender (untrusted metadata):\n```json\n{\n  \"label\": \"ou_23ab1a1db6759ee9ae44a8e441a52153\",\n  \"id\": \"ou_23ab1a1db6759ee9ae44a8e441a52153\",\n  \"name\": \"ou_23ab1a1db6759ee9ae44a8e441a52153\"\n}\n```\n\n[reacted with WOW to message om_x100b5005c25460a8c10fe0cfdfc1b4d: \"<card>\n嘿，我刚上线，很高兴认识你～🦞\n\n我是你的个人助手，但现在还是一张白纸——没有记忆，没有上下文，一切从这里开始。\n\n怎么称呼你比较好？正式一点还是日常一些，或者有其他习惯的称呼？\n\n另外，关于我，你期望我扮演什么角色？比如：\n- **管家型** —— 帮你打理日程、整理信息、处理杂务\n- **搭档型** —— 和你一起讨论、头脑风暴、并肩做事\n- **军师型** —— 在背后帮你调…\"]",
+    "contentType": "text",
+    "messageId": "msg-1778134933092",
+    "participants": [
+      "main",
+      "user"
+    ],
+    "id": "evt-1778134933092-jj2bga",
+    "storedAt": "2026-05-07T06:22:13.093Z",
+    "processedForExtraction": false
+  },
+  {
+    "chatId": "agent:main:feishu:direct:ou_23ab1a1db6759ee9ae44a8e441a52153",
+    "chatType": "p2p",
+    "senderId": "agent",
+    "senderName": "AI",
+    "content": "🦞 看来你喜欢这个开场白～ 那我们慢慢来：你希望我怎么称呼你呢？还有你期望我扮演什么角色呀？管家帮忙打理杂务、搭档一起头脑风暴，还是军师帮你调研出方案？另外喜欢什么相处风格？严谨细致还是随性自然？都可以慢慢说～",
+    "contentType": "text",
+    "messageId": "msg-1778134957917-agent",
+    "id": "evt-1778134957921-0l7rvp",
+    "storedAt": "2026-05-07T06:22:37.921Z",
+    "processedForExtraction": false
+  }
+]
