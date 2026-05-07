@@ -48,9 +48,9 @@
         "mem-2106a314",
         "mem-153abc89"
       ],
-      "trustScore": 0.9998757415864461,
-      "lastActiveAt": "2026-05-07T07:30:31.725Z",
-      "contributionCount": 79,
+      "trustScore": 0.9999987509748371,
+      "lastActiveAt": "2026-05-07T11:22:32.483Z",
+      "contributionCount": 125,
       "confirmationCount": 4
     },
     "memory-extractor": {
@@ -77,7 +77,9 @@
         "周报流程",
         "团队协作",
         "交付规范",
-        "流程规范"
+        "流程规范",
+        "个人助手",
+        "用户偏好"
       ],
       "knownMemoryIds": [
         "mem-3ba0b093",
@@ -185,13 +187,14 @@
         "mem-7908eee4",
         "mem-153abc89",
         "mem-13719dfc",
-        "mem-fbbe1849"
+        "mem-fbbe1849",
+        "mem-598c3a71"
       ],
-      "trustScore": 0.9999999999999228,
-      "lastActiveAt": "2026-05-07T07:30:31.725Z",
-      "contributionCount": 295,
+      "trustScore": 1,
+      "lastActiveAt": "2026-05-07T11:22:32.483Z",
+      "contributionCount": 434,
       "confirmationCount": 0
     }
   },
-  "updatedAt": "2026-05-07T07:30:31.725Z"
+  "updatedAt": "2026-05-07T11:22:32.483Z"
 }
