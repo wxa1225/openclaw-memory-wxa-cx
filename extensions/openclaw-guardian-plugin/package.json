@@ -1,6 +1,6 @@
 {
   "name": "@lark-tns/openclaw-guardian-plugin",
-  "version": "2026.4.19",
+  "version": "2026.5.7",
   "type": "module",
   "description": "OpenClaw plugin that reports hook payloads to the security_plugin detect service with remote hook toggles.",
   "keywords": ["openclaw", "plugin", "security", "guardian"],

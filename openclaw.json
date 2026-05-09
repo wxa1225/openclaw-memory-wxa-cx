@@ -656,14 +656,12 @@
         "source": "npm",
         "spec": "@lark-tns/openclaw-guardian-plugin",
         "installPath": "./extensions/openclaw-guardian-plugin",
-        "version": "2026.4.19",
+        "version": "2026.5.7",
         "resolvedName": "@lark-tns/openclaw-guardian-plugin",
-        "resolvedVersion": "2026.4.19",
-        "resolvedSpec": "@lark-tns/openclaw-guardian-plugin@2026.4.19",
-        "integrity": "sha512-gntLdoDkduj0BUQPPuCutTS6TxoaNgmYOdBnT2QZh81KOMWjx8Q6D2liKrsE9N+tMla/I8X727vtuChDno5Ryg==",
-        "shasum": "b6ff207400aa29943d399bf14cc87b20ac536c21",
-        "resolvedAt": "2026-04-20T15:24:17.763Z",
-        "installedAt": "2026-04-20T15:24:18.395Z"
+        "resolvedVersion": "2026.5.7",
+        "resolvedSpec": "@lark-tns/openclaw-guardian-plugin@2026.5.7",
+        "integrity": "sha512-MXX+NlybopHrw0c7Lj7JJ2x30GFwA+Tf+mS4qDvQ1vQ2JRJAPf6LipRGz0b5Ko5nqvwoPBAEHF64dWhCy4oBkg==",
+        "shasum": "88c1cb80be18a8f5c690dd8bd0c9749dee602407"
       },
       "team-memory-engine": {
         "source": "path",

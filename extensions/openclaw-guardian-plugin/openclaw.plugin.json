@@ -2,7 +2,7 @@
   "id": "openclaw-guardian-plugin",
   "name": "OpenClaw Guardian Plugin",
   "description": "Reports OpenClaw hook payloads to security_plugin config and detect endpoints.",
-  "version": "2026.4.19",
+  "version": "2026.5.7",
   "uiHints": {
     "appId": {
       "label": "Feishu App ID",
