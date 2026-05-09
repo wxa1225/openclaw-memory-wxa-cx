@@ -238,17 +238,5 @@
     "skill_hash": "178207afa94e6fa7619c72b11b0f9348dbb461b11f7dd29ae795abe1eb8268d7",
     "is_detected": true,
     "last_detect_ts": 1778338089076
-  },
-  "miaoda-coding": {
-    "skill_name": "miaoda-coding",
-    "skill_hash": "fdba55f241b913ad859ea4ca8a7c1a9f19c9968b8f90f50b7b0cb963080a674f",
-    "is_detected": true,
-    "last_detect_ts": 1778336884449
-  },
-  "miaoda-database-skill": {
-    "skill_name": "miaoda-database-skill",
-    "skill_hash": "4bd93439f61b8c495031b9e36aaa594944e5dd35ef7fd954a34a8ca9c5acc49b",
-    "is_detected": true,
-    "last_detect_ts": 1778336884597
   }
 }
