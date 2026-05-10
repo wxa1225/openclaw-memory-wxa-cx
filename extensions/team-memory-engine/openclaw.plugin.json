@@ -44,7 +44,13 @@
       "riskCheckInterval": { "type": "number" },
       "feishuChatId": { "type": "string" },
       "teamSize": { "type": "number" },
-      "enableGraph": { "type": "boolean" }
+      "enableGraph": { "type": "boolean" },
+      "projectRoot": { "type": "string" },
+      "modelEndpoint": { "type": "string" },
+      "modelApiKey": { "type": "string" },
+      "modelName": { "type": "string" },
+      "modelXApiKey": { "type": "string" },
+      "extractionBatchSize": { "type": "number" }
     },
     "required": []
   }

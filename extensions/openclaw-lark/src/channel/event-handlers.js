@@ -27,12 +27,13 @@ const ask_user_question_1 = require("../tools/ask-user-question.js");
 const chat_queue_1 = require("./chat-queue.js");
 const abort_detect_1 = require("./abort-detect.js");
 const interactive_dispatch_1 = require("./interactive-dispatch.js");
+const send_1 = require("../messaging/outbound/send.js");
 const elog = (0, lark_logger_1.larkLogger)('channel/event-handlers');
 
 // ---------------------------------------------------------------------------
 // Team Memory review card action handler
 // ---------------------------------------------------------------------------
-async function handleMemoryReviewAction(data) {
+async function handleMemoryReviewAction(data, ctx) {
     const value = data?.action?.value;
     if (!value || !value.action || !value.memory_id) return undefined;
     if (!["confirm", "update", "dismiss"].includes(value.action)) return undefined;
@@ -40,6 +41,9 @@ async function handleMemoryReviewAction(data) {
         const { handleMemoryReviewAction } = await import("../../../../team-memory-engine/lib/card-action-handler.js");
         return await handleMemoryReviewAction(data, {
             teamId: process.env?.TEAM_MEMORY_TEAM_ID || "openclaw-team",
+            openMessageId: data.open_message_id ?? data.context?.open_message_id,
+            accountId: ctx?.accountId,
+            cfg: ctx?.cfg,
         });
     }
     catch {
@@ -303,9 +307,26 @@ async function handleCardActionEvent(ctx, data) {
         if (authResult !== undefined)
             return authResult;
         // Team Memory review card actions (confirm/update/dismiss)
-        const memoryResult = await handleMemoryReviewAction(data);
-        if (memoryResult !== undefined)
+        const memoryResult = await handleMemoryReviewAction(data, ctx);
+        if (memoryResult !== undefined) {
+            // If the handler returned a card update, apply it to the original message
+            if (memoryResult.card?.data) {
+                const openMessageId = data.open_message_id ?? data.context?.open_message_id;
+                if (openMessageId) {
+                    try {
+                        await (0, send_1.updateCardFeishu)({
+                            cfg: ctx.cfg,
+                            messageId: openMessageId,
+                            card: memoryResult.card.data,
+                            accountId: ctx.accountId,
+                        });
+                    } catch (err) {
+                        elog.warn(`card update failed: ${err}`);
+                    }
+                }
+            }
             return memoryResult;
+        }
         // 业务自定义卡片交互：使用 SDK 标准 interactive dispatch 管道转发给业务插件。
         return await (0, interactive_dispatch_1.dispatchFeishuPluginInteractiveHandler)({ cfg: ctx.cfg, accountId: ctx.accountId, data });
     }

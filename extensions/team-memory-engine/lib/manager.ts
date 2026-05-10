@@ -78,6 +78,7 @@ export class TeamMemoryManager {
         modelEndpoint: options.modelEndpoint,
         modelApiKey: options.modelApiKey,
         modelName: options.modelName ?? "qwen-plus",
+        xApiKey: options.modelXApiKey,
       });
     } else {
       this.extractor = null;
@@ -408,6 +409,11 @@ export class TeamMemoryManager {
   }
 
   // ---- New v2 Operations ----
+
+  /** Get a single entry by ID */
+  async getEntry(memoryId: string): Promise<LedgerEntry | undefined> {
+    return this.ledger.getEntry(memoryId);
+  }
 
   /** Assess risk for all memories */
   async assessRisk(): Promise<RiskScore[]> {

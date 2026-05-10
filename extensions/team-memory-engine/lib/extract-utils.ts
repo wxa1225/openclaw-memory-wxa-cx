@@ -23,7 +23,7 @@ export function extractEntityAttribute(text: string, category: string): Extracte
   const trimmed = text.trim();
 
   // Pattern 1: "X的Y[为是:：]Z" — possessive + copula
-  const possessive = /^(.+?)的(.+?)(?:为|是|设为|改为|变为|即是|为:|为：|:|：)(.+)$/;
+  const possessive = /^(.+?)的(.+?)(?:为|是|设为|改为|改回|变为|即是|为:|为：|:|：)(.+)$/;
   let m = trimmed.match(possessive);
   if (m) {
     return {
@@ -34,7 +34,7 @@ export function extractEntityAttribute(text: string, category: string): Extracte
   }
 
   // Pattern 2: "X[verb]Y" — subject + action verb + object/preference
-  const verbPattern = /^(.+?)(?:改为|设为|变为|调整为|更新为|切换为|换为|需要|要|需|使用|采用|启用|选择|定)(.+)$/;
+  const verbPattern = /^(.+?)(?:改为|设为|变为|调整为|更新为|切换为|换为|改回|需要|要|需|使用|采用|启用|选择|定)(.+)$/;
   m = trimmed.match(verbPattern);
   if (m) {
     const entity = m[1].trim();

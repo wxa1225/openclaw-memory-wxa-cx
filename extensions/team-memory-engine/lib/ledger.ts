@@ -93,11 +93,16 @@ export class MemoryLedger {
     const now = new Date().toISOString();
 
     // Check if an entry for this entity+attribute already exists
-    const existing = await this.storage.getByEntityAttribute(
+    let existing = await this.storage.getByEntityAttribute(
       options.entity,
       options.attribute,
       this.teamId
     );
+
+    // Fuzzy fallback: exact key match failed, search by entity+attribute similarity
+    if (existing.length === 0) {
+      existing = await this._fuzzyEntityLookup(options.entity, options.attribute);
+    }
 
     // Check for conflicts before injecting
     const conflict = await this.detectConflict({
@@ -523,6 +528,26 @@ export class MemoryLedger {
 
   private _generateShortId(): string {
     return randomUUID().slice(0, 8);
+  }
+
+  /** Fuzzy entity+attribute lookup when exact match fails.
+   * Returns entries where entity similarity >= 0.8 AND attribute similarity >= 0.7. */
+  private async _fuzzyEntityLookup(
+    entity: string,
+    attribute: string
+  ): Promise<LedgerEntry[]> {
+    const allEntries = await this.storage.getAll(this.teamId);
+    const results: LedgerEntry[] = [];
+
+    for (const entry of allEntries) {
+      const entityScore = semanticSimilarity(entity, entry.entity);
+      const attrScore = semanticSimilarity(attribute, entry.attribute);
+      if (entityScore >= 0.8 && attrScore >= 0.7) {
+        results.push(entry);
+      }
+    }
+
+    return results;
   }
 
   private _timeOverlap(claim1: LedgerClaim, claim2: LedgerClaim): boolean {

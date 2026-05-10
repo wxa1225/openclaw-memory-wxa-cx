@@ -294,6 +294,7 @@ export interface ManagerV2Options {
   modelEndpoint?: string;
   modelApiKey?: string;
   modelName?: string;
+  modelXApiKey?: string;
   extractionBatchSize?: number;
 }
 
