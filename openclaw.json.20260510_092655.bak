@@ -359,7 +359,7 @@
   "channels": {
     "feishu": {
       "enabled": true,
-      "appId": "cli_a961d5100db85cca",
+      "appId": "cli_a961d51ee038dcd1",
       "appSecret": {
         "source": "file",
         "provider": "miaoda-secret-provider",

@@ -16,6 +16,8 @@ import type {
   GraphData,
   ManagerV2Options,
   EventLogEntry,
+  DepartureSimulationResult,
+  KnowledgeGap,
 } from "./storage/types.js";
 import {
   calculateStrengthFromLedger,
@@ -29,6 +31,7 @@ import { RiskModel } from "./risk.js";
 import { runMigration } from "./migrate.js";
 import { MemoryExtractor, type ExtractedMemory, type ExtractionConfig } from "./extractor.js";
 import { TeamCapabilityModel } from "./tms.js";
+import { TMSKnowledgeAnalyzer } from "./knowledge-analyzer.js";
 import { extractEntityAttribute, roleConfidenceAdjustment } from "./extract-utils.js";
 
 export type { Mem0Provider } from "./storage/types.js";
@@ -46,6 +49,7 @@ export class TeamMemoryManager {
   private mem0: Mem0Provider;
   private extractor: MemoryExtractor | null;
   private tms: TeamCapabilityModel | null;
+  private knowledge: TMSKnowledgeAnalyzer | null;
   private projectRoot: string;
   private teamId: string;
   private defaultUserId: string;
@@ -87,8 +91,10 @@ export class TeamMemoryManager {
     // TMS (only if project root configured)
     if (this.projectRoot) {
       this.tms = new TeamCapabilityModel(options.teamId, this.projectRoot);
+      this.knowledge = null; // Will be initialized after TMS load
     } else {
       this.tms = null;
+      this.knowledge = null;
     }
   }
 
@@ -505,6 +511,33 @@ export class TeamMemoryManager {
     await this.graph.rebuildFromLedger(entries);
   }
 
+  // ---- Knowledge Transfer Simulation ----
+
+  /** Simulate a team member leaving — returns knowledge gaps, risk changes, and transfer recommendations */
+  async simulateDeparture(memberId: string): Promise<DepartureSimulationResult | null> {
+    if (!this.tms) throw new Error("TMS not configured. Set projectRoot in config.");
+    if (!this.knowledge) await this._initKnowledgeAnalyzer();
+    if (!this.knowledge) throw new Error("Knowledge analyzer not available. Ensure TMS has data.");
+
+    const entries = await this.ledger.getAllEntries(this.teamId);
+    return this.knowledge.simulateDeparture(memberId, entries);
+  }
+
+  /** Get all single points of failure (memories known by only one person) */
+  async getKnowledgeGaps(): Promise<KnowledgeGap[]> {
+    if (!this.tms) throw new Error("TMS not configured. Set projectRoot in config.");
+    if (!this.knowledge) await this._initKnowledgeAnalyzer();
+    if (!this.knowledge) throw new Error("Knowledge analyzer not available. Ensure TMS has data.");
+
+    const entries = await this.ledger.getAllEntries(this.teamId);
+    return this.knowledge.findSinglePointsOfFailure(entries);
+  }
+
+  /** Force rebuild knowledge analyzer from current TMS state */
+  async rebuildKnowledgeAnalyzer(): Promise<void> {
+    await this._initKnowledgeAnalyzer();
+  }
+
   // ---- Internal Helpers ----
 
   /** Sync TMS from current ledger state (best-effort) */
@@ -513,9 +546,22 @@ export class TeamMemoryManager {
     try {
       const entries = await this.ledger.getAllEntries(this.teamId);
       await this.tms.syncFromLedger(entries);
+      // Reinitialize knowledge analyzer after TMS sync
+      await this._initKnowledgeAnalyzer();
     } catch {
       // TMS sync failure — non-critical
     }
+  }
+
+  /** Initialize the knowledge analyzer from current TMS state */
+  private async _initKnowledgeAnalyzer(): Promise<void> {
+    if (!this.tms) {
+      this.knowledge = null;
+      return;
+    }
+    await this.tms.load();
+    const profile = (this.tms as unknown as { profile: import("./storage/types.js").TeamCapabilityProfile }).profile;
+    this.knowledge = new TMSKnowledgeAnalyzer(this.teamId, profile);
   }
 
   private async _syncToMem0(entry: LedgerEntry, text: string): Promise<void> {

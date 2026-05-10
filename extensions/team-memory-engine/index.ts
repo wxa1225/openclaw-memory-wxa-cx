@@ -109,6 +109,50 @@ function formatConflictCard(
   return JSON.stringify(card);
 }
 
+/** Format a knowledge transfer simulation result as a Feishu interactive card */
+function formatKnowledgeTransferCard(
+  simulation: NonNullable<Awaited<ReturnType<import("./lib/manager.js").TeamMemoryManager["simulateDeparture"]>>>,
+): string {
+  const spfCount = simulation.impact.singlePointFailures.length;
+  const spfLines = simulation.impact.singlePointFailures.slice(0, 5).map((spf) =>
+    `**[风险 ${(spf.riskScore * 100).toFixed(0)}%]** ${spf.entity}.${spf.attribute}: ${spf.value.substring(0, 50)}`
+  ).join("\n");
+  const moreText = spfCount > 5 ? `\n... 还有 ${spfCount - 5} 条断层` : "";
+
+  let recText = "无合适传承对象";
+  if (simulation.recommendations.length > 0) {
+    const top = simulation.recommendations[0];
+    recText = `**推荐：${top.recommendedDisplayName}**（匹配度 ${(top.transferScore * 100).toFixed(0)}%）\n专业重叠 ${(top.expertiseOverlap * 100).toFixed(0)}% | 已有知识 ${(top.currentKnowledgeOverlap * 100).toFixed(0)}%`;
+  }
+
+  const card = {
+    config: { wide_screen_mode: true },
+    header: {
+      title: { tag: "plain_text" as const, content: "⚠️ 知识断层预警 — 传承模拟报告" },
+      template: (spfCount > 3 ? "red" : spfCount > 0 ? "orange" : "green") as "red" | "orange" | "green",
+    },
+    elements: [
+      { tag: "div" as const, text: { tag: "plain_text" as const, content: `如果 ${simulation.impact.displayName} 离开团队：` } },
+      {
+        tag: "markdown" as const,
+        content: [
+          `**核心指标**`,
+          `• 知道记忆：${simulation.impact.totalMemoriesKnown} 条`,
+          `• 知识断层：${spfCount} 条（仅 TA 知道）`,
+          `• 风险增加：${Math.round(simulation.impact.totalRiskIncrease * 100)}%`,
+          `• 知识损失率：${simulation.impact.knowledgeLossPercentage}%`,
+          `• 受影响类别：${simulation.impact.affectedCategories.join(", ") || "无"}`,
+          "",
+          spfCount > 0 ? `**知识断层详情**\n${spfLines}${moreText}` : "**无知识断层** — 团队知识分布良好",
+          "",
+          `**推荐传承对象**\n${recText}`,
+        ].join("\n"),
+      },
+    ],
+  };
+  return JSON.stringify(card);
+}
+
 async function sendFeishuMessage(
   appId: string,
   appSecret: string,
@@ -702,6 +746,99 @@ const plugin = {
       { name: "team_memory_tms" },
     );
 
+    // NEW: Knowledge transfer simulation tool
+    api.registerTool(
+      {
+        name: "team_memory_simulate",
+        label: "Team Memory Knowledge Transfer Simulation",
+        description: "Simulate a team member leaving and analyze knowledge gaps, risk changes, and transfer recommendations. Use for team planning and knowledge management.",
+        parameters: Type.Object({
+          memberId: Type.String({ description: "The member ID to simulate departure for" }),
+        }),
+        async execute(_toolCallId: unknown, params: unknown) {
+          try {
+            const { memberId } = params as { memberId: string };
+            if (!cfg.projectRoot) {
+              return { content: [{ type: "text", text: "Simulation requires TMS. Set projectRoot in config." }] };
+            }
+            const result = await manager.simulateDeparture(memberId);
+            if (!result) {
+              return { content: [{ type: "text", text: `Member not found: ${memberId}` }] };
+            }
+            const lines = [
+              `Knowledge transfer simulation for ${result.impact.displayName}:`,
+              ``,
+              `  Memories known: ${result.impact.totalMemoriesKnown}`,
+              `  Single points of failure: ${result.impact.singlePointFailures.length}`,
+              `  Team risk increase: ${Math.round(result.impact.totalRiskIncrease * 100)}%`,
+              `  Knowledge loss: ${result.impact.knowledgeLossPercentage}%`,
+              `  Affected categories: ${result.impact.affectedCategories.join(", ") || "none"}`,
+              ``,
+              `Single points of failure:`,
+            ];
+            for (const spf of result.impact.singlePointFailures.slice(0, 10)) {
+              lines.push(`  - ${spf.entity}.${spf.attribute}: "${spf.value.substring(0, 50)}" (risk: ${(spf.riskScore * 100).toFixed(0)}%)`);
+            }
+            if (result.impact.singlePointFailures.length > 10) {
+              lines.push(`  ... and ${result.impact.singlePointFailures.length - 10} more`);
+            }
+            if (result.recommendations.length > 0) {
+              lines.push(``, `Recommended transfer target:`);
+              const rec = result.recommendations[0];
+              lines.push(`  ${rec.recommendedDisplayName} (match: ${(rec.transferScore * 100).toFixed(0)}%)`);
+              lines.push(`  ${rec.reason}`);
+            }
+            lines.push(``, result.summary);
+            return {
+              content: [{ type: "text", text: lines.join("\n") }],
+              details: { simulation: result },
+            };
+          } catch (err) {
+            return { content: [{ type: "text", text: `Failed: ${String(err)}` }], details: { error: String(err) } };
+          }
+        },
+      },
+      { name: "team_memory_simulate" },
+    );
+
+    // NEW: Knowledge gaps tool
+    api.registerTool(
+      {
+        name: "team_memory_gaps",
+        label: "Team Knowledge Gaps Analysis",
+        description: "Find all memories known by only one person (single points of failure). Use to identify team knowledge risks.",
+        parameters: Type.Object({}),
+        async execute(_toolCallId: unknown, _params: unknown) {
+          try {
+            if (!cfg.projectRoot) {
+              return { content: [{ type: "text", text: "Knowledge gaps analysis requires TMS. Set projectRoot in config." }] };
+            }
+            const gaps = await manager.getKnowledgeGaps();
+            if (gaps.length === 0) {
+              return { content: [{ type: "text", text: "No single points of failure found. Team knowledge is well distributed." }] };
+            }
+            const lines = [
+              `${gaps.length} single point(s) of failure found:`,
+              ``,
+            ];
+            for (const gap of gaps.slice(0, 15)) {
+              lines.push(`  - ${gap.currentHolder} knows: ${gap.entity}.${gap.attribute} = "${gap.value.substring(0, 50)}" (risk: ${(gap.riskScore * 100).toFixed(0)}%)`);
+            }
+            if (gaps.length > 15) {
+              lines.push(`  ... and ${gaps.length - 15} more`);
+            }
+            return {
+              content: [{ type: "text", text: lines.join("\n") }],
+              details: { gaps },
+            };
+          } catch (err) {
+            return { content: [{ type: "text", text: `Failed: ${String(err)}` }], details: { error: String(err) } };
+          }
+        },
+      },
+      { name: "team_memory_gaps" },
+    );
+
     // ========================================================================
     // CLI Commands
     // ========================================================================
@@ -951,6 +1088,75 @@ const plugin = {
               if (members.length === 0) { console.log("No members tracked."); return; }
               for (const m of members) {
                 console.log(`${m.memberId}: expertise=[${m.expertiseAreas.join(", ")}], memories=${m.knownMemoryIds.length}, trust=${(m.trustScore * 100).toFixed(0)}%`);
+              }
+            } catch (err) {
+              console.error(`Failed: ${String(err)}`);
+            }
+          });
+
+        // NEW: simulate-departure command
+        cmd
+          .command("simulate-departure")
+          .description("Simulate a member leaving — show knowledge gaps, risk changes, transfer recommendations")
+          .argument("<memberId>", "Member ID to simulate departure for")
+          .option("-j, --json", "Output as JSON")
+          .action(async (memberId: string, opts: { json?: boolean }) => {
+            try {
+              if (!cfg.projectRoot) { console.error("projectRoot not configured"); return; }
+              const result = await manager.simulateDeparture(memberId);
+              if (!result) { console.log("Member not found."); return; }
+              if (opts.json) {
+                console.log(JSON.stringify(result, null, 2));
+                return;
+              }
+              console.log(`\n=== 知识传承模拟：${result.impact.displayName} 离开团队 ===\n`);
+              console.log(`总记忆数: ${result.impact.totalMemoriesKnown}`);
+              console.log(`知识断层: ${result.impact.singlePointFailures.length} 条（仅 TA 知道）`);
+              console.log(`团队风险增加: ${Math.round(result.impact.totalRiskIncrease * 100)}%`);
+              console.log(`知识损失率: ${result.impact.knowledgeLossPercentage}%`);
+              console.log(`受影响类别: ${result.impact.affectedCategories.join(", ") || "无"}\n`);
+
+              if (result.impact.singlePointFailures.length > 0) {
+                console.log("--- 知识断层详情 ---\n");
+                for (const spf of result.impact.singlePointFailures) {
+                  console.log(`  [风险 ${(spf.riskScore * 100).toFixed(0)}%] ${spf.entity}.${spf.attribute}`);
+                  console.log(`    内容: "${spf.value}"`);
+                  console.log(`    类别: ${spf.category}\n`);
+                }
+              }
+
+              if (result.recommendations.length > 0) {
+                console.log("--- 推荐传承对象 ---\n");
+                for (const rec of result.recommendations.slice(0, 3)) {
+                  console.log(`  ${rec.recommendedDisplayName} (匹配度 ${(rec.transferScore * 100).toFixed(0)}%)`);
+                  console.log(`    专业重叠: ${(rec.expertiseOverlap * 100).toFixed(0)}%`);
+                  console.log(`    已有知识: ${(rec.currentKnowledgeOverlap * 100).toFixed(0)}%`);
+                  console.log(`    信任度: ${(rec.trustScore * 100).toFixed(0)}%`);
+                  console.log(`    ${rec.reason}\n`);
+                }
+              }
+
+              console.log(result.summary);
+            } catch (err) {
+              console.error(`Failed: ${String(err)}`);
+            }
+          });
+
+        // NEW: knowledge-gaps command
+        cmd
+          .command("knowledge-gaps")
+          .description("Find memories known by only one person (single points of failure)")
+          .action(async () => {
+            try {
+              if (!cfg.projectRoot) { console.error("projectRoot not configured"); return; }
+              const gaps = await manager.getKnowledgeGaps();
+              if (gaps.length === 0) {
+                console.log("No single points of failure. Team knowledge is well distributed.");
+                return;
+              }
+              console.log(`${gaps.length} single point(s) of failure:\n`);
+              for (const gap of gaps) {
+                console.log(`  [${gap.currentHolder}] ${gap.entity}.${gap.attribute} = "${gap.value.substring(0, 60)}" (risk: ${(gap.riskScore * 100).toFixed(0)}%)`);
               }
             } catch (err) {
               console.error(`Failed: ${String(err)}`);

@@ -339,3 +339,159 @@ export interface TeamCapabilityProfile {
   members: Record<string, MemberCapability>;
   updatedAt: string;
 }
+
+// ============================================================================
+// Knowledge Transfer Simulation
+// ============================================================================
+
+export interface KnowledgeGap {
+  memoryId: string;
+  entity: string;
+  attribute: string;
+  value: string;
+  category: string;
+  tags: string[];
+  currentHolder: string;
+  riskScore: number;
+  businessImpact: number;
+}
+
+export interface DepartureImpact {
+  memberId: string;
+  displayName: string;
+  totalMemoriesKnown: number;
+  singlePointFailures: KnowledgeGap[];
+  totalRiskIncrease: number;
+  affectedCategories: string[];
+  knowledgeLossPercentage: number;
+}
+
+export interface TransferRecommendation {
+  recommendedMemberId: string;
+  recommendedDisplayName: string;
+  transferScore: number;
+  reason: string;
+  expertiseOverlap: number;
+  currentKnowledgeOverlap: number;
+  trustScore: number;
+}
+
+export interface DepartureSimulationResult {
+  impact: DepartureImpact;
+  recommendations: TransferRecommendation[];
+  beforeRiskScores: RiskScore[];
+  afterRiskScores: RiskScore[];
+  summary: string;
+}
+
+// ============================================================================
+// Memory Insight Dashboard
+// ============================================================================
+
+/** Single cell in the knowledge heatmap: category × member → count */
+export interface HeatmapCell {
+  category: string;
+  memberId: string;
+  displayName: string;
+  memoryCount: number;
+  avgStrength: number;
+  avgRisk: number;
+}
+
+export interface KnowledgeHeatmap {
+  cells: HeatmapCell[];
+  categories: string[];
+  members: string[];
+  blindSpots: Array<{ category: string; reason: string }>;
+  denseAreas: Array<{ category: string; count: number; holders: number }>;
+}
+
+/** Knowledge loss risk ranking per member */
+export interface MemberRiskRanking {
+  memberId: string;
+  displayName: string;
+  singlePointCount: number;
+  totalKnownMemories: number;
+  avgRiskOfHeldMemories: number;
+  criticalMemories: string[]; // memory IDs that would be lost
+  riskScore: number; // 0-1 aggregate
+}
+
+export interface KnowledgeLossRanking {
+  rankings: MemberRiskRanking[];
+  teamAvgSinglePoints: number;
+  mostVulnerableCategory: string;
+}
+
+/** Team memory lifecycle statistics */
+export interface LifecycleStats {
+  totalMemories: number;
+  activeMemories: number;
+  supersededMemories: number;
+  conflictingMemories: number;
+  avgAgeDays: number;
+  avgVersionCount: number;
+  avgStrength: number;
+  avgRiskScore: number;
+  categoryBreakdown: Record<string, { count: number; avgStrength: number; avgRisk: number }>;
+  strengthDistribution: Record<"fresh" | "strong" | "fading" | "weak" | "critical", number>;
+  forgettingSpeedDistribution: { fast: number; medium: number; slow: number };
+  memoryLifespan: { avgDaysUntilSuperseded: number | null; longestLivedDays: number };
+  reviewStats: { totalReviews: number; avgReviewsPerMemory: number; mostReviewed: string | null };
+}
+
+/** TMS knowledge network data */
+export interface TMSNetworkNode {
+  id: string;
+  displayName: string;
+  type: "person" | "category";
+  memoryCount: number;
+  expertiseAreas: string[];
+  trustScore: number;
+}
+
+export interface TMSNetworkEdge {
+  source: string;
+  target: string;
+  type: "knows" | "overlap";
+  weight: number; // number of shared memories for overlap, 1 for knows
+}
+
+export interface TMSKnowledgeNetwork {
+  nodes: TMSNetworkNode[];
+  edges: TMSNetworkEdge[];
+  overlapPairs: Array<{ memberA: string; memberB: string; sharedCount: number; sharedPercentage: number }>;
+  knowledgeSilos: Array<{ memberId: string; displayName: string; uniqueCategories: string[] }>;
+  centralityScores: Record<string, number>; // member ID → how central they are
+}
+
+/** Departure impact summary across all members */
+export interface TeamDepartureOverview {
+  memberImpacts: Array<{
+    memberId: string;
+    displayName: string;
+    singlePointCount: number;
+    knowledgeLossPercentage: number;
+    riskIncrease: number;
+  }>;
+  worstCaseMemberId: string;
+  worstCaseLoss: number;
+  teamResilienceScore: number; // 0-1, higher = more resilient
+}
+
+/** Full insight report aggregating all dimensions */
+export interface InsightReport {
+  generatedAt: string;
+  teamId: string;
+  heatmap: KnowledgeHeatmap;
+  lossRanking: KnowledgeLossRanking;
+  lifecycle: LifecycleStats;
+  network: TMSKnowledgeNetwork;
+  departureOverview: TeamDepartureOverview;
+  summary: {
+    totalMemories: number;
+    teamHealthScore: number; // 0-100 composite
+    topRisks: string[];
+    recommendations: string[];
+  };
+}
