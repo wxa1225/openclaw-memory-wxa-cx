@@ -32,6 +32,8 @@ import { runMigration } from "./migrate.js";
 import { MemoryExtractor, type ExtractedMemory, type ExtractionConfig } from "./extractor.js";
 import { TeamCapabilityModel } from "./tms.js";
 import { TMSKnowledgeAnalyzer } from "./knowledge-analyzer.js";
+import { MemoryInsightEngine } from "./insight-engine.js";
+import { renderHtmlReport } from "./html-report.js";
 import { extractEntityAttribute, roleConfidenceAdjustment } from "./extract-utils.js";
 
 export type { Mem0Provider } from "./storage/types.js";
@@ -50,6 +52,7 @@ export class TeamMemoryManager {
   private extractor: MemoryExtractor | null;
   private tms: TeamCapabilityModel | null;
   private knowledge: TMSKnowledgeAnalyzer | null;
+  private insightEngine: MemoryInsightEngine | null;
   private projectRoot: string;
   private teamId: string;
   private defaultUserId: string;
@@ -92,9 +95,17 @@ export class TeamMemoryManager {
     if (this.projectRoot) {
       this.tms = new TeamCapabilityModel(options.teamId, this.projectRoot);
       this.knowledge = null; // Will be initialized after TMS load
+      this.insightEngine = new MemoryInsightEngine({
+        teamId: options.teamId,
+        teamSize: this.teamSize,
+      });
     } else {
       this.tms = null;
       this.knowledge = null;
+      this.insightEngine = new MemoryInsightEngine({
+        teamId: options.teamId,
+        teamSize: this.teamSize,
+      });
     }
   }
 
@@ -536,6 +547,48 @@ export class TeamMemoryManager {
   /** Force rebuild knowledge analyzer from current TMS state */
   async rebuildKnowledgeAnalyzer(): Promise<void> {
     await this._initKnowledgeAnalyzer();
+  }
+
+  // ---- Insight Report Generation ----
+
+  /** Generate a comprehensive Memory Insight Dashboard report */
+  async generateInsightReport(outputFormat: "json" | "html" = "html"): Promise<{ report: string; format: string }> {
+    const entries = await this.ledger.getAllEntries(this.teamId);
+    const riskScores = await this.risk.computeAllRisks(entries);
+
+    // Load TMS profile
+    let tmsProfile = null;
+    if (this.tms) {
+      await this.tms.load();
+      tmsProfile = (this.tms as unknown as { profile: import("./storage/types.js").TeamCapabilityProfile }).profile;
+    }
+
+    // Run departure simulations for all members
+    const departureSimulations: Record<string, DepartureSimulationResult | null> = {};
+    if (this.knowledge && tmsProfile) {
+      const members = Object.keys(tmsProfile.members);
+      for (const memberId of members) {
+        departureSimulations[memberId] = this.knowledge.simulateDeparture(memberId, entries);
+      }
+    }
+
+    if (!this.insightEngine) {
+      throw new Error("Insight engine not available.");
+    }
+
+    const report = await this.insightEngine.generateReport(
+      entries,
+      riskScores,
+      tmsProfile,
+      departureSimulations,
+    );
+
+    if (outputFormat === "json") {
+      return { report: JSON.stringify(report, null, 2), format: "json" };
+    }
+
+    const html = renderHtmlReport(report);
+    return { report: html, format: "html" };
   }
 
   // ---- Internal Helpers ----

@@ -28,6 +28,8 @@ import { Type } from "@sinclair/typebox";
 import { definePluginEntry, type OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
 import { TeamMemoryManager, type Mem0Provider } from "./lib/manager.js";
 import { EventLog } from "./lib/event-log.js";
+import { analyzeForProactiveCapture, PromptRateLimiter } from "./lib/proactive-capture.js";
+import { formatProactiveConfirmCard } from "./lib/proactive-card.js";
 
 // ============================================================================
 // Feishu message push helper
@@ -208,12 +210,17 @@ interface TeamMemoryConfig {
   modelName: string;
   modelXApiKey: string;
   extractionBatchSize: number;
+  // Proactive Memory Capture
+  enableProactiveCapture: boolean;
+  proactivePromptInterval: number;
+  proactiveMaxPerSession: number;
 }
 
 const ALLOWED_CONFIG_KEYS = [
   "teamId", "decayCheckInterval", "riskCheckInterval",
   "feishuChatId", "teamSize", "enableGraph",
   "projectRoot", "modelEndpoint", "modelApiKey", "modelName", "modelXApiKey", "extractionBatchSize",
+  "enableProactiveCapture", "proactivePromptInterval", "proactiveMaxPerSession",
 ];
 
 function parseConfig(value: Record<string, unknown>): TeamMemoryConfig {
@@ -230,6 +237,10 @@ function parseConfig(value: Record<string, unknown>): TeamMemoryConfig {
     modelName: typeof value.modelName === "string" && value.modelName ? value.modelName : "qwen-plus",
     modelXApiKey: typeof value.modelXApiKey === "string" ? value.modelXApiKey : "",
     extractionBatchSize: typeof value.extractionBatchSize === "number" && value.extractionBatchSize > 0 ? value.extractionBatchSize : 20,
+    // Proactive capture defaults: enabled, 2min interval, 10 max per session
+    enableProactiveCapture: typeof value.enableProactiveCapture === "boolean" ? value.enableProactiveCapture : true,
+    proactivePromptInterval: typeof value.proactivePromptInterval === "number" ? value.proactivePromptInterval : 2 * 60 * 1000,
+    proactiveMaxPerSession: typeof value.proactiveMaxPerSession === "number" ? value.proactiveMaxPerSession : 10,
   };
 }
 
@@ -342,6 +353,9 @@ const plugin = {
           modelName: "qwen-plus",
           modelXApiKey: "",
           extractionBatchSize: 20,
+          enableProactiveCapture: true,
+          proactivePromptInterval: 2 * 60 * 1000,
+          proactiveMaxPerSession: 10,
         };
       }
       return parseConfig({ ...(value as Record<string, unknown>) });
@@ -399,6 +413,15 @@ const plugin = {
     // Event Log Hooks — capture conversation flow into Event Log
     // ========================================================================
 
+    // Proactive capture rate limiter (per-plugin-instance, resets on restart)
+    const rateLimiter = new PromptRateLimiter({
+      minIntervalMs: cfg.proactivePromptInterval,
+      maxPerSession: cfg.proactiveMaxPerSession,
+    });
+
+    // Owner user ID for confidence adjustment (from OpenClaw config if available)
+    const ownerUserId = api.resolveConfig?.("feishu.ownerId") ?? "";
+
     // Only enable event logging if projectRoot is configured
     if (cfg.projectRoot) {
       const eventLog = new EventLog(cfg.projectRoot);
@@ -415,6 +438,38 @@ const plugin = {
         // Skip internal system/tool messages to avoid feedback loops
         const skipPrefixes = ["<system", "<tool", "Team memory stored:", "Memory updated"];
         if (skipPrefixes.some((p) => prompt.startsWith(p))) return;
+
+        // ============================================================
+        // Proactive Memory Capture — real-time decision detection
+        // ============================================================
+        if (cfg.enableProactiveCapture && cfg.feishuChatId) {
+          try {
+            const capture = analyzeForProactiveCapture(prompt, {
+              isOwner: true, // Running in owner context
+              isGroup: false, // DM session
+            });
+
+            if (capture.detected && rateLimiter.canPrompt()) {
+              rateLimiter.recordPrompt();
+              api.logger.info(
+                `team-memory-engine: proactive capture detected [${capture.triggerType}] confidence=${(capture.confidence * 100).toFixed(0)}% — "${capture.memoryText.substring(0, 60)}"`
+              );
+
+              // Send Feishu interactive confirmation card
+              const card = formatProactiveConfirmCard(capture);
+              await sendFeishuMessage(
+                process.env?.FEISHU_APP_ID ?? "",
+                process.env?.FEISHU_APP_SECRET ?? "",
+                cfg.feishuChatId,
+                card,
+                "interactive"
+              );
+            }
+          } catch (err) {
+            // Proactive capture failure — non-critical, don't block agent
+            api.logger.warn(`team-memory-engine: proactive capture error: ${String(err)}`);
+          }
+        }
 
         const sessionKey = (ctx as Record<string, unknown>)?.sessionKey as string | undefined;
         const agentId = (ctx as Record<string, unknown>)?.agentId as string | undefined;
@@ -839,6 +894,67 @@ const plugin = {
       { name: "team_memory_gaps" },
     );
 
+    // NEW: Memory Insight Dashboard tool
+    api.registerTool(
+      {
+        name: "team_memory_insight",
+        label: "Team Memory Insight Report",
+        description: "Generate a comprehensive team memory insight dashboard report. Shows knowledge heatmap, loss risk ranking, lifecycle stats, and TMS network. Use for team reviews, planning, and identifying knowledge risks.",
+        parameters: Type.Object({
+          format: Type.Optional(Type.String({ description: "Output format: html (default) or json" })),
+          outputPath: Type.Optional(Type.String({ description: "File path to save the report (default: team-memory-report.html)" })),
+        }),
+        async execute(_toolCallId: unknown, params: unknown) {
+          try {
+            const format = ((params as any)?.format as "html" | "json") ?? "html";
+            const outputPath = ((params as any)?.outputPath as string) ?? (format === "html" ? "team-memory-report.html" : "team-memory-report.json");
+            const { report, format: actualFormat } = await manager.generateInsightReport(format);
+
+            // Write to file
+            const fs = await import("fs");
+            await fs.promises.writeFile(outputPath, report, "utf-8");
+
+            return {
+              content: [{ type: "text", text: `Memory insight report generated: ${outputPath} (${actualFormat}, ${(Buffer.byteLength(report, "utf-8") / 1024).toFixed(1)} KB)` }],
+              details: { outputPath, format: actualFormat, sizeBytes: Buffer.byteLength(report, "utf-8") },
+            };
+          } catch (err) {
+            return { content: [{ type: "text", text: `Failed to generate insight report: ${String(err)}` }], details: { error: String(err) } };
+          }
+        },
+      },
+      { name: "team_memory_insight" },
+    );
+
+    // NEW: Proactive memory capture tool — agent can use this to save a detected decision
+    api.registerTool(
+      {
+        name: "team_memory_proactive",
+        label: "Team Memory Proactive Save",
+        description: "Save a memory detected from conversation. Use when you notice the team making a decision, stating a fact, or setting a rule that should be remembered long-term.",
+        parameters: Type.Object({
+          text: Type.String({ description: "The memory content detected from conversation" }),
+          triggerType: Type.Optional(Type.String({ description: "What triggered this detection: decision_made, future_commitment, policy_change, explicit_save, etc." })),
+          category: Type.Optional(Type.String({ description: "Category: decision, process, api, security, experience, general" })),
+          tags: Type.Optional(Type.Array(Type.String(), { description: "Tags to attach" })),
+        }),
+        async execute(_toolCallId: unknown, params: unknown) {
+          try {
+            const { text, triggerType, category, tags } = params as { text: string; triggerType?: string; category?: string; tags?: string[] };
+            const allTags = [...(tags ?? []), "proactive", triggerType ?? "manual"];
+            const result = await manager.inject(text, { category: category ?? "decision", tags: allTags, author: "agent" });
+            return {
+              content: [{ type: "text", text: `Proactive memory stored: "${result.memory}" (id: ${result.id}, v${result.metadata.version}, triggered by: ${triggerType ?? "manual"})` }],
+              details: { action: "proactive_injected", id: result.id, triggerType },
+            };
+          } catch (err) {
+            return { content: [{ type: "text", text: `Failed to save proactive memory: ${String(err)}` }], details: { error: String(err) } };
+          }
+        },
+      },
+      { name: "team_memory_proactive" },
+    );
+
     // ========================================================================
     // CLI Commands
     // ========================================================================
@@ -1179,6 +1295,50 @@ const plugin = {
               const extracted = await manager.injectFromEvent(batch);
               await eventLog.markProcessed(batch.map((e) => e.id));
               console.log(`Pipeline: extracted ${extracted.length} memories from ${batch.length} events`);
+            } catch (err) {
+              console.error(`Failed: ${String(err)}`);
+            }
+          });
+
+        // NEW: insight command
+        cmd
+          .command("insight")
+          .description("Generate team memory insight dashboard report")
+          .option("-f, --format <fmt>", "Output format: html (default) or json", "html")
+          .option("-o, --output <path>", "Output file path", "")
+          .action(async (opts: { format: string; output: string }) => {
+            try {
+              const format = opts.format as "html" | "json";
+              const outputPath = opts.output || (format === "html" ? "team-memory-report.html" : "team-memory-report.json");
+              const { report, format: actualFormat } = await manager.generateInsightReport(format);
+              const fs = await import("fs");
+              await fs.promises.writeFile(outputPath, report, "utf-8");
+              const sizeKB = (Buffer.byteLength(report, "utf-8") / 1024).toFixed(1);
+              console.log(`Insight report generated: ${outputPath} (${actualFormat}, ${sizeKB} KB)`);
+            } catch (err) {
+              console.error(`Failed: ${String(err)}`);
+            }
+          });
+
+        // NEW: proactive-capture command (demo / testing)
+        cmd
+          .command("proactive-capture")
+          .description("Analyze text for proactive memory capture (demo tool)")
+          .argument("<text>", "Text to analyze for memory-worthy content")
+          .action(async (text: string) => {
+            try {
+              const capture = analyzeForProactiveCapture(text, { isOwner: true, isGroup: false });
+              if (capture.detected) {
+                console.log(`✅ Detected [${capture.triggerType}] confidence=${(capture.confidence * 100).toFixed(0)}%`);
+                console.log(`   Category: ${capture.category}`);
+                console.log(`   Memory: ${capture.memoryText}`);
+                if (capture.entity) console.log(`   Entity: ${capture.entity}`);
+                if (capture.attribute) console.log(`   Attribute: ${capture.attribute}`);
+                if (capture.value) console.log(`   Value: ${capture.value}`);
+                console.log(`   Prompt: ${capture.confirmationPrompt}`);
+              } else {
+                console.log("❌ No memory-worthy content detected");
+              }
             } catch (err) {
               console.error(`Failed: ${String(err)}`);
             }

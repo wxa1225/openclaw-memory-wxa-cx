@@ -4,8 +4,13 @@ import { MemoryLedger } from "./ledger.js";
 import type { LedgerEntry, ConflictResult } from "./storage/types.js";
 
 export interface MemoryCardActionValue {
-  action: "confirm" | "update" | "dismiss" | "review" | "dismiss_warning";
+  action: "confirm" | "update" | "dismiss" | "review" | "dismiss_warning" | "confirm_save" | "dismiss_save" | "edit_save";
   memory_id: string;
+  memory_text?: string;
+  category?: string;
+  entity?: string;
+  attribute?: string;
+  value?: string;
 }
 
 interface CardActionData {
@@ -123,7 +128,7 @@ export async function handleMemoryReviewAction(
 ): Promise<CardActionResult | undefined> {
   const value = data.action?.value;
   if (!value || !value.action || !value.memory_id) return undefined;
-  if (!["confirm", "update", "dismiss", "review", "dismiss_warning"].includes(value.action)) return undefined;
+  if (!["confirm", "update", "dismiss", "review", "dismiss_warning", "confirm_save", "dismiss_save", "edit_save"].includes(value.action)) return undefined;
 
   // Extract open_message_id from data for card update
   const openMessageId = data.open_message_id ?? data.context?.open_message_id ?? config.openMessageId;
@@ -195,6 +200,103 @@ export async function handleMemoryReviewAction(
         },
       },
     };
+  }
+
+  // ========================================================================
+  // Proactive Memory Capture actions (real-time detection confirmation)
+  // ========================================================================
+
+  // "confirm_save" — save the detected memory to ledger
+  if (value.action === "confirm_save") {
+    const memoryText = value.memory_text ?? "Unknown memory";
+    const category = value.category ?? "general";
+    const entity = value.entity && value.entity !== "general" ? value.entity : undefined;
+    const attribute = value.attribute ?? undefined;
+    const memValue = value.value ?? memoryText;
+
+    try {
+      const { extractEntityAttribute } = await import("./extract-utils.js");
+      const eav = entity && attribute
+        ? { entity, attribute, value: memValue }
+        : extractEntityAttribute(memoryText, category);
+
+      const { MemoryLedger } = await import("./ledger.js");
+      const ledger = new MemoryLedger(enrichedConfig.teamId, enrichedConfig.ledgerPath);
+      const entry = await ledger.injectClaim({
+        entity: eav.entity,
+        attribute: eav.attribute,
+        value: eav.value,
+        confidence: 0.75,
+        source: "proactive_capture",
+        injectedBy: resolverId,
+        category,
+        tags: ["proactive"],
+        teamId: enrichedConfig.teamId,
+        recallHalfLife: 14,
+      });
+
+      return {
+        toast: { type: "success", content: "✅ 已保存到团队记忆" },
+        card: {
+          type: "raw",
+          data: {
+            config: { wide_screen_mode: true },
+            header: {
+              title: { tag: "plain_text", content: "🧠 记忆已记录" },
+              template: "green" as const,
+            },
+            elements: [
+              { tag: "div" as const, text: { tag: "plain_text" as const, content: "✅ 已保存到团队记忆中" } },
+              {
+                tag: "markdown" as const,
+                content: [
+                  `**类别：** ${category}`,
+                  `**内容：** ${eav.value}`,
+                  `**ID：** ${entry.id} v${entry.current_version}`,
+                  "",
+                  "团队将记住这条信息，遗忘曲线已生效。",
+                ].join("\n"),
+              },
+            ],
+          },
+        },
+      };
+    } catch (err) {
+      return {
+        toast: { type: "error", content: `保存失败: ${String(err)}` },
+      };
+    }
+  }
+
+  // "dismiss_save" — ignore the detected memory
+  if (value.action === "dismiss_save") {
+    return {
+      toast: { type: "warning", content: "已忽略，不会保存此信息" },
+      card: {
+        type: "raw",
+        data: {
+          config: { wide_screen_mode: true },
+          header: {
+            title: { tag: "plain_text", content: "🧠 已忽略" },
+            template: "grey" as const,
+          },
+          elements: [
+            { tag: "div" as const, text: { tag: "plain_text" as const, content: "已忽略此信息，不会保存到记忆中" } },
+          ],
+        },
+      },
+    };
+  }
+
+  // "edit_save" — user wants to modify before saving
+  // For now, treat as confirm_save but flag for follow-up.
+  // In future, this could open a Feishu input form for editing.
+  if (value.action === "edit_save") {
+    // Same as confirm_save for now — the text was already extracted
+    return handleMemoryReviewAction({
+      ...data,
+      action: { value: { ...value, action: "confirm_save" as const } },
+    }, config);
   }
 
   const conflictingClaims = entry.claims.filter((c) => c.status === "conflicting");

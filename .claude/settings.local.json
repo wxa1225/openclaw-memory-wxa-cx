@@ -62,7 +62,8 @@
       "Bash(npm test *)",
       "Bash(npx jest *)",
       "Bash(git credential-manager *)",
-      "Bash(GIT_TRACE=1 GIT_CURL_VERBOSE=1 git push -u origin sprint/default)"
+      "Bash(GIT_TRACE=1 GIT_CURL_VERBOSE=1 git push -u origin sprint/default)",
+      "Bash(grep *)"
     ]
   }
 }
