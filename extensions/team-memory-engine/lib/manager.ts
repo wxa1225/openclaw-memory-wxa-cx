@@ -25,7 +25,14 @@ import {
   getActiveClaim,
   FORGETTING_CURVE_INTERVALS,
 } from "./decay.js";
-import { MemoryLedger, type InjectClaimOptions } from "./ledger.js";
+import {
+  getCategoryDefaultHalfLife,
+  recordReviewOutcome,
+  adjustHalfLifeFromReviews,
+  getReviewHistorySummary,
+  applyCategoryDefaults,
+} from "./adaptive-decay.js";
+import { MemoryLedger, type InjectClaimOptions, type ConflictResult } from "./ledger.js";
 import { MemoryGraph } from "./graph.js";
 import { RiskModel } from "./risk.js";
 import { runMigration } from "./migrate.js";
@@ -35,6 +42,9 @@ import { TMSKnowledgeAnalyzer } from "./knowledge-analyzer.js";
 import { MemoryInsightEngine } from "./insight-engine.js";
 import { renderHtmlReport } from "./html-report.js";
 import { extractEntityAttribute, roleConfidenceAdjustment } from "./extract-utils.js";
+import { ConflictExplainer, type ConflictExplanation, type ConflictExplainerConfig } from "./conflict-explainer.js";
+import { VectorSearch, type EmbeddingConfig, type VectorSearchResult } from "./vector-search.js";
+import { DependencyInferrer, type DependencyInferenceResult, type DependencyInferenceConfig, type MemoryDependency } from "./dependency-inferrer.js";
 
 export type { Mem0Provider } from "./storage/types.js";
 
@@ -53,6 +63,9 @@ export class TeamMemoryManager {
   private tms: TeamCapabilityModel | null;
   private knowledge: TMSKnowledgeAnalyzer | null;
   private insightEngine: MemoryInsightEngine | null;
+  private conflictExplainer: ConflictExplainer;
+  private vectorSearch: VectorSearch | null;
+  private dependencyInferrer: DependencyInferrer;
   private projectRoot: string;
   private teamId: string;
   private defaultUserId: string;
@@ -87,8 +100,41 @@ export class TeamMemoryManager {
         modelName: options.modelName ?? "qwen-plus",
         xApiKey: options.modelXApiKey,
       });
+      // Conflict explainer uses the same model config
+      this.conflictExplainer = new ConflictExplainer({
+        modelEndpoint: options.modelEndpoint,
+        modelApiKey: options.modelApiKey,
+        modelName: options.modelName ?? "qwen-plus",
+        xApiKey: options.modelXApiKey,
+      });
     } else {
       this.extractor = null;
+      this.conflictExplainer = new ConflictExplainer();
+    }
+
+    // Vector search (only if embedding endpoint configured)
+    if (options.embeddingEndpoint && options.embeddingApiKey) {
+      this.vectorSearch = new VectorSearch({
+        embeddingEndpoint: options.embeddingEndpoint,
+        embeddingApiKey: options.embeddingApiKey,
+        embeddingModel: options.embeddingModel ?? "text-embedding-3-small",
+        embeddingXApiKey: options.embeddingXApiKey,
+      });
+    } else {
+      this.vectorSearch = null;
+    }
+
+    // Dependency inferrer (uses same model config)
+    if (options.modelEndpoint && options.modelApiKey) {
+      this.dependencyInferrer = new DependencyInferrer({
+        modelEndpoint: options.modelEndpoint,
+        modelApiKey: options.modelApiKey,
+        modelName: options.modelName ?? "qwen-plus",
+        xApiKey: options.modelXApiKey,
+        batchSize: 15,
+      });
+    } else {
+      this.dependencyInferrer = new DependencyInferrer();
     }
 
     // TMS (only if project root configured)
@@ -155,7 +201,7 @@ export class TeamMemoryManager {
           category: mem.category,
           tags: mem.tags,
           teamId: this.teamId,
-          recallHalfLife: 14,
+          recallHalfLife: getCategoryDefaultHalfLife(mem.category),
         });
         results.push(entry);
         await this._syncToMem0(entry, mem.value);
@@ -182,7 +228,7 @@ export class TeamMemoryManager {
         category: "general",
         tags: [],
         teamId: this.teamId,
-        recallHalfLife: 14,
+        recallHalfLife: getCategoryDefaultHalfLife("general"),
       });
       results.push(entry);
       if (this.enableGraph) await this.graph.incrementalUpdate(entry);
@@ -210,7 +256,7 @@ export class TeamMemoryManager {
       category,
       tags,
       teamId: this.teamId,
-      recallHalfLife: 14,
+      recallHalfLife: getCategoryDefaultHalfLife(category),
     };
 
     const entry = await this.ledger.injectClaim(ledgerOptions);
@@ -310,7 +356,7 @@ export class TeamMemoryManager {
     });
   }
 
-  /** Search memories (ledger search, strength-weighted) */
+  /** Search memories (hybrid: keyword + embedding when available) */
   async search(query: string): Promise<SearchResult[]> {
     if (this.hasMem0Key) {
       try {
@@ -338,6 +384,27 @@ export class TeamMemoryManager {
       } catch { /* fallback to local */ }
     }
 
+    // Try vector search if available
+    if (this.vectorSearch) {
+      const entries = await this.ledger.getAllEntries(this.teamId);
+      const vectorResults = await this.vectorSearch.search(query, entries);
+      return vectorResults.map(r => {
+        const strength = calculateStrengthFromLedger(r.entry);
+        const activeClaim = getActiveClaim(r.entry);
+        const latestClaim = r.entry.claims.length > 0 ? r.entry.claims[r.entry.claims.length - 1] : undefined;
+        const displayClaim = activeClaim ?? latestClaim;
+        return {
+          id: r.entry.id,
+          memory: displayClaim?.value ?? r.entry.id,
+          strength,
+          strengthLabel: getStrengthLabel(strength),
+          metadata: this._entryToMeta(r.entry),
+          _vectorScore: r.combinedScore,
+        };
+      });
+    }
+
+    // Fallback to keyword search
     const entries = await this.ledger.search(query);
     return entries.map((e) => {
       const strength = calculateStrengthFromLedger(e);
@@ -359,6 +426,8 @@ export class TeamMemoryManager {
     const entry = await this.ledger.getEntry(memoryId);
     if (!entry) throw new Error(`Memory not found: ${memoryId}`);
 
+    const strength = calculateStrengthFromLedger(entry);
+
     // Bump confidence of active claim (+0.05, consistent with ledger confirmation)
     for (const claim of entry.claims) {
       if (claim.status === "active" || claim.status === undefined) {
@@ -371,7 +440,49 @@ export class TeamMemoryManager {
     entry.access_count = (entry.access_count ?? 0) + 1;
     entry.updatedAt = new Date().toISOString();
 
+    // Adaptive decay: record review and adjust half-life
+    recordReviewOutcome(entry, true, strength);
+    adjustHalfLifeFromReviews(entry);
+
     await this.ledger.saveEntry(memoryId, entry);
+  }
+
+  /** Get adaptive decay review history for a memory */
+  async getDecayHistory(memoryId: string): Promise<string> {
+    const entry = await this.ledger.getEntry(memoryId);
+    if (!entry) throw new Error(`Memory not found: ${memoryId}`);
+    return getReviewHistorySummary(entry);
+  }
+
+  /** Apply category-aware default half-lives to all memories */
+  async applyDecayCategoryDefaults(): Promise<number> {
+    const entries = await this.ledger.getAllEntries(this.teamId);
+    return applyCategoryDefaults(entries);
+  }
+
+  /** AI-powered dependency inference — populate dependency_graph fields */
+  async inferDependencies(): Promise<DependencyInferenceResult> {
+    const entries = await this.ledger.getAllEntries(this.teamId);
+    const result = await this.dependencyInferrer.inferDependencies(entries);
+
+    // Save updated entries back to ledger
+    for (const entry of result.updatedEntries) {
+      await this.ledger.saveEntry(entry.id, entry);
+    }
+
+    return result;
+  }
+
+  /** Get dependency graph centrality scores */
+  async getCentralityScores(): Promise<Map<string, number>> {
+    const entries = await this.ledger.getAllEntries(this.teamId);
+    return this.dependencyInferrer.computeCentrality(entries);
+  }
+
+  /** Detect conflict propagation — which other memories are affected by a conflicting entry */
+  async getConflictPropagation(memoryId: string): Promise<LedgerEntry[]> {
+    const entries = await this.ledger.getAllEntries(this.teamId);
+    return this.dependencyInferrer.detectConflictPropagation(entries, memoryId);
   }
 
   /** Check and format reminders (decay + risk) */
@@ -490,6 +601,45 @@ export class TeamMemoryManager {
     if (this.enableGraph) {
       await this.graph.incrementalUpdate(entry);
     }
+  }
+
+  /** AI-powered conflict explanation — explains why two claims conflict and recommends resolution */
+  async explainConflict(memoryId: string): Promise<ConflictExplanation | null> {
+    const entry = await this.ledger.getEntry(memoryId);
+    if (!entry) throw new Error(`Memory not found: ${memoryId}`);
+
+    const conflictingClaims = entry.claims.filter(c => c.status === "conflicting" || c.status === "active");
+    if (conflictingClaims.length < 2) return null;
+
+    const conflict: ConflictResult = {
+      type: "conflict-mark",
+      existingEntry: entry,
+      newClaim: entry.claims[entry.claims.length - 1],
+      confidenceDelta: 0,
+      reason: `Conflicting values for ${entry.entity}.${entry.attribute}`,
+    };
+
+    return this.conflictExplainer.explainConflict(entry, conflict);
+  }
+
+  /** Format conflict explanation for CLI display */
+  async explainConflictCLI(memoryId: string): Promise<string> {
+    const entry = await this.ledger.getEntry(memoryId);
+    if (!entry) return "Memory not found.";
+
+    const conflictingClaims = entry.claims.filter(c => c.status === "conflicting" || c.status === "active");
+    if (conflictingClaims.length < 2) return "No conflict found for this memory.";
+
+    const conflict: ConflictResult = {
+      type: "conflict-mark",
+      existingEntry: entry,
+      newClaim: entry.claims[entry.claims.length - 1],
+      confidenceDelta: 0,
+      reason: `Conflicting values for ${entry.entity}.${entry.attribute}`,
+    };
+
+    const explanation = await this.conflictExplainer.explainConflict(entry, conflict);
+    return this.conflictExplainer.formatForCLI(explanation);
   }
 
   /** Get graph data (optionally filtered by entity) */

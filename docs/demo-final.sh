@@ -9,7 +9,9 @@
 set -e
 
 PROJECT_ROOT="/home/gem/workspace/agent"
+export PROJECT_ROOT
 cd "$PROJECT_ROOT"
+DEMO_HELPER="extensions/team-memory-engine/scripts/demo-data-helper.ts"
 
 # 过滤插件日志噪音，只保留有效输出
 oc() {
@@ -62,16 +64,10 @@ echo "✅ 已清空所有记忆账本、图谱、事件日志"
 sep "Step 2/13  写入 5 条模拟飞书群聊消息"
 echo "  → 说明：模拟真实团队沟通场景，含关键决策 + 技术配置 + 噪音"
 echo ""
-python3 "$PROJECT_ROOT"/memory/event-log/write-demo-events.py
+npx tsx "$PROJECT_ROOT"/"$DEMO_HELPER" write-events
 echo ""
 echo "事件列表："
-python3 -c "
-import json
-events = json.load(open('$PROJECT_ROOT/memory/event-log/2026-05-06.json'))
-for e in events:
-    tag = '📌 决策' if 'PDF' in e['content'] else '📌 配置' if 'API' in e['content'] else '📌 流程' if '周报' in e['content'] else '  闲聊'
-    print(f'  {tag}  [{e[\"senderName\"]}] {e[\"content\"]}')
-"
+npx tsx "$PROJECT_ROOT"/"$DEMO_HELPER" list-events
 echo ""
 echo "  → 优势：系统需要自动过滤闲聊，只沉淀有价值的团队知识"
 
@@ -87,23 +83,11 @@ echo ""
 
 # 展示提取结果
 echo "提取结果："
-python3 -c "
-import json, os
-data = json.load(open(os.path.expanduser('~/.openclaw-memory-ledger.json')))
-for mid, entry in data.items():
-    claims = entry.get('claims', [])
-    if claims:
-        latest = claims[-1]
-        cat = entry.get('category', 'general')
-        val = latest.get('value', '')[:60]
-        print(f'  [{cat}] {val}')
-        print(f'        id={mid}  confidence={latest[\"confidence\"]:.2f}')
-print(f'\n共 {len(data)} 条记忆，闲聊内容已被自动过滤')
-" 2>/dev/null
+npx tsx "$PROJECT_ROOT"/"$DEMO_HELPER" show-ledger 2>/dev/null
 echo ""
 
 # LLM 提取降级路径
-MEM_COUNT=$(cat ~/.openclaw-memory-ledger.json 2>/dev/null | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d))" 2>/dev/null || echo 0)
+MEM_COUNT=$(npx tsx "$PROJECT_ROOT"/"$DEMO_HELPER" show-ledger 2>/dev/null | grep -c "^\s*\[" || echo 0)
 if [ "$MEM_COUNT" -lt 2 ]; then
   echo "  ⚠️  LLM 未返回足够结果，触发降级路径 → 手动 inject："
   oc team-memory inject "生产环境API端点已更新为v3版本，旧端点本周五失效" --category api --tags 生产环境,API配置 || true
@@ -161,16 +145,7 @@ sep "Step 7/13  矛盾检测 — 注入前的状态"
 echo "  → 说明：普通系统 v1 会被 v2 直接覆盖，历史丢失"
 echo "  → 记忆引擎：版本链完整保留，等待人工裁决"
 echo ""
-python3 -c "
-import json, os
-data = json.load(open(os.path.expanduser('~/.openclaw-memory-ledger.json')))
-for mid, entry in data.items():
-    for c in entry.get('claims', []):
-        val = c.get('value', '')
-        if 'PDF' in val or '交付' in val or '格式' in val:
-            print(f'  📋 {mid} v{c[\"version\"]}: {val}')
-            print(f'     status={c[\"status\"]}  confidence={c[\"confidence\"]:.2f}')
-"
+npx tsx "$PROJECT_ROOT"/"$DEMO_HELPER" show-conflict 2>/dev/null
 
 # ============================================================
 # Step 8: 注入矛盾指令 — 系统自动检测
@@ -185,20 +160,7 @@ oc team-memory inject "客户A的交付格式改回Markdown" --category decision
 echo ""
 
 # 展示冲突检测结果
-python3 -c "
-import json, os
-data = json.load(open(os.path.expanduser('~/.openclaw-memory-ledger.json')))
-for mid, entry in data.items():
-    claims = entry.get('claims', [])
-    if len(claims) >= 2 and any(c.get('status') == 'conflicting' for c in claims):
-        print(f'  🔍 检测到矛盾更新：{mid}')
-        for c in claims:
-            status_icon = '⚠️' if c.get('status') == 'conflicting' else '✅'
-            print(f'    {status_icon} v{c[\"version\"]}: {c.get(\"value\", \"\")[:50]}')
-            print(f'        status={c[\"status\"]}  confidence={c[\"confidence\"]:.2f}')
-        print(f'\n  ⚡ 冲突已标记，两个版本均未丢失，等待人工裁决')
-        break
-"
+npx tsx "$PROJECT_ROOT"/"$DEMO_HELPER" show-conflict
 
 # ============================================================
 # Step 9: 版本链对比
@@ -206,33 +168,7 @@ for mid, entry in data.items():
 sep "Step 9/13  版本链完整保留"
 echo "  → 说明：可追溯、可回溯，这是记忆引擎区别于普通存储的核心特征"
 echo ""
-python3 -c "
-import json, os
-data = json.load(open(os.path.expanduser('~/.openclaw-memory-ledger.json')))
-for mid, entry in data.items():
-    claims = entry.get('claims', [])
-    if len(claims) >= 2:
-        print(f'  📋 {mid}: {len(claims)} 个版本')
-        print()
-        for c in claims:
-            val = c.get('value', '')[:50]
-            status = c.get('status', '')
-            if status == 'conflicting':
-                icon = '⚠️'
-                desc = '冲突 — 等待裁决'
-            elif status == 'active':
-                icon = '✅'
-                desc = '活跃'
-            else:
-                icon = '❌'
-                desc = '已废弃'
-            print(f'    {icon} v{c[\"version\"]}: {val}')
-            print(f'        status={status}  confidence={c[\"confidence\"]:.2f}  {desc}')
-        print()
-        print('  ✅ v1 未被覆盖，标记为 conflicting，历史完整保留')
-        print('  ⚠️  v2 同样 conflicting，等待人工裁决')
-        print('  → 人工可通过飞书卡片点击按钮裁决，或 CLI 命令 resolve')
-"
+npx tsx "$PROJECT_ROOT"/"$DEMO_HELPER" show-version-chain
 
 # ============================================================
 # Step 10: 效能指标
@@ -250,7 +186,7 @@ for i in 1 2 3 4 5; do
   TOTAL=$((TOTAL + ELAPSED_MS))
 done
 AVG_MS=$((TOTAL / 5))
-AVG_SEC=$(python3 -c "print(f'{$AVG_MS/1000:.1f}')")
+AVG_SEC=$(node -e "console.log(($AVG_MS/1000).toFixed(1))")
 
 echo "┌──────────────────────┬────────────┬────────────┬────────┐"
 echo "│         场景         │   无记忆   │   有记忆   │  提效  │"
@@ -282,122 +218,12 @@ echo "  → 说明：方向 D 的核心能力，系统主动告诉你'快忘了'
 echo "  → 基于艾宾浩斯遗忘曲线：S = 2^(-Δt / 半衰期)"
 echo ""
 
-# 模拟时间流逝 + 复习操作 + 冲突解决，全部用 Python 完成
-python3 << 'PYEOF'
-import json, os
-from datetime import datetime, timedelta, timezone
-
-path = os.path.expanduser('~/.openclaw-memory-ledger.json')
-data = json.load(open(path))
-
-# ── Part A: 遗忘预警 ──
-
-# 找到 decision/api 类记忆
-target_id = None
-for mid, entry in data.items():
-    cat = entry.get('category', '')
-    if cat in ('api', 'decision'):
-        target_id = mid
-        break
-
-if not target_id:
-    print("  无 decision/api 类记忆，跳过遗忘预警演示")
-else:
-    entry = data[target_id]
-    claims = entry.get('claims', [])
-    latest = claims[-1] if claims else {}
-    cat = entry.get('category', '')
-    val = latest.get('value', '')[:50]
-    half_life = 14
-
-    # 模拟时间流逝：回拨 valid_from 10 天
-    old_time = datetime.now(timezone.utc) - timedelta(days=10)
-    claims[-1]['valid_from'] = old_time.strftime('%Y-%m-%dT%H:%M:%SZ')
-    json.dump(data, open(path, 'w'), ensure_ascii=False, indent=2)
-
-    strength = 2 ** (-10 / half_life) * 100
-
-    print("  [模拟时间流逝] 将 decision 类记忆的创建时间回拨 10 天...")
-    print(f"  记忆类别: {cat}")
-    print(f"  创建时间: 10 天前（模拟）")
-    print(f"  半衰期: {half_life}天（decision/api 类）")
-    print(f"  记忆强度: {strength:.0f}% = 2^(-10/{half_life})")
-    print(f"  紧急程度: WARNING")
-    print()
-
-    print("  → 系统检测到记忆强度降至遗忘临界点，推送复习提醒")
-    print()
-
-    # 复习前
-    print(f"  [复习前]  [{cat}] {val}")
-    print(f"    强度: ●●●○○ ({int(strength)}%) | 距今: 10天")
-    print()
-
-    # 执行复习：重置 valid_from 到当前时间，confidence +15%
-    print("  [执行复习] → 重置衰减时钟，置信度 +15%")
-    now = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
-    claims[-1]['valid_from'] = now
-    claims[-1]['confidence'] = min(1.0, claims[-1]['confidence'] + 0.15)
-    json.dump(data, open(path, 'w'), ensure_ascii=False, indent=2)
-
-    print()
-    print(f"  [复习后]  [{cat}] {val}")
-    print(f"    强度: ●●●●● (100%) | 距今: 0天")
-    print(f"    → 记忆强度回到 100%，下次提醒时间已推迟")
-
-print()
-
-# ── Part B: 冲突解决 ──
-
-print("  [冲突解决] 同时演示 Step 8 检测到的 PDF vs Markdown 冲突裁决")
-print()
-
-conflict_id = None
-for mid, entry in data.items():
-    claims = entry.get('claims', [])
-    if len(claims) >= 2 and any(c.get('status') == 'conflicting' for c in claims):
-        conflict_id = mid
-        break
-
-if conflict_id:
-    entry = data[conflict_id]
-    claims = entry.get('claims', [])
-
-    print("  [冲突前]")
-    for c in claims:
-        if c.get('status') == 'conflicting':
-            print(f"    v{c['version']}: {c.get('value', '')[:40]}  status={c['status']}")
-    print()
-
-    print("  [执行裁决] → 选择 'update'（保留新版本 Markdown）")
-
-    # 模拟 update 操作：v1 → superseded, v2 → active
-    now = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
-    for c in claims:
-        if c.get('status') == 'conflicting':
-            if c['version'] < max(x['version'] for x in claims):
-                c['status'] = 'superseded'
-                c['valid_to'] = now
-            else:
-                c['status'] = 'active'
-    json.dump(data, open(path, 'w'), ensure_ascii=False, indent=2)
-
-    print()
-    print("  [裁决后]")
-    for c in claims:
-        status = c.get('status', '')
-        if status == 'active':
-            icon = '✅'
-        elif status == 'superseded':
-            icon = '❌'
-        else:
-            icon = '⚠️'
-        print(f"    {icon} v{c['version']}: {c.get('value', '')[:40]}  status={status}")
-    print()
-    print("  → v1 (PDF) 被标记为 superseded，但历史完整保留")
-    print("  → v2 (Markdown) 成为活跃版本")
-    print("  → 如需回溯，可随时恢复 v1")
-PYEOF
+# 模拟时间流逝 + 复习操作 + 冲突解决，全部用 Node.js 完成
+npx tsx "$PROJECT_ROOT"/"$DEMO_HELPER" simulate-decay
+echo ""
+npx tsx "$PROJECT_ROOT"/"$DEMO_HELPER" simulate-conflict
+echo ""
+npx tsx "$PROJECT_ROOT"/"$DEMO_HELPER" simulate-resolve
 echo ""
 
 # ============================================================
@@ -419,76 +245,7 @@ echo "  结果：当前所有记忆健康，无触发预警"
 echo ""
 
 # 模拟时间回拨 + 详细五维可视化
-python3 << 'PYEOF'
-import json, os
-from datetime import datetime, timezone, timedelta
-
-path = os.path.expanduser('~/.openclaw-memory-ledger.json')
-data = json.load(open(path))
-
-# 找一条 decision 类记忆，回拨 20 天
-for mid, entry in data.items():
-    cat = entry.get('category', '')
-    if cat == 'decision':
-        claims = entry.get('claims', [])
-        if claims:
-            # 确保状态为 active
-            claims[-1]['status'] = 'active'
-            old_time = (datetime.now(timezone.utc) - timedelta(days=20)).strftime('%Y-%m-%dT%H:%M:%SZ')
-            claims[-1]['valid_from'] = old_time
-            json.dump(data, open(path, 'w'), ensure_ascii=False, indent=2)
-            print(f"  [模拟] 将 {mid}（decision 类）回拨 20 天，模拟长期未复习")
-            print(f"  → 记忆强度: 2^(-20/14) = {2**(-20/14)*100:.0f}%")
-            break
-
-# 计算五维风险
-print()
-
-# 直接调用风险模型（通过 CLI risk 命令的底层逻辑）
-half_life = 14  # decision 类
-elapsed = 20
-strength = 2 ** (-elapsed / half_life)
-time_decay = 1 - strength
-
-# sigmoid for business impact
-def sigmoid(x):
-    return 1 / (1 + __import__('math').exp(-x))
-
-category_weight = 0.8  # decision
-sigmoid_val = sigmoid(0.6 * category_weight)
-
-# 五维评分
-scores = {
-    "timeDecay": round(time_decay, 3),
-    "businessImpact": round(sigmoid_val, 3),
-    "lowCoverage": round(1.0 - 1/5, 3),  # 1 人确认，团队 5 人
-    "versionRisk": 0.3,  # 2 versions
-    "lowUsage": round(1.0 - 0/10, 3),  # 0 access
-}
-
-# 权重
-weights = {"timeDecay": 0.30, "businessImpact": 0.25, "lowCoverage": 0.15, "versionRisk": 0.15, "lowUsage": 0.15}
-total = sum(weights[k] * scores[k] for k in scores)
-
-# 风险条
-def risk_bar(val):
-    filled = round(val * 5)
-    return "█" * filled + "░" * (5 - filled)
-
-print(f"  ⚠️  触发风险预警！")
-print()
-print(f"  五维评分:")
-for dim, val in scores.items():
-    bar = risk_bar(val)
-    flag = " ← 高风险" if val > 0.5 else ""
-    print(f"    [{dim:15s}] {bar} {val:.3f}{flag}")
-print()
-print(f"  综合风险: {risk_bar(total)} {total:.3f}")
-print(f"  触发条件: 综合风险 {total:.3f} > 阈值 0.55 ✓  且 业务影响 {scores['businessImpact']:.3f} > 阈值 0.55 ✓")
-print()
-print(f"  → 系统建议：推送复习提醒到飞书群聊")
-print(f"  → 用户点击'已复习'后，风险将重置为 0")
-PYEOF
+npx tsx "$PROJECT_ROOT"/"$DEMO_HELPER" simulate-risk
 echo ""
 
 # ============================================================
@@ -497,18 +254,17 @@ echo ""
 sep "Step 13/13  知识图谱 — 实体关系网络"
 echo "  → 说明：从记忆账本自动构建，无需人工标注"
 echo ""
-oc team-memory graph | python3 -c "
-import sys, json
-d = json.load(sys.stdin)
-print(f'📊 图谱统计: {len(d[\"nodes\"])} 个节点, {len(d[\"edges\"])} 条边')
-print()
-print('实体节点:')
-for n in d['nodes']:
-    if n['type'] == 'Entity':
-        print(f'  • {n[\"label\"]}')
-print()
-rels = sorted(set(e.get('type','?') for e in d['edges']))
-print(f'关系类型: {rels}')
+oc team-memory graph | node -e "
+const data = []; process.stdin.on('data', c => data.push(c)); process.stdin.on('end', () => {
+  const d = JSON.parse(data.join(''));
+  console.log('📊 图谱统计: ' + d.nodes.length + ' 个节点, ' + d.edges.length + ' 条边');
+  console.log();
+  console.log('实体节点:');
+  for (const n of d.nodes) { if (n.type === 'Entity') console.log('  • ' + n.label); }
+  console.log();
+  const rels = [...new Set(d.edges.map(e => e.type || '?'))].sort();
+  console.log('关系类型: ' + JSON.stringify(rels));
+});
 "
 echo ""
 

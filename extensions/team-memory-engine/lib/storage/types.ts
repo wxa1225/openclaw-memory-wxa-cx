@@ -68,6 +68,7 @@ export interface SearchResult {
   strengthLabel: string;
   metadata: TeamMemoryMeta;
   riskScore?: number;
+  _vectorScore?: number; // Optional: hybrid vector+keyword search score
 }
 
 // ============================================================================
@@ -296,6 +297,11 @@ export interface ManagerV2Options {
   modelName?: string;
   modelXApiKey?: string;
   extractionBatchSize?: number;
+  // Vector search embedding config
+  embeddingEndpoint?: string;
+  embeddingApiKey?: string;
+  embeddingModel?: string;
+  embeddingXApiKey?: string;
 }
 
 // ============================================================================

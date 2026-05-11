@@ -352,6 +352,7 @@ async function evaluate(): Promise<EvalResult[]> {
 interface RegexResult {
   name: string;
   totalSnippets: number;
+  expectedCount: number;
   regexExtracted: number;
   correct: number;
   precision: number;
@@ -399,6 +400,7 @@ function evaluateRegex(): RegexResult[] {
     results.push({
       name: tc.name,
       totalSnippets: tc.conversation.length,
+      expectedCount: tc.expectedMemories.length,
       regexExtracted,
       correct: regexCorrect,
       precision,

@@ -76,7 +76,7 @@ const categories = ["decision", "api", "process", "experience", "security", "gen
 const tagPool = ["prod", "critical", "compliance", "deadline", "交付", "客户A", "部署", "数据库", "代码规范", "安全"];
 const authors = ["alice", "bob", "charlie", "dave", "eve", "frank", "grace", "hank"];
 
-function randomFrom<T>(arr: T[]): T {
+function randomFrom<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 

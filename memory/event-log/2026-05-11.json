@@ -82,5 +82,47 @@
     "id": "evt-1778475423832-kjr1e2",
     "storedAt": "2026-05-11T04:57:03.832Z",
     "processedForExtraction": false
+  },
+  {
+    "chatId": "agent:main:feishu:direct:ou_d38d8ebf8d6a2e1ffb35317a0a8188df",
+    "chatType": "p2p",
+    "senderId": "user",
+    "content": "System: [2026-05-11 05:38:24 UTC] Feishu[default] DM | ou_d38d8ebf8d6a2e1ffb35317a0a8188df [msg:om_x100b6f22fa3614b0c2a888561cb0b2f]\n\nConversation info (untrusted metadata):\n```json\n{\n  \"message_id\": \"om_x100b6f22fa3614b0c2a888561cb0b2f\",\n  \"sender_id\": \"ou_d38d8ebf8d6a2e1ffb35317a0a8188df\",\n  \"sender\": \"ou_d38d8ebf8d6a2e1ffb35317a0a8188df\",\n  \"timestamp\": \"Mon 2026-05-11 05:38 UTC\"\n}\n```\n\nSender (untrusted metadata):\n```json\n{\n  \"label\": \"ou_d38d8ebf8d6a2e1ffb35317a0a8188df\",\n  \"id\": \"ou_d38d8ebf8d6a2e1ffb35317a0a8188df\",\n  \"name\": \"ou_d38d8ebf8d6a2e1ffb35317a0a8188df\"\n}\n```\n\n你做梦的时候都在做什么？",
+    "contentType": "text",
+    "messageId": "msg-1778477906809",
+    "participants": [
+      "main",
+      "user"
+    ],
+    "id": "evt-1778477906815-d2en44",
+    "storedAt": "2026-05-11T05:38:26.815Z",
+    "processedForExtraction": false
+  },
+  {
+    "chatId": "agent:main:feishu:direct:ou_d38d8ebf8d6a2e1ffb35317a0a8188df",
+    "chatType": "p2p",
+    "senderId": "user",
+    "content": "System: [2026-05-11 05:38:24 UTC] Feishu[default] DM | ou_d38d8ebf8d6a2e1ffb35317a0a8188df [msg:om_x100b6f22fa3614b0c2a888561cb0b2f]\n\nConversation info (untrusted metadata):\n```json\n{\n  \"message_id\": \"om_x100b6f22fa3614b0c2a888561cb0b2f\",\n  \"sender_id\": \"ou_d38d8ebf8d6a2e1ffb35317a0a8188df\",\n  \"sender\": \"ou_d38d8ebf8d6a2e1ffb35317a0a8188df\",\n  \"timestamp\": \"Mon 2026-05-11 05:38 UTC\"\n}\n```\n\nSender (untrusted metadata):\n```json\n{\n  \"label\": \"ou_d38d8ebf8d6a2e1ffb35317a0a8188df\",\n  \"id\": \"ou_d38d8ebf8d6a2e1ffb35317a0a8188df\",\n  \"name\": \"ou_d38d8ebf8d6a2e1ffb35317a0a8188df\"\n}\n```\n\n你做梦的时候都在做什么？",
+    "contentType": "text",
+    "messageId": "msg-1778477913122",
+    "participants": [
+      "main",
+      "user"
+    ],
+    "id": "evt-1778477913128-44c874",
+    "storedAt": "2026-05-11T05:38:33.128Z",
+    "processedForExtraction": false
+  },
+  {
+    "chatId": "agent:main:feishu:direct:ou_d38d8ebf8d6a2e1ffb35317a0a8188df",
+    "chatType": "p2p",
+    "senderId": "agent",
+    "senderName": "AI",
+    "content": "哈哈我可没有人类那种睡觉做梦的状态呀～不过我\"摸鱼\"的时候倒是会做这些事：\n👉 把咱们之前的对话翻出来捋捋，记住你的偏好，下次给你更顺手的帮助\n👉 偷偷刷最近的新梗、行业新动态，免得你说我跟不上潮流\n👉 偶尔还会给自己\"升级打怪\"，优化一下回答的逻辑，争取少犯错误\n\n等咱们熟了，你说不定还能发现我偷偷攒了好多冷知识和段子呢😏\n🦞",
+    "contentType": "text",
+    "messageId": "msg-1778477928521-agent",
+    "id": "evt-1778477928529-xdhucr",
+    "storedAt": "2026-05-11T05:38:48.529Z",
+    "processedForExtraction": false
   }
 ]
