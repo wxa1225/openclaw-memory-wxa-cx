@@ -311,5 +311,107 @@ export function registerCli(api: OpenClawPluginApi, manager: TeamMemoryManager, 
         console.error(`Failed: ${String(err)}`);
       }
     });
+
+    // --- v2.2 Innovation Commands ---
+
+    // conflict-explain — AI-powered conflict analysis
+    cmd.command("conflict-explain").description("[v2.2] AI analysis of a conflicting memory").argument("<id>", "Memory ID").action(async (id: string) => {
+      try {
+        const explanation = await manager.explainConflictCLI(id);
+        console.log(explanation);
+      } catch (err) {
+        console.error(`Failed: ${String(err)}`);
+      }
+    });
+
+    // decay-history — adaptive decay review tracking
+    cmd.command("decay-history").description("[v2.2] Show adaptive decay review history for a memory").argument("<id>", "Memory ID").action(async (id: string) => {
+      try {
+        const summary = await manager.getDecayHistory(id);
+        const entry = await manager.getEntry(id);
+        if (entry) {
+          console.log(`Memory: ${entry.entity}.${entry.attribute}`);
+          console.log(`Current half-life: ${entry.recall_half_life} days`);
+          console.log(`Category: ${entry.category}`);
+          console.log();
+          console.log(summary);
+        }
+      } catch (err) {
+        console.error(`Failed: ${String(err)}`);
+      }
+    });
+
+    // apply-decay-defaults — apply category-aware half-life defaults
+    cmd.command("apply-decay-defaults").description("[v2.2] Apply category-aware default half-lives to all memories").action(async () => {
+      try {
+        const count = await manager.applyDecayCategoryDefaults();
+        console.log(`Applied category-aware defaults to ${count} memories`);
+      } catch (err) {
+        console.error(`Failed: ${String(err)}`);
+      }
+    });
+
+    // infer-dependencies — AI-powered graph dependency inference
+    cmd.command("infer-dependencies").description("[v2.2] LLM inference of cross-memory dependencies").action(async () => {
+      try {
+        const result = await manager.inferDependencies();
+        console.log(`Inferred ${result.dependencies.length} dependencies across ${result.updatedEntries.length} entries`);
+        if (result.dependencies.length > 0) {
+          console.log();
+          for (const dep of result.dependencies.slice(0, 20)) {
+            console.log(`  ${dep.sourceId} --[${dep.relation}]--> ${dep.targetId}`);
+            console.log(`    ${dep.reason}`);
+            console.log();
+          }
+        }
+      } catch (err) {
+        console.error(`Failed: ${String(err)}`);
+      }
+    });
+
+    // centrality-scores — graph centrality computation
+    cmd.command("centrality-scores").description("[v2.2] Show memory graph centrality scores").option("-j, --json", "Output as JSON").action(async (opts: { json?: boolean }) => {
+      try {
+        const centrality = await manager.getCentralityScores();
+        const entries = await (manager as any).ledger.getAllEntries((manager as any).teamId);
+        const scored = entries
+          .map((e: any) => ({ id: e.id, entity: e.entity, attribute: e.attribute, centrality: centrality.get(e.id) ?? 0 }))
+          .sort((a: any, b: any) => b.centrality - a.centrality);
+
+        if (opts.json) {
+          console.log(JSON.stringify(scored, null, 2));
+          return;
+        }
+        console.log("Memory Centrality (higher = structurally more important):");
+        console.log();
+        for (const s of scored) {
+          if (s.centrality > 0) {
+            const bar = "█".repeat(Math.round(s.centrality * 5)) + "░".repeat(5 - Math.round(s.centrality * 5));
+            console.log(`  [${bar}] ${(s.centrality * 100).toFixed(0)}% ${s.entity}.${s.attribute} (${s.id})`);
+          }
+        }
+      } catch (err) {
+        console.error(`Failed: ${String(err)}`);
+      }
+    });
+
+    // conflict-propagation — detect which memories are affected by a conflict
+    cmd.command("conflict-propagation").description("[v2.2] Show which memories are affected by a conflicting memory").argument("<id>", "Memory ID").action(async (id: string) => {
+      try {
+        const affected = await manager.getConflictPropagation(id);
+        if (affected.length === 0) {
+          console.log("No dependent memories affected by this conflict.");
+          return;
+        }
+        console.log(`${affected.length} dependent memories affected by conflict in ${id}:`);
+        console.log();
+        for (const entry of affected) {
+          const active = entry.claims.find(c => c.status === "active");
+          console.log(`  ${entry.id}: ${entry.entity}.${entry.attribute} = "${active?.value?.slice(0, 40) ?? "N/A"}"`);
+        }
+      } catch (err) {
+        console.error(`Failed: ${String(err)}`);
+      }
+    });
   }, { commands: ["team-memory"] });
 }

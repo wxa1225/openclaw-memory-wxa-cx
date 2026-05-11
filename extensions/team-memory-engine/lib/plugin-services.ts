@@ -13,8 +13,6 @@ import { formatProactiveConfirmCard } from "./proactive-card.js";
 import { sendFeishuMessage } from "./plugin-feishu.js";
 
 export function setupEventHooks(api: OpenClawPluginApi, manager: TeamMemoryManager, cfg: TeamMemoryConfig) {
-  const ownerUserId = api.resolveConfig?.("feishu.ownerId") ?? "";
-
   // Proactive capture rate limiter
   const rateLimiter = new PromptRateLimiter({
     minIntervalMs: cfg.proactivePromptInterval,

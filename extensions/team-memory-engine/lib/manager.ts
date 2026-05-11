@@ -43,7 +43,7 @@ import { MemoryInsightEngine } from "./insight-engine.js";
 import { renderHtmlReport } from "./html-report.js";
 import { extractEntityAttribute, roleConfidenceAdjustment } from "./extract-utils.js";
 import { ConflictExplainer, type ConflictExplanation, type ConflictExplainerConfig } from "./conflict-explainer.js";
-import { VectorSearch, type EmbeddingConfig, type VectorSearchResult } from "./vector-search.js";
+import { VectorSearch, type VectorSearchResult } from "./vector-search.js";
 import { DependencyInferrer, type DependencyInferenceResult, type DependencyInferenceConfig, type MemoryDependency } from "./dependency-inferrer.js";
 
 export type { Mem0Provider } from "./storage/types.js";

@@ -17,11 +17,10 @@
  * - plugin-services.ts — Event hooks and background services
  */
 
-import { Type } from "@sinclair/typebox";
 import { definePluginEntry, type OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
-import { TeamMemoryManager, type Mem0Provider } from "./lib/manager.js";
+import { TeamMemoryManager } from "./lib/manager.js";
 import { parseConfig, getConfigFromEnv, type TeamMemoryConfig } from "./lib/plugin-config.js";
-import { Mem0HttpClient, type Mem0Provider as Mem0ProviderType } from "./lib/plugin-feishu.js";
+import { Mem0HttpClient, type Mem0Provider } from "./lib/plugin-feishu.js";
 import { registerTools } from "./lib/plugin-tools.js";
 import { registerCli } from "./lib/plugin-cli.js";
 import { setupEventHooks, registerServices } from "./lib/plugin-services.js";

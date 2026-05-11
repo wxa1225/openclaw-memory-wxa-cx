@@ -28,11 +28,11 @@
 
 | 指标 | 数值 |
 |------|------|
-| TypeScript 源文件 | 21 个（lib/ + scripts/） |
-| 核心代码行数 | ~6,200 行（不含测试） |
-| 测试代码行数 | ~4,800 行 |
-| 文档总行数 | ~2,500 行（白皮书 + 报告 + 竞赛材料 + 口播稿） |
-| CLI 命令数 | 10 个 |
+| TypeScript 源文件 | 28 个 |
+| 核心代码行数 | ~7,400 行（不含测试） |
+| 测试代码行数 | ~5,500 行 |
+| 文档总行数 | ~3,000 行（白皮书 + 报告 + 竞赛材料 + 口播稿 + Q&A + 使用数据） |
+| CLI 命令数 | 21 个（含 6 个 v2.2 新功能） |
 | 插件服务数 | 3 个（decay check, risk check, extraction pipeline） |
 
 ### 核心模块行数分布
@@ -68,7 +68,11 @@
 | ledger.test.ts | 15 | ✅ |
 | graph.test.ts | 22 | ✅ |
 | extractor.test.ts | 9 | ✅ |
-| **总计** | **217** | **全部通过 (12.2s)** |
+| conflict-explainer.test.ts | 8 | ✅ |
+| adaptive-decay.test.ts | 9 | ✅ |
+| vector-search.test.ts | 7 | ✅ |
+| dependency-inferrer.test.ts | 6 | ✅ |
+| **总计** | **247** | **全部通过 (11.5s)** |
 
 ### 基准测试（benchmark-v2.ts）
 
