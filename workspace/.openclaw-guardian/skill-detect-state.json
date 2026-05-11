@@ -3,103 +3,103 @@
     "skill_name": "miaoda-doc-parse",
     "skill_hash": "7231819ac3d12a7973b39fb1eae7720b6bf2e0eeffce7fe1ae9ee896b194a9ac",
     "is_detected": true,
-    "last_detect_ts": 1778427467426
+    "last_detect_ts": 1778514102025
   },
   "miaoda-image-understanding": {
     "skill_name": "miaoda-image-understanding",
     "skill_hash": "d3833100a0d781ba8b40db40ce0eb4f81678269a40bee0e808c92e37f914974d",
     "is_detected": true,
-    "last_detect_ts": 1778427467531
+    "last_detect_ts": 1778514102133
   },
   "miaoda-openclaw-guide": {
     "skill_name": "miaoda-openclaw-guide",
     "skill_hash": "10db1c13597eb01325208ff52555fd0e12e36940f7170bcaf3955dce5f246280",
     "is_detected": true,
-    "last_detect_ts": 1778427467634
+    "last_detect_ts": 1778514102256
   },
   "miaoda-skillhub": {
     "skill_name": "miaoda-skillhub",
     "skill_hash": "70a0373222049cf4ec3f4f3affd6897080b85863a3e2818667350c81fcc24b6f",
     "is_detected": true,
-    "last_detect_ts": 1778427467729
+    "last_detect_ts": 1778514102367
   },
   "miaoda-speech-to-text": {
     "skill_name": "miaoda-speech-to-text",
     "skill_hash": "dd3749c6d3a2dc9f956de8dad441f928ce930ea8184d00109377225fbe6dbe96",
     "is_detected": true,
-    "last_detect_ts": 1778427467815
+    "last_detect_ts": 1778514102470
   },
   "miaoda-text-gen-image": {
     "skill_name": "miaoda-text-gen-image",
     "skill_hash": "3d4f18cb60e49c05493f5bccef2132ab58f3e90014d59d48687a914d412b8e9b",
     "is_detected": true,
-    "last_detect_ts": 1778427467908
+    "last_detect_ts": 1778514102566
   },
   "miaoda-web-fetch": {
     "skill_name": "miaoda-web-fetch",
     "skill_hash": "a823253d7af63489686c6d5602f348d0f721acfacd2b302f0ee0bba2a52f9634",
     "is_detected": true,
-    "last_detect_ts": 1778427468010
+    "last_detect_ts": 1778514102671
   },
   "miaoda-web-search": {
     "skill_name": "miaoda-web-search",
     "skill_hash": "fc55af2721ded2f473da6ad580b081642a5f67808d655182577a24c6453f5e2c",
     "is_detected": true,
-    "last_detect_ts": 1778427468106
+    "last_detect_ts": 1778514102784
   },
   "feishu-bitable": {
     "skill_name": "feishu-bitable",
     "skill_hash": "1eae3343205bef972bee9648bc3b2e2ae610ec5520cb68aad762b8e8a88bbe4b",
     "is_detected": true,
-    "last_detect_ts": 1778425065708
+    "last_detect_ts": 1778511700431
   },
   "feishu-calendar": {
     "skill_name": "feishu-calendar",
     "skill_hash": "90e89a7fef077ad8ef3f6f2406ef8a61d8096d0af32f695368309e2cc6a55180",
     "is_detected": true,
-    "last_detect_ts": 1778425065897
+    "last_detect_ts": 1778511700557
   },
   "feishu-channel-rules": {
     "skill_name": "feishu-channel-rules",
     "skill_hash": "b1617037daa99291dd43caa2dac95236b62cfd5d469912f145e94897a915508c",
     "is_detected": true,
-    "last_detect_ts": 1778425066046
+    "last_detect_ts": 1778511700682
   },
   "feishu-create-doc": {
     "skill_name": "feishu-create-doc",
     "skill_hash": "f5c787138a3ab95b61bb2979cbb0dfc2e4ae08c8b7b027add6cd7b5e132ed457",
     "is_detected": true,
-    "last_detect_ts": 1778425066173
+    "last_detect_ts": 1778511700805
   },
   "feishu-fetch-doc": {
     "skill_name": "feishu-fetch-doc",
     "skill_hash": "211bafe3e1bbe673fde15bd93e0aff271c43f7a6e8733ea096a77ff54e30ac59",
     "is_detected": true,
-    "last_detect_ts": 1778425066286
+    "last_detect_ts": 1778511700935
   },
   "feishu-im-read": {
     "skill_name": "feishu-im-read",
     "skill_hash": "e54b685ddda29fe4955a5a60bd47537bbf92570ffe816405dcbc14dc30eebf46",
     "is_detected": true,
-    "last_detect_ts": 1778425066413
+    "last_detect_ts": 1778511701061
   },
   "feishu-task": {
     "skill_name": "feishu-task",
     "skill_hash": "90588748ca8746a4858507011435f2b95c8cb52efbc4e120377751cb24e407f8",
     "is_detected": true,
-    "last_detect_ts": 1778425066525
+    "last_detect_ts": 1778511701194
   },
   "feishu-troubleshoot": {
     "skill_name": "feishu-troubleshoot",
     "skill_hash": "297db77e448182cb21a3dbd4c764ee966c8d5fe0efa36c6326cd921e256f8208",
     "is_detected": true,
-    "last_detect_ts": 1778425066636
+    "last_detect_ts": 1778511701318
   },
   "feishu-update-doc": {
     "skill_name": "feishu-update-doc",
     "skill_hash": "178207afa94e6fa7619c72b11b0f9348dbb461b11f7dd29ae795abe1eb8268d7",
     "is_detected": true,
-    "last_detect_ts": 1778425066758
+    "last_detect_ts": 1778511701439
   },
   "lark-approval": {
     "skill_name": "lark-approval",
