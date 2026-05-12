@@ -27,6 +27,60 @@ sep() {
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 }
 
+# ASCII 飞书卡片渲染器 — 模拟飞书交互卡片界面
+renderCard() {
+  local title="$1" template="$2" content="$3"
+  shift 3
+  # Remaining args are button labels
+  local buttons=("$@")
+
+  local borderColor="┃" topBot="━"
+  case "$template" in
+    red)    borderColor="🔴"; topBot="═" ;;
+    orange) borderColor="🟠"; topBot="═" ;;
+    yellow) borderColor="🟡"; topBot="═" ;;
+    green)  borderColor="🟢"; topBot="═" ;;
+    blue)   borderColor="🔵"; topBot="═" ;;
+    grey)   borderColor="⚪"; topBot="═" ;;
+    *)      borderColor="🔵"; topBot="═" ;;
+  esac
+
+  echo "  ╔══════════════════════════════════════════════════╗"
+  echo "  ║  🧠 $title"
+  echo "  ╠══════════════════════════════════════════════════╣"
+  # Word-wrap content to ~50 chars per line
+  echo "$content" | while IFS= read -r line; do
+    if [ ${#line} -le 50 ]; then
+      echo "  ║  $line"
+    else
+      local remaining="$line"
+      while [ ${#remaining} -gt 50 ]; do
+        local split=50
+        # Try to split at last space before 50
+        local prefix="${remaining:0:50}"
+        local lastSpace=$(echo "$prefix" | grep -bo ' ' | tail -1 | cut -d: -f1)
+        if [ -n "$lastSpace" ] && [ "$lastSpace" -gt 30 ]; then
+          split=$lastSpace
+        fi
+        echo "  ║  ${remaining:0:$split}"
+        remaining="${remaining:$split}"
+      done
+      [ -n "$remaining" ] && echo "  ║  $remaining"
+    fi
+  done
+  if [ ${#buttons[@]} -gt 0 ]; then
+    echo "  ╠══════════════════════════════════════════════════╣"
+    echo -n "  ║  "
+    local first=true
+    for btn in "${buttons[@]}"; do
+      if $first; then first=false; else echo -n " │ "; fi
+      echo -n "[$btn]"
+    done
+    echo ""
+  fi
+  echo "  ╚══════════════════════════════════════════════════╝"
+}
+
 # ============================================================
 # 开场
 # ============================================================
@@ -114,10 +168,21 @@ echo "  输入：\"我们决定以后都用PDF格式，禁止发Markdown\""
 echo ""
 oc team-memory proactive-capture "我们决定以后都用PDF格式，禁止发Markdown"
 echo ""
+
+# Render the proactive confirmation card as ASCII art
+echo "  ┌── 飞书群聊收到的确认卡片 ──────────────────────────┐"
+renderCard "检测到可记录信息" "blue" \
+"这看起来是一个长期约定，要记录到团队记忆中吗？
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+类别：⚙️ 流程
+内容：我们决定以后都用PDF格式，禁止发Markdown" \
+"✓ 记录" "✗ 忽略" "✏️ 修改后记录"
+echo ""
+
 echo "  → 触发类型：future_commitment（长期约定）"
 echo "  → 置信度：90%（高置信度）"
 echo "  → AI 主动建议：\"这看起来是一个长期约定，要记入团队记忆吗？\""
-echo "  → 生产环境：推送飞书交互卡片到群聊，用户点击"确认"即可写入"
+echo "  → 用户点击 [✓ 记录] 后，记忆自动写入账本"
 echo ""
 echo "   核心差异：RAG = 你问了才答；记忆引擎 = AI 主动发现，等你确认"
 
@@ -184,6 +249,18 @@ echo ""
 echo "【注入】\"客户A的交付格式改回 Markdown\""
 echo ""
 oc team-memory inject "客户A的交付格式改回Markdown" --category decision --tags 交付,客户A
+echo ""
+
+# Render the conflict card as ASCII art
+echo "  ┌── 飞书群聊收到的冲突裁决卡片 ───────────────────────┐"
+renderCard "记忆冲突 — 需要裁决" "red" \
+"发现矛盾更新，请选择如何处理
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+**v1** [⚠️ 冲突] PDF，张三确认过 — 置信度 95%
+**v2** [⚠️ 冲突] Markdown — 置信度 80%
+
+💡 选错可随时点击其他按钮切换" \
+"保留 v1 (PDF)" "用 v2 替换 (Markdown)" "两个都保留"
 echo ""
 
 # 展示冲突检测结果
@@ -275,9 +352,37 @@ echo "  → 基于艾宾浩斯遗忘曲线：S = 2^(-Δt / 半衰期)"
 echo "  → v2.2 新增：自适应衰减学习，基于复习历史动态调整半衰期"
 echo ""
 
-# 模拟时间流逝 + 复习操作 + 冲突解决
+# 模拟时间流逝 + 复习操作
 npx tsx "$PROJECT_ROOT"/"$DEMO_HELPER" simulate-decay 2>/dev/null
 echo ""
+
+# Render the decay reminder card as ASCII art
+echo "  ┌── 飞书群聊收到的遗忘预警卡片 ───────────────────────┐"
+renderCard "记忆复习提醒 — 记忆衰减" "yellow" \
+"**记忆内容：** 客户A的交付格式改为PDF，张三确认过
+**类别：** 📋 决策 v1
+**强度：** ●●●○○ (60%) | 标签: 交付, 客户A
+**创建时间：** 10天前
+**上次复习：** 从未复习
+**复习次数：** 0" \
+"✓ 已复习" "暂时忽略"
+echo ""
+
+npx tsx "$PROJECT_ROOT"/"$DEMO_HELPER" simulate-review 2>/dev/null
+echo ""
+
+# Render the reviewed card as ASCII art
+echo "  ┌── 用户点击'已复习'后的卡片反馈 ─────────────────────┐"
+renderCard "记忆已复习" "green" \
+"✅ 已复习 — 记忆强度已重置
+
+**内容：** 客户A的交付格式改为PDF，张三确认过
+**类别：** 📋 决策
+
+强度已重置为 100%，下次提醒时间已推迟" \
+""
+echo ""
+
 npx tsx "$PROJECT_ROOT"/"$DEMO_HELPER" simulate-conflict 2>/dev/null
 echo ""
 npx tsx "$PROJECT_ROOT"/"$DEMO_HELPER" simulate-resolve 2>/dev/null
@@ -361,6 +466,28 @@ echo "  → 系统自动计算：知识断层、风险增加、推荐传承对�
 echo ""
 echo "【模拟】openclaw-user 离开团队"
 echo ""
+
+# Render the knowledge transfer card as ASCII art
+echo "  ┌── 飞书群聊收到的知识传承预警卡片 ───────────────────┐"
+renderCard "知识断层预警 — 传承模拟报告" "red" \
+"如果 openclaw-user 离开团队：
+
+**核心指标**
+• 知道记忆：3 条
+• 知识断层：3 条（仅 TA 知道）
+• 风险增加：30%
+• 知识损失率：100%
+• 受影响类别：decision, api, process
+
+**知识断层详情**
+**[风险 73%]** 客户A.交付格式：Markdown
+
+**推荐传承对象**
+**推荐：memory-extractor**（匹配度 62%）
+专业重叠 80% | 已有知识 0%" \
+""
+echo ""
+
 oc team-memory simulate-departure openclaw-user
 echo ""
 echo "  → 系统自动识别单点知识（只有一个人知道的信息）"

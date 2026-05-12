@@ -80,31 +80,46 @@ export function formatReviewCard(memory: StoredMemory): string {
   const bars = "●".repeat(Math.round(strength * 5)) +
     "○".repeat(5 - Math.round(strength * 5));
 
-  const tagStr = memory.metadata.tags.length > 0
-    ? ` | Tags: ${memory.metadata.tags.join(", ")}` : "";
+  const categoryLabels: Record<string, string> = {
+    decision: "📋 决策",
+    process: "⚙️ 流程",
+    api: "🔌 API/配置",
+    security: "🔒 安全",
+    experience: "💡 经验",
+    general: "📝 通用",
+  };
   const categoryStr = memory.metadata.category !== "general"
-    ? ` [${memory.metadata.category}]` : "";
+    ? categoryLabels[memory.metadata.category] ?? "" : "📝 通用";
   const versionStr = ` v${memory.metadata.version}`;
+
+  const labelMap: Record<string, { text: string; template: "red" | "orange" | "yellow" | "blue" }> = {
+    critical: { text: "严重遗忘", template: "red" },
+    weak: { text: "即将遗忘", template: "orange" },
+    fading: { text: "记忆衰减", template: "yellow" },
+    strong: { text: "需要复习", template: "blue" },
+    fresh: { text: "复习提醒", template: "blue" },
+  };
+  const labelInfo = labelMap[label] ?? labelMap.fresh;
+
+  const tagStr = memory.metadata.tags.length > 0
+    ? ` | 标签: ${memory.metadata.tags.join(", ")}` : "";
 
   const card = {
     config: { wide_screen_mode: true },
     header: {
-      title: { tag: "plain_text" as const, content: `Memory Review: ${label.toUpperCase()}` },
-      template: label === "critical" ? "red"
-        : label === "weak" ? "orange"
-        : label === "fading" ? "yellow"
-        : "blue",
+      title: { tag: "plain_text" as const, content: `🧠 记忆复习提醒 — ${labelInfo.text}` },
+      template: labelInfo.template,
     },
     elements: [
-      { tag: "markdown" as const, content: `**Memory:**\n${memory.memory}` },
       {
         tag: "markdown" as const,
         content: [
-          `Strength: ${bars} (${Math.round(strength * 100)}%)${categoryStr}${versionStr}${tagStr}`,
-          `Injected: ${new Date(memory.metadata.injectedAt).toLocaleString()}`,
-          `Last reviewed: ${new Date(memory.metadata.lastReviewedAt).toLocaleString()}`,
-          `Reviews: ${memory.metadata.reviewCount}`,
-          `Next interval: ${formatDuration(FORGETTING_CURVE_INTERVALS[getNextIntervalIndex(memory)])}`,
+          `**记忆内容：** ${memory.memory}`,
+          `**类别：** ${categoryStr}${versionStr}`,
+          `**强度：** ${bars} (${Math.round(strength * 100)}%)${tagStr}`,
+          `**创建时间：** ${new Date(memory.metadata.injectedAt).toLocaleDateString()}`,
+          `**上次复习：** ${memory.metadata.lastReviewedAt ? new Date(memory.metadata.lastReviewedAt).toLocaleDateString() : "从未复习"}`,
+          `**复习次数：** ${memory.metadata.reviewCount}`,
         ].join("\n"),
       },
       {
@@ -112,15 +127,15 @@ export function formatReviewCard(memory: StoredMemory): string {
         actions: [
           {
             tag: "button" as const,
-            text: { tag: "plain_text" as const, content: "Reviewed" },
+            text: { tag: "plain_text" as const, content: "✓ 已复习" },
             type: "primary" as const,
             value: { action: "review", memory_id: memory.id },
           },
           {
             tag: "button" as const,
-            text: { tag: "plain_text" as const, content: "Dismiss" },
+            text: { tag: "plain_text" as const, content: "暂时忽略" },
             type: "default" as const,
-            value: { action: "dismiss", memory_id: memory.id },
+            value: { action: "dismiss_warning", memory_id: memory.id },
           },
         ],
       },
@@ -180,4 +195,84 @@ export function closestIntervalIndex(targetMs: number): number {
     }
   }
   return bestIndex;
+}
+
+// ============================================================================
+// Feishu Card Formatting for LedgerEntry (v2)
+// ============================================================================
+
+const CATEGORY_LABELS: Record<string, string> = {
+  decision: "📋 决策",
+  process: "⚙️ 流程",
+  api: "🔌 API/配置",
+  security: "🔒 安全",
+  experience: "💡 经验",
+  general: "📝 通用",
+};
+
+/** Format a decay reminder as a Feishu interactive card JSON string for LedgerEntry */
+export function formatDecayCard(entry: LedgerEntry): string {
+  const strength = calculateStrengthFromLedger(entry);
+  const label = getStrengthLabel(strength);
+  const bars = "●".repeat(Math.round(strength * 5)) +
+    "○".repeat(5 - Math.round(strength * 5));
+
+  const categoryLabel = CATEGORY_LABELS[entry.category] ?? "📝 通用";
+  const activeClaim = getActiveClaim(entry);
+  const value = activeClaim?.value ?? entry.id;
+  const version = entry.current_version;
+
+  const labelMap: Record<string, { text: string; template: "red" | "orange" | "yellow" | "blue" }> = {
+    critical: { text: "严重遗忘", template: "red" },
+    weak: { text: "即将遗忘", template: "orange" },
+    fading: { text: "记忆衰减", template: "yellow" },
+    strong: { text: "需要复习", template: "blue" },
+    fresh: { text: "复习提醒", template: "blue" },
+  };
+  const labelInfo = labelMap[label] ?? labelMap.fresh;
+
+  const tagsStr = entry.tags && entry.tags.length > 0
+    ? ` | 标签: ${entry.tags.join(", ")}` : "";
+  const daysSince = activeClaim?.valid_from
+    ? Math.round((Date.now() - new Date(activeClaim.valid_from).getTime()) / (24 * 60 * 60 * 1000))
+    : 0;
+
+  const card = {
+    config: { wide_screen_mode: true },
+    header: {
+      title: { tag: "plain_text" as const, content: `🧠 记忆复习提醒 — ${labelInfo.text}` },
+      template: labelInfo.template,
+    },
+    elements: [
+      {
+        tag: "markdown" as const,
+        content: [
+          `**记忆内容：** ${value}`,
+          `**类别：** ${categoryLabel} v${version}`,
+          `**强度：** ${bars} (${Math.round(strength * 100)}%)${tagsStr}`,
+          `**距今：** ${daysSince} 天`,
+          `**半衰期：** ${entry.recall_half_life ?? 14} 天`,
+        ].join("\n"),
+      },
+      {
+        tag: "action" as const,
+        actions: [
+          {
+            tag: "button" as const,
+            text: { tag: "plain_text" as const, content: "✓ 已复习" },
+            type: "primary" as const,
+            value: { action: "review", memory_id: entry.id },
+          },
+          {
+            tag: "button" as const,
+            text: { tag: "plain_text" as const, content: "暂时忽略" },
+            type: "default" as const,
+            value: { action: "dismiss_warning", memory_id: entry.id },
+          },
+        ],
+      },
+    ],
+  };
+
+  return JSON.stringify(card, null, 2);
 }
