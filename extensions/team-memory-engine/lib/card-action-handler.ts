@@ -127,8 +127,13 @@ export async function handleMemoryReviewAction(
   config: HandlerConfig
 ): Promise<CardActionResult | undefined> {
   const value = data.action?.value;
-  if (!value || !value.action || !value.memory_id) return undefined;
+  if (!value || !value.action) return undefined;
   if (!["confirm", "update", "dismiss", "review", "dismiss_warning", "confirm_save", "dismiss_save", "edit_save"].includes(value.action)) return undefined;
+
+  // Proactive save actions don't need memory_id (memory doesn't exist yet)
+  if (value.action !== "confirm_save" && value.action !== "dismiss_save" && value.action !== "edit_save") {
+    if (!value.memory_id) return undefined;
+  }
 
   // Extract open_message_id from data for card update
   const openMessageId = data.open_message_id ?? data.context?.open_message_id ?? config.openMessageId;

@@ -35,8 +35,12 @@ const elog = (0, lark_logger_1.larkLogger)('channel/event-handlers');
 // ---------------------------------------------------------------------------
 async function handleMemoryReviewAction(data, ctx) {
     const value = data?.action?.value;
-    if (!value || !value.action || !value.memory_id) return undefined;
-    if (!["confirm", "update", "dismiss"].includes(value.action)) return undefined;
+    if (!value || !value.action) return undefined;
+    // Proactive save actions don't require memory_id (memory doesn't exist yet)
+    if (!["confirm_save", "dismiss_save", "edit_save"].includes(value.action)) {
+        if (!value.memory_id) return undefined;
+    }
+    if (!["confirm", "update", "dismiss", "review", "dismiss_warning", "confirm_save", "dismiss_save", "edit_save"].includes(value.action)) return undefined;
     try {
         const { handleMemoryReviewAction } = await import("../../../../team-memory-engine/lib/card-action-handler.js");
         return await handleMemoryReviewAction(data, {
