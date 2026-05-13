@@ -3,630 +3,116 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Team Memory Insight Report — openclaw-team</title>
+<title>Team Memory Insight Report</title>
 <style>
-:root {
-  --bg: #0f172a;
-  --surface: #1e293b;
-  --surface2: #334155;
-  --text: #f1f5f9;
-  --text-dim: #94a3b8;
-  --border: #475569;
-  --accent: #3b82f6;
-  --green: #10b981;
-  --amber: #f59e0b;
-  --red: #ef4444;
-  --orange: #f97316;
-  --purple: #8b5cf6;
-}
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  line-height: 1.6;
-  padding: 2rem;
-}
-.container { max-width: 1200px; margin: 0 auto; }
-h1 { font-size: 2rem; margin-bottom: 0.5rem; }
-h2 { font-size: 1.4rem; margin-bottom: 1rem; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
-h3 { font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--text-dim); }
-.subtitle { color: var(--text-dim); margin-bottom: 2rem; font-size: 0.95rem; }
-.grid { display: grid; gap: 1.5rem; }
-.grid-2 { grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); }
-.grid-3 { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
-.grid-4 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1.5rem;
-}
-.card-accent { border-left: 4px solid var(--accent); }
-.card-green { border-left: 4px solid var(--green); }
-.card-amber { border-left: 4px solid var(--amber); }
-.card-red { border-left: 4px solid var(--red); }
-.stat-value { font-size: 2.5rem; font-weight: 700; }
-.stat-label { color: var(--text-dim); font-size: 0.85rem; margin-top: 0.25rem; }
-.badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-.badge-green { background: rgba(16, 185, 129, 0.15); color: var(--green); }
-.badge-amber { background: rgba(245, 158, 11, 0.15); color: var(--amber); }
-.badge-red { background: rgba(239, 68, 68, 0.15); color: var(--red); }
-.badge-blue { background: rgba(59, 130, 246, 0.15); color: var(--accent); }
-.badge-purple { background: rgba(139, 92, 246, 0.15); color: var(--purple); }
-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
-th, td { padding: 0.6rem 0.8rem; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
-th { color: var(--text-dim); font-weight: 500; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
-tr:hover { background: var(--surface2); }
-.progress-bar {
-  height: 8px;
-  background: var(--surface2);
-  border-radius: 4px;
-  overflow: hidden;
-  width: 100%;
-}
-.progress-fill {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 0.3s;
-}
-.list-item { padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
-.list-item:last-child { border-bottom: none; }
-.tag {
-  display: inline-block;
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  background: var(--surface2);
-  color: var(--text-dim);
-  margin-right: 4px;
-}
-.recommendation {
-  padding: 0.75rem;
-  background: var(--surface);
-  border-radius: 8px;
-  margin-bottom: 0.5rem;
-  border-left: 3px solid var(--accent);
-}
-@media (max-width: 768px) {
-  body { padding: 1rem; }
-  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
-}
-/* Radar chart styles */
-.radar-container { display: flex; align-items: center; justify-content: center; }
-/* Bar chart styles */
-.bar-chart { display: flex; align-items: flex-end; gap: 4px; height: 80px; padding-top: 4px; }
-.bar-item { display: flex; flex-direction: column; align-items: center; flex: 1; }
-.bar-fill { width: 100%; border-radius: 3px 3px 0 0; min-height: 2px; }
-.bar-label { font-size: 0.65rem; color: var(--text-dim); margin-top: 4px; text-align: center; }
-.bar-value { font-size: 0.65rem; color: var(--text); margin-bottom: 2px; }
-/* Pulse animation for critical items */
-@keyframes pulse { 0%,100%{ opacity:1; } 50%{ opacity:0.6; } }
-.pulse { animation: pulse 2s ease-in-out infinite; }
-/* Gradient text */
-.gradient-text {
-  background: linear-gradient(135deg, var(--accent), var(--purple));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
+:root { --bg:#0f172a; --surface:#1e293b; --surface2:#334155; --text:#f1f5f9; --text-dim:#94a3b8; --border:#475569; --accent:#3b82f6; --green:#10b981; --amber:#f59e0b; --red:#ef4444; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; background:var(--bg); color:var(--text); line-height:1.6; padding:2rem; }
+.container { max-width:1400px; margin:0 auto; }
+h1 { font-size:2rem; margin-bottom:0.5rem; }
+h2 { font-size:1.4rem; margin:2rem 0 1rem; color:var(--accent); border-bottom:1px solid var(--border); padding-bottom:0.5rem; }
+h3 { font-size:1.1rem; margin-bottom:0.5rem; color:var(--text-dim); }
+.subtitle { color:var(--text-dim); margin-bottom:2rem; }
+.grid { display:grid; gap:1.5rem; }
+.grid-4 { grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); }
+.grid-2 { grid-template-columns:repeat(auto-fit,minmax(500px,1fr)); }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.5rem; }
+.card-accent { border-left:4px solid var(--accent); }
+.card-green { border-left:4px solid var(--green); }
+.card-amber { border-left:4px solid var(--amber); }
+.card-red { border-left:4px solid var(--red); }
+.stat-value { font-size:2.5rem; font-weight:700; }
+.stat-label { color:var(--text-dim); font-size:0.85rem; }
+table { width:100%; border-collapse:collapse; margin-top:0.5rem; }
+th, td { padding:0.5rem 0.8rem; text-align:left; border-bottom:1px solid var(--border); font-size:0.85rem; }
+th { color:var(--text-dim); font-weight:500; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; }
+tr:hover { background:var(--surface2); }
+.badge { display:inline-block; padding:2px 8px; border-radius:12px; font-size:0.75rem; font-weight:600; }
+.badge-green { background:rgba(16,185,129,0.15); color:var(--green); }
+.badge-amber { background:rgba(245,158,11,0.15); color:var(--amber); }
+.badge-red { background:rgba(239,68,68,0.15); color:var(--red); }
 </style>
 </head>
 <body>
 <div class="container">
-
-<!-- Header -->
-<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem;">
-  <div>
-    <h1><span class="gradient-text">Team Memory Insight Report</span></h1>
-    <p class="subtitle">Generated: 2026/5/11 03:28:08 | Team: openclaw-team</p>
-  </div>
-  <div style="text-align: right;">
-    <div class="stat-value" style="color: #f59e0b;">69</div>
-    <div class="stat-label">Team Health Score / 100</div>
-  </div>
-</div>
-
-<!-- Radar Chart + Top Stats -->
-<div class="grid grid-2" style="margin-bottom: 2rem;">
-  <div class="card card-accent">
-    <h3 style="color: var(--accent); text-align: center;">Cognitive Capability Radar</h3>
-    <div class="radar-container" style="display:flex;justify-content:center;">
-      <svg width="260" height="260" viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg">
-    <rect width="260" height="260" fill="transparent"/>
-    <polygon points="130,107.5 151.39877161664094,123.04711762656369 143.22516817658064,148.20288237343632 116.77483182341936,148.20288237343632 108.60122838335904,123.04711762656369" fill="none" stroke="rgba(71,85,105,0.3)" stroke-width="1"/><polygon points="130,85 172.7975432332819,116.09423525312737 156.45033635316128,166.40576474687265 103.54966364683871,166.40576474687265 87.20245676671809,116.09423525312738" fill="none" stroke="rgba(71,85,105,0.3)" stroke-width="1"/><polygon points="130,62.5 194.19631484992286,109.14135287969106 169.67550452974194,184.60864712030894 90.32449547025807,184.60864712030894 65.80368515007713,109.14135287969106" fill="none" stroke="rgba(71,85,105,0.3)" stroke-width="1"/><polygon points="130,40 215.59508646656383,102.18847050625473 182.90067270632258,202.81152949374527 77.09932729367742,202.81152949374527 44.40491353343617,102.18847050625475" fill="none" stroke="rgba(71,85,105,0.5)" stroke-width="1"/><text x="130" y="26" fill="#94a3b8" font-size="9" text-anchor="middle">100</text>
-    <polygon points="130,78.52000000000001 197.4489281356523,108.08451475892873 154.8104154992653,164.14860733256654 77.09932729367742,202.81152949374527 58.31411508425279,106.70784404898835" fill="rgba(59, 130, 246, 0.2)" stroke="#3b82f6" stroke-width="2"/>
-    <circle cx="130" cy="78.52000000000001" r="4" fill="#3b82f6" stroke="#0f172a" stroke-width="2"/><line x1="130" y1="130" x2="130" y2="40" stroke="rgba(71,85,105,0.3)" stroke-width="1"/><text x="130" y="5" fill="#3b82f6" font-size="10" font-weight="600" text-anchor="middle">Memory</text><text x="130" y="19" fill="#3b82f6" font-size="10" font-weight="600" text-anchor="middle">Freshness</text><text x="130" y="92.52000000000001" fill="#f1f5f9" font-size="11" font-weight="700" text-anchor="middle">57</text><circle cx="197.4489281356523" cy="108.08451475892873" r="4" fill="#3b82f6" stroke="#0f172a" stroke-width="2"/><line x1="130" y1="130" x2="215.59508646656383" y2="102.18847050625473" stroke="rgba(71,85,105,0.3)" stroke-width="1"/><text x="242.22466892282813" y="86.53599466375621" fill="#3b82f6" font-size="10" font-weight="600" text-anchor="middle">Knowledge</text><text x="242.22466892282813" y="100.53599466375621" fill="#3b82f6" font-size="10" font-weight="600" text-anchor="middle">Distribution</text><text x="184.13413690752014" y="112.410752680178" fill="#f1f5f9" font-size="11" font-weight="700" text-anchor="middle">79</text><circle cx="154.8104154992653" cy="164.14860733256654" r="4" fill="#3b82f6" stroke="#0f172a" stroke-width="2"/><line x1="130" y1="130" x2="182.90067270632258" y2="202.81152949374527" stroke="rgba(71,85,105,0.3)" stroke-width="1"/><text x="199.35865977051185" y="218.46400533624382" fill="#f59e0b" font-size="10" font-weight="600" text-anchor="middle">Risk</text><text x="199.35865977051185" y="232.46400533624382" fill="#f59e0b" font-size="10" font-weight="600" text-anchor="middle">Management</text><text x="146.58142196717066" y="152.82236941131725" fill="#f1f5f9" font-size="11" font-weight="700" text-anchor="middle">47</text><circle cx="77.09932729367742" cy="202.81152949374527" r="4" fill="#3b82f6" stroke="#0f172a" stroke-width="2"/><line x1="130" y1="130" x2="77.09932729367742" y2="202.81152949374527" stroke="rgba(71,85,105,0.3)" stroke-width="1"/><text x="60.64134022948818" y="218.46400533624382" fill="#10b981" font-size="10" font-weight="600" text-anchor="middle">Conflict</text><text x="60.64134022948818" y="232.46400533624382" fill="#10b981" font-size="10" font-weight="600" text-anchor="middle">Resolution</text><text x="85.32832082577205" y="191.485291572496" fill="#f1f5f9" font-size="11" font-weight="700" text-anchor="middle">100</text><circle cx="58.31411508425279" cy="106.70784404898835" r="4" fill="#3b82f6" stroke="#0f172a" stroke-width="2"/><line x1="130" y1="130" x2="44.40491353343617" y2="102.18847050625475" stroke="rgba(71,85,105,0.3)" stroke-width="1"/><text x="17.77533107717187" y="86.53599466375621" fill="#10b981" font-size="10" font-weight="600" text-anchor="middle">Coverage</text><text x="17.77533107717187" y="100.53599466375621" fill="#10b981" font-size="10" font-weight="600" text-anchor="middle">Depth</text><text x="71.62890631238494" y="111.03408197023761" fill="#f1f5f9" font-size="11" font-weight="700" text-anchor="middle">84</text>
-  </svg>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem">
+    <div>
+      <h1 style="background:linear-gradient(135deg,var(--accent),#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Team Memory Insight Report</h1>
+      <p class="subtitle">Generated: 2026/5/13 13:47:51 | Team: openclaw-team</p>
+    </div>
+    <div style="text-align:right">
+      <div class="stat-value" style="color:var(--amber)">64</div>
+      <div class="stat-label">Team Health Score / 100</div>
     </div>
   </div>
-  <div>
-    <div class="grid grid-2" style="gap: 1rem;">
-      <div class="card card-accent">
-        <div class="stat-value">8</div>
-        <div class="stat-label">Total Memories</div>
-      </div>
-      <div class="card card-green">
-        <div class="stat-value">57%</div>
-        <div class="stat-label">Avg Memory Strength</div>
-      </div>
-      <div class="card card-red">
-        <div class="stat-value">53%</div>
-        <div class="stat-label">Avg Risk Score</div>
-      </div>
-      <div class="card card-green">
-        <div class="stat-value">79%</div>
-        <div class="stat-label">Team Resilience</div>
-      </div>
+
+  <div class="grid grid-4" style="margin-bottom:2rem">
+    <div class="card card-accent"><div class="stat-value">26</div><div class="stat-label">Total Memories</div></div>
+    <div class="card card-amber"><div class="stat-value">50%</div><div class="stat-label">Avg Memory Strength</div></div>
+    <div class="card card-amber"><div class="stat-value">49%</div><div class="stat-label">Avg Risk Score</div></div>
+    <div class="card card-accent"><div class="stat-value">0</div><div class="stat-label">Team Members</div></div>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card">
+      <h3>Strength Distribution</h3>
+      <p><span class="badge badge-green">Fresh: 3</span> <span class="badge badge-green">Strong: 11</span> <span class="badge badge-amber">Fading: 4</span> <span class="badge badge-amber">Weak: 5</span> <span class="badge badge-red">Critical: 3</span></p>
+    </div>
+    <div class="card">
+      <h3>System Stats</h3>
+      <p>Conflicts: <span class="badge badge-red">1</span></p>
+      <p>Risk Alerts: <span class="badge badge-red">9</span></p>
+      <p>Categories: 5</p>
     </div>
   </div>
-</div>
 
-<!-- Executive Summary: Risks & Recommendations -->
-<div class="grid grid-2" style="margin-bottom: 2rem;">
+  <h2>🔒 Risk Alerts</h2>
   <div class="card">
-    <h2><span style="color: var(--red);">⚠</span> Top Risks</h2>
-    <div class="list-item"><span class="badge badge-red">#1</span> db.pool-size: risk 62% — "Max pool size = 50"</div><div class="list-item"><span class="badge badge-red">#2</span> Charlie has 1 single-point knowledge(s)</div><div class="list-item"><span class="badge badge-amber">#3</span> Alice has 2 single-point knowledge(s)</div><div class="list-item"><span class="badge badge-amber">#4</span> Worst case: Alice departure → 25% knowledge loss</div><div class="list-item"><span class="badge badge-amber">#5</span> 1 memories in weak/critical state (decay < 30%)</div>
+    <table><tr><th>Memory</th><th>Entity.Attribute</th><th>Total Risk</th><th>TimeDecay</th><th>BusinessImpact</th><th>LowCoverage</th></tr></table>
   </div>
+
+  <h2>📊 Category Breakdown</h2>
   <div class="card">
-    <h2><span style="color: var(--accent);">→</span> Recommendations</h2>
-    <div class="recommendation">Address knowledge blind spot in "decision": Only 1 member(s) hold 2 memory/ies</div><div class="recommendation">Review 1 weakening memories — schedule team review sessions to refresh decay</div><div class="recommendation">"api" has dense knowledge (3 memories) — ensure it's distributed across 2+ members</div>
-  </div>
-</div>
-
-<!-- Knowledge Heatmap -->
-<h2>Knowledge Heatmap</h2>
-
-    <div style="overflow-x: auto;">
-      <table><tr><th></th><th>Alice</th><th>Bob</th><th>Charlie</th><th>Diana</th></tr><tr><td style="font-weight: 600;"><span style="color: #3b82f6;">●</span> api</td><td style="background: rgba(59, 130, 246, 0.3); text-align: center; padding: 0.75rem;">
-        <div style="font-size: 1.2rem; font-weight: 700;">2</div>
-        <div style="font-size: 0.7rem; color: var(--text-dim);">
-          <span style="color: #3b82f6;">●</span>
-          54% risk
-        </div>
-      </td><td style="background: rgba(59, 130, 246, 0.15); text-align: center; padding: 0.75rem;">
-        <div style="font-size: 1.2rem; font-weight: 700;">1</div>
-        <div style="font-size: 0.7rem; color: var(--text-dim);">
-          <span style="color: #3b82f6;">●</span>
-          46% risk
-        </div>
-      </td><td style="background: rgba(15, 23, 42, 0.5); color: var(--text-dim); text-align: center;">—</td><td style="background: rgba(15, 23, 42, 0.5); color: var(--text-dim); text-align: center;">—</td></tr><tr><td style="font-weight: 600;"><span style="color: #f59e0b;">●</span> decision</td><td style="background: rgba(15, 23, 42, 0.5); color: var(--text-dim); text-align: center;">—</td><td style="background: rgba(59, 130, 246, 0.3); text-align: center; padding: 0.75rem;">
-        <div style="font-size: 1.2rem; font-weight: 700;">2</div>
-        <div style="font-size: 0.7rem; color: var(--text-dim);">
-          <span style="color: #3b82f6;">●</span>
-          43% risk
-        </div>
-      </td><td style="background: rgba(15, 23, 42, 0.5); color: var(--text-dim); text-align: center;">—</td><td style="background: rgba(15, 23, 42, 0.5); color: var(--text-dim); text-align: center;">—</td></tr><tr><td style="font-weight: 600;"><span style="color: #8b5cf6;">●</span> experience</td><td style="background: rgba(59, 130, 246, 0.15); text-align: center; padding: 0.75rem;">
-        <div style="font-size: 1.2rem; font-weight: 700;">1</div>
-        <div style="font-size: 0.7rem; color: var(--text-dim);">
-          <span style="color: #ef4444;">●</span>
-          76% risk
-        </div>
-      </td><td style="background: rgba(15, 23, 42, 0.5); color: var(--text-dim); text-align: center;">—</td><td style="background: rgba(15, 23, 42, 0.5); color: var(--text-dim); text-align: center;">—</td><td style="background: rgba(59, 130, 246, 0.15); text-align: center; padding: 0.75rem;">
-        <div style="font-size: 1.2rem; font-weight: 700;">1</div>
-        <div style="font-size: 0.7rem; color: var(--text-dim);">
-          <span style="color: #ef4444;">●</span>
-          76% risk
-        </div>
-      </td></tr><tr><td style="font-weight: 600;"><span style="color: #6b7280;">●</span> general</td><td style="background: rgba(15, 23, 42, 0.5); color: var(--text-dim); text-align: center;">—</td><td style="background: rgba(15, 23, 42, 0.5); color: var(--text-dim); text-align: center;">—</td><td style="background: rgba(15, 23, 42, 0.5); color: var(--text-dim); text-align: center;">—</td><td style="background: rgba(59, 130, 246, 0.15); text-align: center; padding: 0.75rem;">
-        <div style="font-size: 1.2rem; font-weight: 700;">1</div>
-        <div style="font-size: 0.7rem; color: var(--text-dim);">
-          <span style="color: #3b82f6;">●</span>
-          48% risk
-        </div>
-      </td></tr><tr><td style="font-weight: 600;"><span style="color: #10b981;">●</span> process</td><td style="background: rgba(15, 23, 42, 0.5); color: var(--text-dim); text-align: center;">—</td><td style="background: rgba(15, 23, 42, 0.5); color: var(--text-dim); text-align: center;">—</td><td style="background: rgba(59, 130, 246, 0.15); text-align: center; padding: 0.75rem;">
-        <div style="font-size: 1.2rem; font-weight: 700;">1</div>
-        <div style="font-size: 0.7rem; color: var(--text-dim);">
-          <span style="color: #3b82f6;">●</span>
-          46% risk
-        </div>
-      </td><td style="background: rgba(15, 23, 42, 0.5); color: var(--text-dim); text-align: center;">—</td></tr><tr><td style="font-weight: 600;"><span style="color: #ef4444;">●</span> security</td><td style="background: rgba(59, 130, 246, 0.15); text-align: center; padding: 0.75rem;">
-        <div style="font-size: 1.2rem; font-weight: 700;">1</div>
-        <div style="font-size: 0.7rem; color: var(--text-dim);">
-          <span style="color: #f59e0b;">●</span>
-          60% risk
-        </div>
-      </td><td style="background: rgba(59, 130, 246, 0.15); text-align: center; padding: 0.75rem;">
-        <div style="font-size: 1.2rem; font-weight: 700;">1</div>
-        <div style="font-size: 0.7rem; color: var(--text-dim);">
-          <span style="color: #f59e0b;">●</span>
-          60% risk
-        </div>
-      </td><td style="background: rgba(15, 23, 42, 0.5); color: var(--text-dim); text-align: center;">—</td><td style="background: rgba(15, 23, 42, 0.5); color: var(--text-dim); text-align: center;">—</td></tr></table>
-    </div>
-    <div style="margin-top: 1rem; padding: 0.75rem; background: var(--surface); border-radius: 8px; border-left: 3px solid var(--red);">
-        <strong style="color: var(--red);">Blind Spots (3):</strong>
-        <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">• <strong>decision:</strong> Only 1 member(s) hold 2 memory/ies</div><div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">• <strong>general:</strong> Only 1 member(s) hold 1 memory/ies</div><div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">• <strong>process:</strong> Only 1 member(s) hold 1 memory/ies</div>
-      </div>
-    <div style="margin-top: 0.75rem; padding: 0.75rem; background: var(--surface); border-radius: 8px; border-left: 3px solid var(--green);">
-        <strong style="color: var(--green);">Knowledge Dense Areas:</strong>
-        <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">• <strong>api:</strong> 3 memories across 2 member(s)</div>
-      </div>
-  
-
-<!-- Knowledge Loss Ranking -->
-<h2 style="margin-top: 2rem;">Knowledge Loss Risk Ranking</h2>
-<div class="card">
-    <div style="display: flex; gap: 2rem; margin-bottom: 1rem;">
-      <div>
-        <div class="stat-value" style="font-size: 1.5rem;">1.3</div>
-        <div class="stat-label">Avg Single Points / Member</div>
-      </div>
-      <div>
-        <div class="stat-value" style="font-size: 1.5rem; color: #10b981;">process</div>
-        <div class="stat-label">Most Vulnerable Category</div>
-      </div>
-    </div>
-    <table>
-      <tr><th>Rank</th><th>Member</th><th>Single Points</th><th>Total Known</th><th>Risk Score</th><th>Level</th></tr>
-      <tr>
-      <td style="font-weight: 700; color: var(--text-dim);">1</td>
-      <td style="font-weight: 600;">Charlie</td>
-      <td><strong style="color: var(--amber);">1</strong></td>
-      <td>1</td>
-      <td>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <div class="progress-bar" style="width: 80px;"><div class="progress-fill" style="width: 72%; background: #ef4444;"></div></div>
-          <span style="color: #ef4444; font-size: 0.85rem; font-weight: 600;">72%</span>
-        </div>
-      </td>
-      <td><span class="badge badge-red">Critical</span></td>
-    </tr><tr>
-      <td style="font-weight: 700; color: var(--text-dim);">2</td>
-      <td style="font-weight: 600;">Alice</td>
-      <td><strong style="color: var(--amber);">2</strong></td>
-      <td>4</td>
-      <td>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <div class="progress-bar" style="width: 80px;"><div class="progress-fill" style="width: 56%; background: #f97316;"></div></div>
-          <span style="color: #f97316; font-size: 0.85rem; font-weight: 600;">56%</span>
-        </div>
-      </td>
-      <td><span class="badge badge-amber">High Risk</span></td>
-    </tr><tr>
-      <td style="font-weight: 700; color: var(--text-dim);">3</td>
-      <td style="font-weight: 600;">Bob</td>
-      <td><strong style="color: var(--amber);">1</strong></td>
-      <td>4</td>
-      <td>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <div class="progress-bar" style="width: 80px;"><div class="progress-fill" style="width: 48%; background: #f59e0b;"></div></div>
-          <span style="color: #f59e0b; font-size: 0.85rem; font-weight: 600;">48%</span>
-        </div>
-      </td>
-      <td><span class="badge badge-blue">Moderate</span></td>
-    </tr><tr>
-      <td style="font-weight: 700; color: var(--text-dim);">4</td>
-      <td style="font-weight: 600;">Diana</td>
-      <td><strong style="color: var(--amber);">1</strong></td>
-      <td>2</td>
-      <td>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <div class="progress-bar" style="width: 80px;"><div class="progress-fill" style="width: 48%; background: #f59e0b;"></div></div>
-          <span style="color: #f59e0b; font-size: 0.85rem; font-weight: 600;">48%</span>
-        </div>
-      </td>
-      <td><span class="badge badge-blue">Moderate</span></td>
-    </tr>
-    </table>
-    <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border);">
-      <strong style="font-size: 0.85rem; color: var(--text-dim);">Charlie's critical memories:</strong>
-      <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 4px;">• <code style="color: var(--accent);">mem-003</code></div>
-    </div>
+    <table><tr><th>Category</th><th>Count</th><th>Avg Strength</th><th>Avg Risk</th></tr><tr><td><span style="color:#f59e0b">●</span> decision</td><td style="font-weight:600">6</td><td>68%</td><td style="color:#10b981; font-weight:600">42%</td></tr>
+<tr><td><span style="color:#3b82f6">●</span> api</td><td style="font-weight:600">6</td><td>47%</td><td style="color:#10b981; font-weight:600">48%</td></tr>
+<tr><td><span style="color:#10b981">●</span> process</td><td style="font-weight:600">5</td><td>34%</td><td style="color:#ef4444; font-weight:600">57%</td></tr>
+<tr><td><span style="color:#ef4444">●</span> security</td><td style="font-weight:600">4</td><td>69%</td><td style="color:#10b981; font-weight:600">42%</td></tr>
+<tr><td><span style="color:#8b5cf6">●</span> experience</td><td style="font-weight:600">5</td><td>32%</td><td style="color:#ef4444; font-weight:600">58%</td></tr></table>
   </div>
 
-<!-- Lifecycle Stats -->
-<h2 style="margin-top: 2rem;">Memory Lifecycle Statistics</h2>
-<div class="grid grid-3">
-    <div class="card">
-      <h3>Memory State</h3>
-      <div style="margin-bottom: 0.5rem;">
-        <span class="badge badge-green">Active: 8</span>
-        <span class="badge badge-amber" style="margin-left: 4px;">Superseded: 1</span>
-        
-      </div>
-      <div style="margin-top: 1rem;">
-        <div style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 0.75rem; font-weight: 500;">Strength Distribution</div>
-        <div class="bar-chart" style="height: 90px; padding-bottom: 20px;">
-          <div class="bar-item">
-      <div class="bar-value">1</div>
-      <div class="bar-fill" style="height: 20%; background: #10b981; width: 32px;"></div>
-      <div class="bar-label">fresh</div>
-    </div><div class="bar-item">
-      <div class="bar-value">5</div>
-      <div class="bar-fill" style="height: 100%; background: #3b82f6; width: 32px;"></div>
-      <div class="bar-label">strong</div>
-    </div><div class="bar-item">
-      <div class="bar-value">1</div>
-      <div class="bar-fill" style="height: 20%; background: #f59e0b; width: 32px;"></div>
-      <div class="bar-label">fading</div>
-    </div><div class="bar-item">
-      <div class="bar-value">0</div>
-      <div class="bar-fill" style="height: 4%; background: #f97316; width: 32px;"></div>
-      <div class="bar-label">weak</div>
-    </div><div class="bar-item">
-      <div class="bar-value">1</div>
-      <div class="bar-fill" style="height: 20%; background: #ef4444; width: 32px;"></div>
-      <div class="bar-label">critical</div>
-    </div>
-        </div>
-      </div>
-    </div>
-    <div class="card">
-      <h3>Decay & Lifespan</h3>
-      <table>
-        <tr><td>Avg Age</td><td style="font-weight: 600;">11.1 days</td></tr>
-        <tr><td>Avg Version</td><td style="font-weight: 600;">1.13</td></tr>
-        <tr><td>Longest Lived</td><td style="font-weight: 600;">30 days</td></tr>
-        <tr><td>Avg Until Superseded</td><td style="font-weight: 600;">7 days</td></tr>
-        <tr><td>Total Reviews</td><td style="font-weight: 600;">19 (2.38/mem)</td></tr>
-      </table>
-      <div style="margin-top: 0.75rem;">
-        <div style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 0.25rem; font-weight: 500;">Forgetting Speed Classification</div>
-        <div style="display: flex; gap: 0.5rem;">
-          <span class="badge badge-red">Fast (2)</span>
-          <span class="badge badge-amber">Medium (2)</span>
-          <span class="badge badge-green">Slow (4)</span>
-        </div>
-        <div style="font-size: 0.7rem; color: var(--text-dim); margin-top: 4px;">Based on recall_half_life: ≤3d fast, ≤7d medium, >7d slow</div>
-      </div>
-    </div>
-    <div class="card">
-      <h3>Category Breakdown</h3>
-      <table>
-        <tr><th>Category</th><th>Count</th><th>Strength</th><th>Risk</th></tr>
-        <tr>
-        <td><span style="color: #3b82f6;">●</span> api</td>
-        <td style="font-weight: 600;">2</td>
-        <td>
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <div class="progress-bar" style="width: 60px;"><div class="progress-fill" style="width: 62%; background: #3b82f6;"></div></div>
-            <span style="color: #3b82f6; font-size: 0.8rem;">62%</span>
-          </div>
-        </td>
-        <td>
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <div class="progress-bar" style="width: 60px;"><div class="progress-fill" style="width: 54%; background: #f97316;"></div></div>
-            <span style="color: #f97316; font-size: 0.8rem;">54%</span>
-          </div>
-        </td>
-      </tr><tr>
-        <td><span style="color: #f59e0b;">●</span> decision</td>
-        <td style="font-weight: 600;">2</td>
-        <td>
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <div class="progress-bar" style="width: 60px;"><div class="progress-fill" style="width: 72%; background: #3b82f6;"></div></div>
-            <span style="color: #3b82f6; font-size: 0.8rem;">72%</span>
-          </div>
-        </td>
-        <td>
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <div class="progress-bar" style="width: 60px;"><div class="progress-fill" style="width: 43%; background: #f59e0b;"></div></div>
-            <span style="color: #f59e0b; font-size: 0.8rem;">43%</span>
-          </div>
-        </td>
-      </tr><tr>
-        <td><span style="color: #10b981;">●</span> process</td>
-        <td style="font-weight: 600;">1</td>
-        <td>
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <div class="progress-bar" style="width: 60px;"><div class="progress-fill" style="width: 79%; background: #3b82f6;"></div></div>
-            <span style="color: #3b82f6; font-size: 0.8rem;">79%</span>
-          </div>
-        </td>
-        <td>
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <div class="progress-bar" style="width: 60px;"><div class="progress-fill" style="width: 46%; background: #f59e0b;"></div></div>
-            <span style="color: #f59e0b; font-size: 0.8rem;">46%</span>
-          </div>
-        </td>
-      </tr><tr>
-        <td><span style="color: #ef4444;">●</span> security</td>
-        <td style="font-weight: 600;">1</td>
-        <td>
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <div class="progress-bar" style="width: 60px;"><div class="progress-fill" style="width: 40%; background: #f59e0b;"></div></div>
-            <span style="color: #f59e0b; font-size: 0.8rem;">40%</span>
-          </div>
-        </td>
-        <td>
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <div class="progress-bar" style="width: 60px;"><div class="progress-fill" style="width: 60%; background: #f97316;"></div></div>
-            <span style="color: #f97316; font-size: 0.8rem;">60%</span>
-          </div>
-        </td>
-      </tr><tr>
-        <td><span style="color: #6b7280;">●</span> general</td>
-        <td style="font-weight: 600;">1</td>
-        <td>
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <div class="progress-bar" style="width: 60px;"><div class="progress-fill" style="width: 71%; background: #3b82f6;"></div></div>
-            <span style="color: #3b82f6; font-size: 0.8rem;">71%</span>
-          </div>
-        </td>
-        <td>
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <div class="progress-bar" style="width: 60px;"><div class="progress-fill" style="width: 48%; background: #f59e0b;"></div></div>
-            <span style="color: #f59e0b; font-size: 0.8rem;">48%</span>
-          </div>
-        </td>
-      </tr><tr>
-        <td><span style="color: #8b5cf6;">●</span> experience</td>
-        <td style="font-weight: 600;">1</td>
-        <td>
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <div class="progress-bar" style="width: 60px;"><div class="progress-fill" style="width: 0%; background: #ef4444;"></div></div>
-            <span style="color: #ef4444; font-size: 0.8rem;">0%</span>
-          </div>
-        </td>
-        <td>
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <div class="progress-bar" style="width: 60px;"><div class="progress-fill" style="width: 76%; background: #ef4444;"></div></div>
-            <span style="color: #ef4444; font-size: 0.8rem;">76%</span>
-          </div>
-        </td>
-      </tr>
-      </table>
-    </div>
+  <h2>👥 Team Members — Knowledge Distribution</h2>
+  <div class="card">
+    <table><tr><th>Member</th><th>Known Memories</th><th>Single Points</th><th>Trust Score</th></tr></table>
   </div>
 
-<!-- TMS Network -->
-<h2 style="margin-top: 2rem;">Team Knowledge Network</h2>
-<div class="grid grid-2">
-    <div class="card">
-      <h3>Team Members</h3>
-      <table>
-        <tr><th>Member</th><th>Memories</th><th>Expertise Areas</th><th>Trust</th></tr>
-        <tr>
-      <td style="font-weight: 600;">Alice</td>
-      <td>4</td>
-      <td><span class="tag">api</span><span class="tag">security</span></td>
-      <td><span style="color: #10b981; font-weight: 600;">85%</span></td>
-    </tr><tr>
-      <td style="font-weight: 600;">Bob</td>
-      <td>4</td>
-      <td><span class="tag">decision</span><span class="tag">api</span></td>
-      <td><span style="color: #3b82f6; font-weight: 600;">78%</span></td>
-    </tr><tr>
-      <td style="font-weight: 600;">Charlie</td>
-      <td>1</td>
-      <td><span class="tag">process</span></td>
-      <td><span style="color: #3b82f6; font-weight: 600;">55%</span></td>
-    </tr><tr>
-      <td style="font-weight: 600;">Diana</td>
-      <td>2</td>
-      <td><span class="tag">general</span><span class="tag">experience</span></td>
-      <td><span style="color: #3b82f6; font-weight: 600;">60%</span></td>
-    </tr>
-      </table>
-    </div>
-    <div class="card">
-      <h3>Knowledge Overlap</h3>
-      <table>
-        <tr><th>Member A</th><th>Member B</th><th>Shared</th><th>Overlap</th></tr>
-        <tr>
-          <td>Alice</td>
-          <td>Bob</td>
-          <td>2 shared</td>
-          <td>
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <div class="progress-bar" style="width: 60px;"><div class="progress-fill" style="width: 33.3%; background: var(--amber);"></div></div>
-              <span style="color: var(--amber); font-size: 0.8rem;">33.3%</span>
-            </div>
-          </td>
-        </tr><tr>
-          <td>Alice</td>
-          <td>Diana</td>
-          <td>1 shared</td>
-          <td>
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <div class="progress-bar" style="width: 60px;"><div class="progress-fill" style="width: 20%; background: var(--red);"></div></div>
-              <span style="color: var(--red); font-size: 0.8rem;">20%</span>
-            </div>
-          </td>
-        </tr>
-      </table>
-    </div>
-    <div class="card">
-      <h3>Knowledge Silos</h3>
-      <div style="padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
-        <strong>Alice</strong> — isolated from: <span class="tag" style="background: #3b82f622; color: #3b82f6;">api</span>
-      </div><div style="padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
-        <strong>Bob</strong> — isolated from: <span class="tag" style="background: #f59e0b22; color: #f59e0b;">decision</span>
-      </div><div style="padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
-        <strong>Charlie</strong> — isolated from: <span class="tag" style="background: #10b98122; color: #10b981;">process</span>
-      </div><div style="padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
-        <strong>Diana</strong> — isolated from: <span class="tag" style="background: #6b728022; color: #6b7280;">general</span>
-      </div>
-    </div>
-    <div class="card">
-      <h3>Network Topology</h3>
-      <table>
-        <tr><td>Person Nodes</td><td style="font-weight: 600;">4</td></tr>
-        <tr><td>Category Nodes</td><td style="font-weight: 600;">6</td></tr>
-        <tr><td>Knowledge Edges (person→category)</td><td style="font-weight: 600;">9</td></tr>
-        <tr><td>Overlap Edges (person↔person)</td><td style="font-weight: 600;">2</td></tr>
-        <tr><td>Knowledge Silos</td><td style="font-weight: 600; color: var(--amber);">4</td></tr>
-      </table>
-    </div>
-  </div>
-
-<!-- Departure Overview -->
-<h2 style="margin-top: 2rem;">Knowledge Transfer Simulation</h2>
-<div class="grid grid-2">
-    <div class="card">
-      <h3>Departure Impact Comparison</h3>
-      <table>
-        <tr><th>Member</th><th>Single Points</th><th>Knowledge Loss</th><th>Risk Increase</th><th>Level</th></tr>
-        <tr>
-      <td style="font-weight: 600;">Alice</td>
-      <td><strong style="color: var(--amber);">2</strong></td>
-      <td>
-        <div style="display: flex; align-items: center; gap: 6px;">
-          <div class="progress-bar" style="width: 60px;"><div class="progress-fill" style="width: 25%; background: #10b981;"></div></div>
-          <span style="font-weight: 600;">25%</span>
-        </div>
-      </td>
-      <td><span style="color: #f59e0b; font-weight: 600;">+30%</span></td>
-      <td><span class="badge badge-amber">Warning</span></td>
-    </tr><tr>
-      <td style="font-weight: 600;">Bob</td>
-      <td><strong style="color: var(--amber);">1</strong></td>
-      <td>
-        <div style="display: flex; align-items: center; gap: 6px;">
-          <div class="progress-bar" style="width: 60px;"><div class="progress-fill" style="width: 12.5%; background: #10b981;"></div></div>
-          <span style="font-weight: 600;">12.5%</span>
-        </div>
-      </td>
-      <td><span style="color: #10b981; font-weight: 600;">+15%</span></td>
-      <td><span class="badge badge-amber">Warning</span></td>
-    </tr><tr>
-      <td style="font-weight: 600;">Charlie</td>
-      <td><strong style="color: var(--amber);">1</strong></td>
-      <td>
-        <div style="display: flex; align-items: center; gap: 6px;">
-          <div class="progress-bar" style="width: 60px;"><div class="progress-fill" style="width: 12.5%; background: #10b981;"></div></div>
-          <span style="font-weight: 600;">12.5%</span>
-        </div>
-      </td>
-      <td><span style="color: #10b981; font-weight: 600;">+15%</span></td>
-      <td><span class="badge badge-amber">Warning</span></td>
-    </tr><tr>
-      <td style="font-weight: 600;">Diana</td>
-      <td><strong style="color: var(--amber);">1</strong></td>
-      <td>
-        <div style="display: flex; align-items: center; gap: 6px;">
-          <div class="progress-bar" style="width: 60px;"><div class="progress-fill" style="width: 12.5%; background: #10b981;"></div></div>
-          <span style="font-weight: 600;">12.5%</span>
-        </div>
-      </td>
-      <td><span style="color: #10b981; font-weight: 600;">+15%</span></td>
-      <td><span class="badge badge-amber">Warning</span></td>
-    </tr>
-      </table>
-    </div>
-    <div class="card">
-      <h3>Team Resilience</h3>
-      <div style="margin-bottom: 1rem;">
-        <div class="stat-value" style="color: #10b981;">79%</div>
-        <div class="stat-label">Overall Team Resilience Score</div>
-      </div>
-      <div class="progress-bar" style="height: 12px;">
-        <div class="progress-fill" style="width: 78.8%; background: #10b981;"></div>
-      </div>
-      <div style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-dim);">
-        Worst case: if <strong style="color: var(--red);">alice</strong> leaves, the team loses <strong style="color: var(--red);">25%</strong> of its knowledge base.
-      </div>
-      <div style="margin-top: 0.75rem; padding: 0.5rem 0.75rem; background: rgba(239, 68, 68, 0.1); border-radius: 6px; border: 1px solid rgba(239, 68, 68, 0.3);">
-            <span style="color: var(--red); font-weight: 600; font-size: 0.85rem;">⚠ Action needed:</span>
-            <span style="color: var(--text-dim); font-size: 0.85rem;"> Prioritize knowledge sharing to reduce single-point dependencies.</span>
-          </div>
-    </div>
+  <h2>📋 Complete Memory Inventory</h2>
+  <div class="card" style="overflow-x:auto">
+    <table><tr><th>ID</th><th>Entity.Attribute</th><th>Value</th><th>Category</th><th>Version</th><th>Strength</th><th>Risk</th></tr><tr><td style="font-family:monospace;font-size:0.85rem">mem-dec-001</td><td style="font-weight:600">客户A.交付格式</td><td style="font-size:0.85rem;color:#94a3b8">交付格式改回Markdown，PDF只发给外部客户</td><td><span style="color:#f59e0b">●</span> decision</td><td>v2</td><td style="color:#3b82f6; font-weight:600">69%</td><td style="color:#f59e0b; font-weight:600">41%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-dec-002</td><td style="font-weight:600">产品部.周会时间</td><td style="font-size:0.85rem;color:#94a3b8">产品周会从周一改到周三下午2点</td><td><span style="color:#f59e0b">●</span> decision</td><td>v1</td><td style="color:#3b82f6; font-weight:600">57%</td><td style="color:#f59e0b; font-weight:600">51%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-dec-003</td><td style="font-weight:600">客户B.合同续签</td><td style="font-size:0.85rem;color:#94a3b8">客户B合同将在6月30日到期，需要提前一个月启动续签流程</td><td><span style="color:#f59e0b">●</span> decision</td><td>v1</td><td style="color:#10b981; font-weight:600">87%</td><td style="color:#10b981; font-weight:600">26%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-dec-004</td><td style="font-weight:600">技术委员会.技术选型</td><td style="font-size:0.85rem;color:#94a3b8">新项目前端框架统一使用React 19，不再使用Vue</td><td><span style="color:#f59e0b">●</span> decision</td><td>v1</td><td style="color:#f97316; font-weight:600">27%</td><td style="color:#ef4444; font-weight:600">62%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-dec-005</td><td style="font-weight:600">团队.代码评审规则</td><td style="font-size:0.85rem;color:#94a3b8">所有PR必须至少2人review才能合并</td><td><span style="color:#f59e0b">●</span> decision</td><td>v1</td><td style="color:#3b82f6; font-weight:600">79%</td><td style="color:#f59e0b; font-weight:600">37%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-dec-006</td><td style="font-weight:600">客户A.需求变更</td><td style="font-size:0.85rem;color:#94a3b8">客户A要求增加数据导出功能，优先级P1</td><td><span style="color:#f59e0b">●</span> decision</td><td>v1</td><td style="color:#10b981; font-weight:600">92%</td><td style="color:#f59e0b; font-weight:600">37%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-api-001</td><td style="font-weight:600">生产环境.API端点</td><td style="font-size:0.85rem;color:#94a3b8">生产环境API端点改为v3，旧端点(/v2)本周五下线</td><td><span style="color:#3b82f6">●</span> api</td><td>v1</td><td style="color:#3b82f6; font-weight:600">72%</td><td style="color:#f59e0b; font-weight:600">36%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-api-002</td><td style="font-weight:600">数据库.连接池配置</td><td style="font-size:0.85rem;color:#94a3b8">数据库连接池最大连接数从50调到200</td><td><span style="color:#3b82f6">●</span> api</td><td>v1</td><td style="color:#f59e0b; font-weight:600">43%</td><td style="color:#f59e0b; font-weight:600">53%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-api-003</td><td style="font-weight:600">支付系统.回调URL</td><td style="font-size:0.85rem;color:#94a3b8">微信支付回调URL: https://api.example.com/pay/wechat/callback</td><td><span style="color:#3b82f6">●</span> api</td><td>v1</td><td style="color:#3b82f6; font-weight:600">60%</td><td style="color:#ef4444; font-weight:600">55%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-api-004</td><td style="font-weight:600">Redis.缓存策略</td><td style="font-size:0.85rem;color:#94a3b8">用户会话缓存TTL从30分钟改为2小时</td><td><span style="color:#3b82f6">●</span> api</td><td>v1</td><td style="color:#f97316; font-weight:600">22%</td><td style="color:#ef4444; font-weight:600">63%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-api-005</td><td style="font-weight:600">OSS.存储桶配置</td><td style="font-size:0.85rem;color:#94a3b8">文件存储桶迁移到阿里云oss-cn-shanghai，旧桶oss-cn-hangzhou月底关停</td><td><span style="color:#3b82f6">●</span> api</td><td>v1</td><td style="color:#10b981; font-weight:600">83%</td><td style="color:#f59e0b; font-weight:600">34%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-proc-001</td><td style="font-weight:600">周报.发送规则</td><td style="font-size:0.85rem;color:#94a3b8">周报统一发给李四，不再抄送王五</td><td><span style="color:#10b981">●</span> process</td><td>v1</td><td style="color:#f59e0b; font-weight:600">44%</td><td style="color:#f59e0b; font-weight:600">51%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-proc-002</td><td style="font-weight:600">发布流程.审批要求</td><td style="font-size:0.85rem;color:#94a3b8">生产发布必须经过技术负责人+产品负责人双审批</td><td><span style="color:#10b981">●</span> process</td><td>v1</td><td style="color:#f97316; font-weight:600">17%</td><td style="color:#ef4444; font-weight:600">59%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-proc-003</td><td style="font-weight:600">On-call.轮值表</td><td style="font-size:0.85rem;color:#94a3b8">5月On-call轮值：第一周王五，第二周李四，第三周张三，第四周王五</td><td><span style="color:#10b981">●</span> process</td><td>v1</td><td style="color:#f97316; font-weight:600">23%</td><td style="color:#ef4444; font-weight:600">56%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-proc-004</td><td style="font-weight:600">Code Review.命名规范</td><td style="font-size:0.85rem;color:#94a3b8">TypeScript项目统一使用camelCase命名，禁止PascalCase变量</td><td><span style="color:#10b981">●</span> process</td><td>v1</td><td style="color:#f59e0b; font-weight:600">49%</td><td style="color:#ef4444; font-weight:600">59%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-proc-005</td><td style="font-weight:600">请假流程.审批规则</td><td style="font-size:0.85rem;color:#94a3b8">请假3天以内直属审批，超过3天需部门总监审批</td><td><span style="color:#10b981">●</span> process</td><td>v1</td><td style="color:#f59e0b; font-weight:600">35%</td><td style="color:#ef4444; font-weight:600">59%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-sec-001</td><td style="font-weight:600">API密钥.轮换计划</td><td style="font-size:0.85rem;color:#94a3b8">所有生产环境API密钥必须在2026年6月1日前完成轮换</td><td><span style="color:#ef4444">●</span> security</td><td>v1</td><td style="color:#3b82f6; font-weight:600">76%</td><td style="color:#f59e0b; font-weight:600">36%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-sec-002</td><td style="font-weight:600">数据库.访问控制</td><td style="font-size:0.85rem;color:#94a3b8">生产数据库禁止直连，必须通过堡垒机访问</td><td><span style="color:#ef4444">●</span> security</td><td>v1</td><td style="color:#3b82f6; font-weight:600">57%</td><td style="color:#f59e0b; font-weight:600">44%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-sec-003</td><td style="font-weight:600">SSL证书.过期时间</td><td style="font-size:0.85rem;color:#94a3b8">主域名example.com的SSL证书在2026年7月15日过期</td><td><span style="color:#ef4444">●</span> security</td><td>v1</td><td style="color:#3b82f6; font-weight:600">62%</td><td style="color:#f59e0b; font-weight:600">51%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-sec-004</td><td style="font-weight:600">第三方SDK.安全漏洞</td><td style="font-size:0.85rem;color:#94a3b8">lodash 4.17.20存在原型链污染漏洞，必须升级到4.17.21+</td><td><span style="color:#ef4444">●</span> security</td><td>v1</td><td style="color:#3b82f6; font-weight:600">80%</td><td style="color:#f59e0b; font-weight:600">38%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-exp-001</td><td style="font-weight:600">部署.踩坑经验</td><td style="font-size:0.85rem;color:#94a3b8">部署前必须先清理Redis缓存，否则新用户注册会失败</td><td><span style="color:#8b5cf6">●</span> experience</td><td>v1</td><td style="color:#f97316; font-weight:600">23%</td><td style="color:#f59e0b; font-weight:600">55%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-exp-002</td><td style="font-weight:600">客户A.沟通偏好</td><td style="font-size:0.85rem;color:#94a3b8">客户A的张总喜欢在微信沟通，不喜欢邮件，回复要简洁</td><td><span style="color:#8b5cf6">●</span> experience</td><td>v1</td><td style="color:#3b82f6; font-weight:600">55%</td><td style="color:#f59e0b; font-weight:600">49%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-exp-003</td><td style="font-weight:600">测试.性能基准</td><td style="font-size:0.85rem;color:#94a3b8">搜索API P99延迟不能超过200ms，超过需要优化</td><td><span style="color:#8b5cf6">●</span> experience</td><td>v1</td><td style="color:#ef4444; font-weight:600">7%</td><td style="color:#ef4444; font-weight:600">68%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-exp-004</td><td style="font-weight:600">CI/CD.构建经验</td><td style="font-size:0.85rem;color:#94a3b8">Docker构建时使用多阶段构建可以将镜像大小从2GB降到200MB</td><td><span style="color:#8b5cf6">●</span> experience</td><td>v1</td><td style="color:#3b82f6; font-weight:600">71%</td><td style="color:#f59e0b; font-weight:600">47%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-exp-005</td><td style="font-weight:600">客户B.投诉处理</td><td style="font-size:0.85rem;color:#94a3b8">客户B投诉过一次响应慢，以后给他们做的接口都要加超时监控</td><td><span style="color:#8b5cf6">●</span> experience</td><td>v1</td><td style="color:#ef4444; font-weight:600">3%</td><td style="color:#ef4444; font-weight:600">74%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-conf-001</td><td style="font-weight:600">服务器.域名配置</td><td style="font-size:0.85rem;color:#94a3b8">...</td><td><span style="color:#3b82f6">●</span> api</td><td>v2</td><td style="color:#ef4444; font-weight:600">0%</td><td style="color:#f59e0b; font-weight:600">49%</td></tr></table>
   </div>
 
 </div>

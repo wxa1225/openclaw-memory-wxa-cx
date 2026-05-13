@@ -589,6 +589,34 @@
       "openclaw-guardian-plugin": {
         "enabled": true
       },
+      "team-memory-engine": {
+        "enabled": true,
+        "config": {
+          "teamId": "openclaw-team",
+          "decayCheckInterval": 1800000,
+          "riskCheckInterval": 3600000,
+          "feishuChatId": "oc_83d25a1a702dd5e85aa4666b1d07554a",
+          "projectRoot": "/home/gem/workspace/agent",
+          "enableGraph": true,
+          "teamSize": 5,
+          "modelEndpoint": "https://innerapi.aiforce.cloud/innerapi/api/v1/sgw/model/proxy/chat/completions",
+<<<<<<< HEAD
+          "modelApiKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIyMzc5MTE2NTc4X2FwcF80azA5bTFnZGhiYmR4X3ByZXZpZXciLCJleHAiOjE3Nzg4NzIxNjIsIm5iZiI6MTc3ODYxMjk2MiwiaWF0IjoxNzc4NjEyOTYyLCJqdGkiOiJmNmY1MDVlZC0wODUwLWU1NGEtODJiMy1lNjZlNzQ5YjllNjQiLCJ0ZW5hbnRfaWQiOjIzNzkxMTY1NzgsInVzZXJfaWQiOjE4NjMxNjEzMTQxNTI0NzEsImFwcF9pZCI6ImFwcF80azA5bTFnZGhiYmR4IiwiYXBwX2VudiI6InByZXZpZXciLCJhY2Nlc3Nfa2V5IjoiMjM3OTExNjU3OF9hcHBfNGswOW0xZ2RoYmJkeF9wcmV2aWV3Iiwic2FuZGJveF9pZCI6IjE4NjMzNDEyNDMxMDQ0NDMifQ.Q4BfxukfuuoFC4v2mFQOax0vwjn_OhyCzpdBlODw6VM",
+          "modelXApiKey": "2379116578_app_4k09mf5wp0scv_preview",
+          "modelName": "doubao-seed-2.0-pro",
+          "extractionBatchSize": 20,
+          "embeddingEndpoint": "https://innerapi.aiforce.cloud/innerapi/api/v1/sgw/model/proxy/embeddings",
+          "embeddingApiKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIyMzc5MTE2NTc4X2FwcF80azA5bTFnZGhiYmR4X3ByZXZpZXciLCJleHAiOjE3Nzg4NzIxNjIsIm5iZiI6MTc3ODYxMjk2MiwiaWF0IjoxNzc4NjEyOTYyLCJqdGkiOiJmNmY1MDVlZC0wODUwLWU1NGEtODJiMy1lNjZlNzQ5YjllNjQiLCJ0ZW5hbnRfaWQiOjIzNzkxMTY1NzgsInVzZXJfaWQiOjE4NjMxNjEzMTQxNTI0NzEsImFwcF9pZCI6ImFwcF80azA5bTFnZGhiYmR4IiwiYXBwX2VudiI6InByZXZpZXciLCJhY2Nlc3Nfa2V5IjoiMjM3OTExNjU3OF9hcHBfNGswOW0xZ2RoYmJkeF9wcmV2aWV3Iiwic2FuZGJveF9pZCI6IjE4NjMzNDEyNDMxMDQ0NDMifQ.Q4BfxukfuuoFC4v2mFQOax0vwjn_OhyCzpdBlODw6VM",
+          "embeddingModel": "text-embedding-3-small",
+          "embeddingXApiKey": "2379116578_app_4k09mf5wp0scv_preview"
+=======
+          "modelName": "doubao-seed-2.0-pro",
+          "extractionBatchSize": 20,
+          "modelApiKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIyMzc5MTE2NTc4X2FwcF80azA5bWY1d3Awc2N2X3ByZXZpZXciLCJleHAiOjE3NzgzMDY1ODQsIm5iZiI6MTc3ODA0NzM4NCwiaWF0IjoxNzc4MDQ3Mzg0LCJqdGkiOiI4Nzk4YzAxOS1kYmJkLWRkNjAtYzllOC1mOGYxZThhMjZjMjYiLCJ0ZW5hbnRfaWQiOjIzNzkxMTY1NzgsInVzZXJfaWQiOjE4NjMxNjExMzA2OTk4MTIsImFwcF9pZCI6ImFwcF80azA5bWY1d3Awc2N2IiwiYXBwX2VudiI6InByZXZpZXciLCJhY2Nlc3Nfa2V5IjoiMjM3OTExNjU3OF9hcHBfNGswOW1mNXdwMHNjdl9wcmV2aWV3Iiwic2FuZGJveF9pZCI6IjE4NjMzNDEyOTMzMzU4ODIifQ.r5NJ5jSUOiCHoBbAMoFlpmvywDxfUi8P_URGkKFQ-F8",
+          "modelXApiKey": "2379116578_app_4k09mf5wp0scv_preview"
+>>>>>>> a7cfd4c (fix: comprehensive demo data, LLM extraction, file locking, TMS enhancement, and config fix)
+        }
+      },
       "openclaw-mem0-plugin": {
         "enabled": false
       },
@@ -598,37 +626,14 @@
           "greeting": {
             "message": "👋 Hi，我是**AI**，一只生活在飞书里的 🦞 小龙虾，打个招呼，我们开始认识一下？",
             "targets": [
-              "ou_23ab1a1db6759ee9ae44a8e441a52153"
+              "ou_23ab1a1db6759ee9ae44a8e441a52153",
+              "ou_d38d8ebf8d6a2e1ffb35317a0a8188df"
             ]
           }
         }
       },
       "openclaw-lark": {
-        "enabled": false
-      },
-      "team-memory-engine": {
-        "enabled": true,
-        "config": {
-          "teamId": "openclaw-team",
-          "projectRoot": "/home/gem/workspace/agent",
-          "feishuChatId": "oc_83d25a1a702dd5e85aa466b1d07554a",
-          "decayCheckInterval": 1800000,
-          "riskCheckInterval": 3600000,
-          "enableGraph": true,
-          "teamSize": 5,
-          "modelEndpoint": "https://innerapi.aiforce.cloud/innerapi/api/v1/sgw/model/proxy/chat/completions",
-          "modelApiKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIyMzc5MTE2NTc4X2FwcF80azA5bWY1d3Awc2N2X3ByZXZpZXciLCJleHAiOjE3Nzg5NDU0OTksIm5iZiI6MTc3ODY4NjI5OSwiaWF0IjoxNzc4Njg2Mjk5LCJqdGkiOiI2MjIwNzJhMC0zODgyLWM5ZTUtYzE1Zi04Y2VmNzNhOTc3ODUiLCJ0ZW5hbnRfaWQiOjIzNzkxMTY1NzgsInVzZXJfaWQiOjE4NjMxNjExMzA2OTk4MTIsImFwcF9pZCI6ImFwcF80azA5bWY1d3Awc2N2IiwiYXBwX2VudiI6InByZXZpZXciLCJhY2Nlc3Nfa2V5IjoiMjM3OTExNjU3OF9hcHBfNGswOW1mNXdwMHNjdl9wcmV2aWV3Iiwic2FuZGJveF9pZCI6IjE4NjMzNDEyOTMzMzU4ODIifQ.30EKJ6EF-al-9YU4NGlrtb5C9HWTJwmqWSrkiVu7oqw",
-          "modelName": "doubao-seed-2.0-pro",
-          "modelXApiKey": "2379116578_app_4k09mf5wp0scv_preview",
-          "extractionBatchSize": 20,
-          "enableProactiveCapture": true,
-          "proactivePromptInterval": 120000,
-          "proactiveMaxPerSession": 10,
-          "embeddingEndpoint": "https://innerapi.aiforce.cloud/innerapi/api/v1/sgw/model/proxy/embeddings",
-          "embeddingApiKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIyMzc5MTE2NTc4X2FwcF80azA5bWY1d3Awc2N2X3ByZXZpZXciLCJleHAiOjE3Nzg5NDU0OTksIm5iZiI6MTc3ODY4NjI5OSwiaWF0IjoxNzc4Njg2Mjk5LCJqdGkiOiI2MjIwNzJhMC0zODgyLWM5ZTUtYzE1Zi04Y2VmNzNhOTc3ODUiLCJ0ZW5hbnRfaWQiOjIzNzkxMTY1NzgsInVzZXJfaWQiOjE4NjMxNjExMzA2OTk4MTIsImFwcF9pZCI6ImFwcF80azA5bWY1d3Awc2N2IiwiYXBwX2VudiI6InByZXZpZXciLCJhY2Nlc3Nfa2V5IjoiMjM3OTExNjU3OF9hcHBfNGswOW1mNXdwMHNjdl9wcmV2aWV3Iiwic2FuZGJveF9pZCI6IjE4NjMzNDEyOTMzMzU4ODIifQ.30EKJ6EF-al-9YU4NGlrtb5C9HWTJwmqWSrkiVu7oqw",
-          "embeddingModel": "text-embedding-3-small",
-          "embeddingXApiKey": "2379116578_app_4k09mf5wp0scv_preview"
-        }
+        "enabled": true
       }
     },
     "installs": {

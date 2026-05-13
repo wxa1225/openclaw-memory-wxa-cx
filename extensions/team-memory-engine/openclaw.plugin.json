@@ -50,7 +50,14 @@
       "modelApiKey": { "type": "string" },
       "modelName": { "type": "string" },
       "modelXApiKey": { "type": "string" },
-      "extractionBatchSize": { "type": "number" }
+      "extractionBatchSize": { "type": "number" },
+      "enableProactiveCapture": { "type": "boolean" },
+      "proactivePromptInterval": { "type": "number" },
+      "proactiveMaxPerSession": { "type": "number" },
+      "embeddingEndpoint": { "type": "string" },
+      "embeddingApiKey": { "type": "string" },
+      "embeddingModel": { "type": "string" },
+      "embeddingXApiKey": { "type": "string" }
     },
     "required": []
   }
