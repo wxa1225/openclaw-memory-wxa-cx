@@ -1,0 +1,65 @@
+[
+  {
+    "id": "evt-001",
+    "storedAt": "2026-05-13T02:03:15.377Z",
+    "chatId": "oc_83d25a1a702dd5e85aa4666b1d07554a",
+    "chatType": "group",
+    "senderId": "ou_23ab1a1db6759ee9ae44a8e441a52153",
+    "senderName": "赵晨旭",
+    "content": "大家注意，我们决定以后所有 PR 都需要两个 Reviewer 批准",
+    "contentType": "text",
+    "messageId": "msg-001",
+    "participants": [
+      "ou_23ab1a1db6759ee9ae44a8e441a52153",
+      "ou_d38d8ebf8d6a2e1ffb35317a0a8188df",
+      "ou_mock_member_003",
+      "ou_mock_member_004",
+      "ou_mock_member_005"
+    ],
+    "processedForExtraction": true,
+    "extractedMemoryIds": [
+      "mem-proc001"
+    ]
+  },
+  {
+    "id": "evt-002",
+    "storedAt": "2026-05-13T04:03:15.377Z",
+    "chatId": "oc_83d25a1a702dd5e85aa4666b1d07554a",
+    "chatType": "group",
+    "senderId": "ou_mock_member_004",
+    "senderName": "张伟",
+    "content": "生产环境 API 端点更新为 https://api.openclaw.internal:8443/v1",
+    "contentType": "text",
+    "messageId": "msg-002",
+    "participants": [
+      "ou_23ab1a1db6759ee9ae44a8e441a52153",
+      "ou_d38d8ebf8d6a2e1ffb35317a0a8188df",
+      "ou_mock_member_003",
+      "ou_mock_member_004",
+      "ou_mock_member_005"
+    ],
+    "processedForExtraction": true,
+    "extractedMemoryIds": [
+      "mem-api001"
+    ]
+  },
+  {
+    "id": "evt-003",
+    "storedAt": "2026-05-13T05:03:15.377Z",
+    "chatId": "oc_83d25a1a702dd5e85aa4666b1d07554a",
+    "chatType": "group",
+    "senderId": "ou_23ab1a1db6759ee9ae44a8e441a52153",
+    "senderName": "赵晨旭",
+    "content": "比赛 Demo 提交截止日是 5 月 20 日，大家要加油！",
+    "contentType": "text",
+    "messageId": "msg-003",
+    "participants": [
+      "ou_23ab1a1db6759ee9ae44a8e441a52153",
+      "ou_d38d8ebf8d6a2e1ffb35317a0a8188df",
+      "ou_mock_member_003",
+      "ou_mock_member_004",
+      "ou_mock_member_005"
+    ],
+    "processedForExtraction": false
+  }
+]

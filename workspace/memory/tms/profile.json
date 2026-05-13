@@ -1,0 +1,173 @@
+{
+  "teamId": "openclaw-team",
+  "members": {
+    "ou_23ab1a1db6759ee9ae44a8e441a52153": {
+      "memberId": "ou_23ab1a1db6759ee9ae44a8e441a52153",
+      "displayName": "赵晨旭",
+      "expertiseAreas": [
+        "decision",
+        "security",
+        "process",
+        "架构",
+        "安全",
+        "流程"
+      ],
+      "knownMemoryIds": [
+        "mem-dec001",
+        "mem-dec002",
+        "mem-dec003",
+        "mem-dec004",
+        "mem-dec005",
+        "mem-dec006",
+        "mem-api001",
+        "mem-api002",
+        "mem-api003",
+        "mem-api004",
+        "mem-proc001",
+        "mem-proc002",
+        "mem-proc003",
+        "mem-proc004",
+        "mem-proc005",
+        "mem-proc006",
+        "mem-sec001",
+        "mem-sec002",
+        "mem-sec003",
+        "mem-sec004",
+        "mem-exp001",
+        "mem-exp002",
+        "mem-exp003",
+        "mem-exp004",
+        "mem-exp005",
+        "mem-gen001",
+        "mem-gen002",
+        "mem-gen003",
+        "mem-gen004"
+      ],
+      "trustScore": 0.95,
+      "lastActiveAt": "2026-05-12T07:03:15.376Z",
+      "contributionCount": 18,
+      "confirmationCount": 25
+    },
+    "ou_d38d8ebf8d6a2e1ffb35317a0a8188df": {
+      "memberId": "ou_d38d8ebf8d6a2e1ffb35317a0a8188df",
+      "displayName": "王小明",
+      "expertiseAreas": [
+        "decision",
+        "api",
+        "experience",
+        "前端",
+        "API",
+        "性能"
+      ],
+      "knownMemoryIds": [
+        "mem-dec002",
+        "mem-dec004",
+        "mem-api001",
+        "mem-api002",
+        "mem-api005",
+        "mem-exp001",
+        "mem-exp003",
+        "mem-proc001",
+        "mem-proc004",
+        "mem-sec001",
+        "mem-sec002",
+        "mem-gen001",
+        "mem-gen003",
+        "mem-gen004"
+      ],
+      "trustScore": 0.82,
+      "lastActiveAt": "2026-05-12T07:03:15.376Z",
+      "contributionCount": 12,
+      "confirmationCount": 15
+    },
+    "ou_mock_member_003": {
+      "memberId": "ou_mock_member_003",
+      "displayName": "李婷婷",
+      "expertiseAreas": [
+        "process",
+        "security",
+        "general",
+        "运维",
+        "质量",
+        "Bug"
+      ],
+      "knownMemoryIds": [
+        "mem-dec004",
+        "mem-dec005",
+        "mem-proc001",
+        "mem-proc003",
+        "mem-proc005",
+        "mem-sec001",
+        "mem-sec003",
+        "mem-exp002",
+        "mem-gen001",
+        "mem-gen002",
+        "mem-gen004"
+      ],
+      "trustScore": 0.75,
+      "lastActiveAt": "2026-05-12T07:03:15.376Z",
+      "contributionCount": 8,
+      "confirmationCount": 12
+    },
+    "ou_mock_member_004": {
+      "memberId": "ou_mock_member_004",
+      "displayName": "张伟",
+      "expertiseAreas": [
+        "api",
+        "security",
+        "decision",
+        "数据库",
+        "认证",
+        "基础设施"
+      ],
+      "knownMemoryIds": [
+        "mem-dec001",
+        "mem-dec003",
+        "mem-api001",
+        "mem-api002",
+        "mem-api004",
+        "mem-sec001",
+        "mem-sec002",
+        "mem-sec003",
+        "mem-sec004",
+        "mem-exp002",
+        "mem-exp003",
+        "mem-proc002",
+        "mem-gen001",
+        "mem-gen003",
+        "mem-gen004"
+      ],
+      "trustScore": 0.9,
+      "lastActiveAt": "2026-05-13T07:03:15.376Z",
+      "contributionCount": 15,
+      "confirmationCount": 20
+    },
+    "ou_mock_member_005": {
+      "memberId": "ou_mock_member_005",
+      "displayName": "陈芳",
+      "expertiseAreas": [
+        "experience",
+        "general",
+        "测试",
+        "文档",
+        "质量"
+      ],
+      "knownMemoryIds": [
+        "mem-dec002",
+        "mem-dec005",
+        "mem-proc005",
+        "mem-proc006",
+        "mem-exp001",
+        "mem-exp005",
+        "mem-sec004",
+        "mem-gen003",
+        "mem-gen004"
+      ],
+      "trustScore": 0.68,
+      "lastActiveAt": "2026-05-12T07:03:15.376Z",
+      "contributionCount": 6,
+      "confirmationCount": 8
+    }
+  },
+  "updatedAt": "2026-05-13T07:03:15.376Z"
+}

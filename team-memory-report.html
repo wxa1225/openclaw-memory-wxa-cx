@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team Memory Insight Report</title>
+<style>
+:root { --bg:#0f172a; --surface:#1e293b; --surface2:#334155; --text:#f1f5f9; --text-dim:#94a3b8; --border:#475569; --accent:#3b82f6; --green:#10b981; --amber:#f59e0b; --red:#ef4444; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; background:var(--bg); color:var(--text); line-height:1.6; padding:2rem; }
+.container { max-width:1400px; margin:0 auto; }
+h1 { font-size:2rem; margin-bottom:0.5rem; }
+h2 { font-size:1.4rem; margin:2rem 0 1rem; color:var(--accent); border-bottom:1px solid var(--border); padding-bottom:0.5rem; }
+h3 { font-size:1.1rem; margin-bottom:0.5rem; color:var(--text-dim); }
+.subtitle { color:var(--text-dim); margin-bottom:2rem; }
+.grid { display:grid; gap:1.5rem; }
+.grid-4 { grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); }
+.grid-2 { grid-template-columns:repeat(auto-fit,minmax(500px,1fr)); }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.5rem; }
+.card-accent { border-left:4px solid var(--accent); }
+.card-green { border-left:4px solid var(--green); }
+.card-amber { border-left:4px solid var(--amber); }
+.card-red { border-left:4px solid var(--red); }
+.stat-value { font-size:2.5rem; font-weight:700; }
+.stat-label { color:var(--text-dim); font-size:0.85rem; }
+table { width:100%; border-collapse:collapse; margin-top:0.5rem; }
+th, td { padding:0.5rem 0.8rem; text-align:left; border-bottom:1px solid var(--border); font-size:0.85rem; }
+th { color:var(--text-dim); font-weight:500; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; }
+tr:hover { background:var(--surface2); }
+.badge { display:inline-block; padding:2px 8px; border-radius:12px; font-size:0.75rem; font-weight:600; }
+.badge-green { background:rgba(16,185,129,0.15); color:var(--green); }
+.badge-amber { background:rgba(245,158,11,0.15); color:var(--amber); }
+.badge-red { background:rgba(239,68,68,0.15); color:var(--red); }
+</style>
+</head>
+<body>
+<div class="container">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem">
+    <div>
+      <h1 style="background:linear-gradient(135deg,var(--accent),#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Team Memory Insight Report</h1>
+      <p class="subtitle">Generated: 2026/5/13 07:05:27 | Team: openclaw-team</p>
+    </div>
+    <div style="text-align:right">
+      <div class="stat-value" style="color:var(--amber)">65</div>
+      <div class="stat-label">Team Health Score / 100</div>
+    </div>
+  </div>
+
+  <div class="grid grid-4" style="margin-bottom:2rem">
+    <div class="card card-accent"><div class="stat-value">30</div><div class="stat-label">Total Memories</div></div>
+    <div class="card card-amber"><div class="stat-value">47%</div><div class="stat-label">Avg Memory Strength</div></div>
+    <div class="card card-amber"><div class="stat-value">44%</div><div class="stat-label">Avg Risk Score</div></div>
+    <div class="card card-accent"><div class="stat-value">5</div><div class="stat-label">Team Members</div></div>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card">
+      <h3>Strength Distribution</h3>
+      <p><span class="badge badge-green">Fresh: 2</span> <span class="badge badge-green">Strong: 9</span> <span class="badge badge-amber">Fading: 11</span> <span class="badge badge-amber">Weak: 6</span> <span class="badge badge-red">Critical: 2</span></p>
+    </div>
+    <div class="card">
+      <h3>System Stats</h3>
+      <p>Conflicts: <span class="badge badge-red">1</span></p>
+      <p>Risk Alerts: <span class="badge badge-red">7</span></p>
+      <p>Categories: 6</p>
+    </div>
+  </div>
+
+  <h2>🔒 Risk Alerts</h2>
+  <div class="card">
+    <table><tr><th>Memory</th><th>Entity.Attribute</th><th>Total Risk</th><th>TimeDecay</th><th>BusinessImpact</th><th>LowCoverage</th></tr></table>
+  </div>
+
+  <h2>📊 Category Breakdown</h2>
+  <div class="card">
+    <table><tr><th>Category</th><th>Count</th><th>Avg Strength</th><th>Avg Risk</th></tr><tr><td><span style="color:#f59e0b">●</span> decision</td><td style="font-weight:600">6</td><td>39%</td><td style="color:#10b981; font-weight:600">42%</td></tr>
+<tr><td><span style="color:#3b82f6">●</span> api</td><td style="font-weight:600">5</td><td>55%</td><td style="color:#10b981; font-weight:600">46%</td></tr>
+<tr><td><span style="color:#10b981">●</span> process</td><td style="font-weight:600">6</td><td>37%</td><td style="color:#10b981; font-weight:600">48%</td></tr>
+<tr><td><span style="color:#ef4444">●</span> security</td><td style="font-weight:600">4</td><td>64%</td><td style="color:#10b981; font-weight:600">42%</td></tr>
+<tr><td><span style="color:#8b5cf6">●</span> experience</td><td style="font-weight:600">5</td><td>53%</td><td style="color:#10b981; font-weight:600">45%</td></tr>
+<tr><td><span style="color:#6b7280">●</span> general</td><td style="font-weight:600">4</td><td>40%</td><td style="color:#10b981; font-weight:600">41%</td></tr></table>
+  </div>
+
+  <h2>👥 Team Members — Knowledge Distribution</h2>
+  <div class="card">
+    <table><tr><th>Member</th><th>Known Memories</th><th>Single Points</th><th>Trust Score</th></tr><tr><td style="font-weight:600">赵晨旭</td><td>29</td><td style="color:#10b981; font-weight:600">0</td><td>95%</td></tr>
+<tr><td style="font-weight:600">王小明</td><td>14</td><td style="color:#f59e0b; font-weight:600">1</td><td>82%</td></tr>
+<tr><td style="font-weight:600">李婷婷</td><td>11</td><td style="color:#f59e0b; font-weight:600">1</td><td>75%</td></tr>
+<tr><td style="font-weight:600">张伟</td><td>15</td><td style="color:#f59e0b; font-weight:600">1</td><td>90%</td></tr>
+<tr><td style="font-weight:600">陈芳</td><td>9</td><td style="color:#10b981; font-weight:600">0</td><td>68%</td></tr></table>
+  </div>
+
+  <h2>📋 Complete Memory Inventory</h2>
+  <div class="card" style="overflow-x:auto">
+    <table><tr><th>ID</th><th>Entity.Attribute</th><th>Value</th><th>Category</th><th>Version</th><th>Strength</th><th>Risk</th></tr><tr><td style="font-family:monospace;font-size:0.85rem">mem-dec001</td><td style="font-weight:600">项目架构.数据库选型</td><td style="font-size:0.85rem;color:#94a3b8">升级为 PostgreSQL，支持多用户并发访问和复杂查询需求</td><td><span style="color:#f59e0b">●</span> decision</td><td>vundefined</td><td style="color:#3b82f6; font-weight:600">80%</td><td style="color:#10b981; font-weight:600">24%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-dec002</td><td style="font-weight:600">前端团队.UI框架</td><td style="font-size:0.85rem;color:#94a3b8">使用 Tailwind CSS + React 作为前端技术栈，支持暗色模式</td><td><span style="color:#f59e0b">●</span> decision</td><td>vundefined</td><td style="color:#f59e0b; font-weight:600">40%</td><td style="color:#f59e0b; font-weight:600">46%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-dec003</td><td style="font-weight:600">项目架构.API网关</td><td style="font-size:0.85rem;color:#94a3b8">使用 Nginx 反向代理作为 API 网关，负责路由、限流和 SSL 终止</td><td><span style="color:#f59e0b">●</span> decision</td><td>vundefined</td><td style="color:#f59e0b; font-weight:600">50%</td><td style="color:#f59e0b; font-weight:600">44%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-dec004</td><td style="font-weight:600">运维团队.部署平台</td><td style="font-size:0.85rem;color:#94a3b8">...</td><td><span style="color:#f59e0b">●</span> decision</td><td>vundefined</td><td style="color:#ef4444; font-weight:600">0%</td><td style="color:#f59e0b; font-weight:600">41%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-dec005</td><td style="font-weight:600">开发团队.迭代周期</td><td style="font-size:0.85rem;color:#94a3b8">采用两周一个 Sprint 的节奏，每周五下午进行回顾和计划</td><td><span style="color:#f59e0b">●</span> decision</td><td>vundefined</td><td style="color:#f97316; font-weight:600">25%</td><td style="color:#f59e0b; font-weight:600">43%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-dec006</td><td style="font-weight:600">商务团队.支付渠道</td><td style="font-size:0.85rem;color:#94a3b8">选择支付宝作为主要支付渠道，微信支付作为备选</td><td><span style="color:#f59e0b">●</span> decision</td><td>vundefined</td><td style="color:#f59e0b; font-weight:600">40%</td><td style="color:#ef4444; font-weight:600">57%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-api001</td><td style="font-weight:600">API网关.生产环境端点</td><td style="font-size:0.85rem;color:#94a3b8">https://api.openclaw.internal:8443/v1 — 内部负载均衡器地址</td><td><span style="color:#3b82f6">●</span> api</td><td>vundefined</td><td style="color:#3b82f6; font-weight:600">64%</td><td style="color:#f59e0b; font-weight:600">38%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-api002</td><td style="font-weight:600">API网关.预发布环境端点</td><td style="font-size:0.85rem;color:#94a3b8">https://staging.openclaw.internal:8443/v1</td><td><span style="color:#3b82f6">●</span> api</td><td>vundefined</td><td style="color:#f59e0b; font-weight:600">44%</td><td style="color:#f59e0b; font-weight:600">48%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-api003</td><td style="font-weight:600">飞书集成.Webhook回调地址</td><td style="font-size:0.85rem;color:#94a3b8">https://api.openclaw.internal:8443/webhook/feishu</td><td><span style="color:#3b82f6">●</span> api</td><td>vundefined</td><td style="color:#3b82f6; font-weight:600">52%</td><td style="color:#f59e0b; font-weight:600">49%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-api004</td><td style="font-weight:600">PostgreSQL.连接字符串格式</td><td style="font-size:0.85rem;color:#94a3b8">postgresql://app_user:<password>@pg-master.internal:5432/openclaw_db?sslmode=req</td><td><span style="color:#3b82f6">●</span> api</td><td>vundefined</td><td style="color:#3b82f6; font-weight:600">80%</td><td style="color:#f59e0b; font-weight:600">32%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-api005</td><td style="font-weight:600">Redis.缓存策略</td><td style="font-size:0.85rem;color:#94a3b8">使用 Redis 缓存热点数据，TTL 设置为 5 分钟，最大内存 512MB</td><td><span style="color:#3b82f6">●</span> api</td><td>vundefined</td><td style="color:#f59e0b; font-weight:600">35%</td><td style="color:#ef4444; font-weight:600">63%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-proc001</td><td style="font-weight:600">开发团队.代码审查规范</td><td style="font-size:0.85rem;color:#94a3b8">所有 PR 需要至少 2 个 Reviewer 批准，其中至少 1 个必须是资深工程师</td><td><span style="color:#10b981">●</span> process</td><td>vundefined</td><td style="color:#f59e0b; font-weight:600">36%</td><td style="color:#f59e0b; font-weight:600">42%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-proc002</td><td style="font-weight:600">运维团队.发布流程</td><td style="font-size:0.85rem;color:#94a3b8">预发布验证通过后，由值班工程师在飞书群中发起发布审批，通过后执行蓝绿部署</td><td><span style="color:#10b981">●</span> process</td><td>vundefined</td><td style="color:#f59e0b; font-weight:600">48%</td><td style="color:#f59e0b; font-weight:600">43%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-proc003</td><td style="font-weight:600">运维团队.值班轮换规则</td><td style="font-size:0.85rem;color:#94a3b8">每周一轮换，值班人负责当周的线上问题和监控告警</td><td><span style="color:#10b981">●</span> process</td><td>vundefined</td><td style="color:#f97316; font-weight:600">28%</td><td style="color:#ef4444; font-weight:600">59%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-proc004</td><td style="font-weight:600">开发团队.分支策略</td><td style="font-size:0.85rem;color:#94a3b8">采用 GitFlow：main 保护分支，feature/* 开发，release/* 预发布，hotfix/* 紧急修复</td><td><span style="color:#10b981">●</span> process</td><td>vundefined</td><td style="color:#f59e0b; font-weight:600">40%</td><td style="color:#f59e0b; font-weight:600">45%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-proc005</td><td style="font-weight:600">质量团队.Bug分级流程</td><td style="font-size:0.85rem;color:#94a3b8">P0: 当天修复; P1: 本周修复; P2: 下个 Sprint; P3: 排入 Backlog</td><td><span style="color:#10b981">●</span> process</td><td>vundefined</td><td style="color:#f59e0b; font-weight:600">44%</td><td style="color:#f59e0b; font-weight:600">40%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-proc006</td><td style="font-weight:600">开发团队.文档规范</td><td style="font-size:0.85rem;color:#94a3b8">每个功能模块必须有 README.md，API 变更需更新 OpenAPI spec</td><td><span style="color:#10b981">●</span> process</td><td>vundefined</td><td style="color:#f97316; font-weight:600">27%</td><td style="color:#ef4444; font-weight:600">60%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-sec001</td><td style="font-weight:600">安全团队.认证方式</td><td style="font-size:0.85rem;color:#94a3b8">使用 JWT + Refresh Token 双 Token 机制，Access Token 有效期 15 分钟，Refresh Token 7 天</td><td><span style="color:#ef4444">●</span> security</td><td>vundefined</td><td style="color:#3b82f6; font-weight:600">73%</td><td style="color:#f59e0b; font-weight:600">32%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-sec002</td><td style="font-weight:600">API网关.限流策略</td><td style="font-size:0.85rem;color:#94a3b8">生产环境限流：未认证用户 10 次/分钟，认证用户 100 次/分钟，白名单 IP 不限</td><td><span style="color:#ef4444">●</span> security</td><td>vundefined</td><td style="color:#3b82f6; font-weight:600">63%</td><td style="color:#f59e0b; font-weight:600">42%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-sec003</td><td style="font-weight:600">运维团队.备份策略</td><td style="font-size:0.85rem;color:#94a3b8">每日凌晨 2:00 全量备份，保留 7 天，异地存储到 OSS 冷归档</td><td><span style="color:#ef4444">●</span> security</td><td>vundefined</td><td style="color:#f97316; font-weight:600">25%</td><td style="color:#ef4444; font-weight:600">68%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-sec004</td><td style="font-weight:600">安全团队.应急响应流程</td><td style="font-size:0.85rem;color:#94a3b8">安全事件分级响应：L1(信息泄露) → 立即封禁 + 通知安全组; L2(服务中断) → 切换备用 + 30分钟内通报; L3(数据损坏) → 恢复备份 + 全</td><td><span style="color:#ef4444">●</span> security</td><td>vundefined</td><td style="color:#10b981; font-weight:600">94%</td><td style="color:#10b981; font-weight:600">25%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-exp001</td><td style="font-weight:600">前端团队.性能优化经验</td><td style="font-size:0.85rem;color:#94a3b8">首屏加载超过 3 秒时，优先检查图片压缩和 Webpack bundle 分析，常见原因是未使用 Tree Shaking</td><td><span style="color:#8b5cf6">●</span> experience</td><td>vundefined</td><td style="color:#3b82f6; font-weight:600">57%</td><td style="color:#f59e0b; font-weight:600">45%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-exp002</td><td style="font-weight:600">数据库团队.迁移经验</td><td style="font-size:0.85rem;color:#94a3b8">数据库迁移必须在低峰期执行，先在小数据量上验证，迁移前做好完整备份</td><td><span style="color:#8b5cf6">●</span> experience</td><td>vundefined</td><td style="color:#f59e0b; font-weight:600">44%</td><td style="color:#f59e0b; font-weight:600">43%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-exp003</td><td style="font-weight:600">后端团队.API设计经验</td><td style="font-size:0.85rem;color:#94a3b8">API 分页统一使用 cursor-based 而非 offset-based，避免深翻页性能问题</td><td><span style="color:#8b5cf6">●</span> experience</td><td>vundefined</td><td style="color:#3b82f6; font-weight:600">69%</td><td style="color:#f59e0b; font-weight:600">34%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-exp004</td><td style="font-weight:600">运维团队.监控告警经验</td><td style="font-size:0.85rem;color:#94a3b8">告警阈值设置：CPU > 80% 持续 5 分钟，内存 > 90%，磁盘 > 85%，P99 延迟 > 2s</td><td><span style="color:#8b5cf6">●</span> experience</td><td>vundefined</td><td style="color:#f97316; font-weight:600">18%</td><td style="color:#ef4444; font-weight:600">68%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-exp005</td><td style="font-weight:600">质量团队.测试策略经验</td><td style="font-size:0.85rem;color:#94a3b8">核心业务逻辑必须有单元测试覆盖率 > 80%，集成测试覆盖主要用户路径</td><td><span style="color:#8b5cf6">●</span> experience</td><td>vundefined</td><td style="color:#3b82f6; font-weight:600">76%</td><td style="color:#f59e0b; font-weight:600">34%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-gen001</td><td style="font-weight:600">开发团队.例会安排</td><td style="font-size:0.85rem;color:#94a3b8">每周一 10:00 站会（15分钟），周四 14:00 技术分享（30分钟）</td><td><span style="color:#6b7280">●</span> general</td><td>vundefined</td><td style="color:#ef4444; font-weight:600">6%</td><td style="color:#f59e0b; font-weight:600">48%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-gen002</td><td style="font-weight:600">人事团队.工作时间</td><td style="font-size:0.85rem;color:#94a3b8">弹性工作制：核心工作时间 10:00-16:00，其余时间自行安排，每周 40 小时</td><td><span style="color:#6b7280">●</span> general</td><td>vundefined</td><td style="color:#f97316; font-weight:600">18%</td><td style="color:#ef4444; font-weight:600">60%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-gen003</td><td style="font-weight:600">开发团队.协作工具</td><td style="font-size:0.85rem;color:#94a3b8">飞书用于日常沟通和文档，GitHub 用于代码管理，Figma 用于设计协作</td><td><span style="color:#6b7280">●</span> general</td><td>vundefined</td><td style="color:#f59e0b; font-weight:600">40%</td><td style="color:#f59e0b; font-weight:600">40%</td></tr>
+<tr><td style="font-family:monospace;font-size:0.85rem">mem-gen004</td><td style="font-weight:600">项目架构.里程碑 deadline</td><td style="font-size:0.85rem;color:#94a3b8">OpenClaw Memory 系统比赛 Demo 提交截止日：2026-05-20，路演日：2026-05-25</td><td><span style="color:#6b7280">●</span> general</td><td>vundefined</td><td style="color:#10b981; font-weight:600">97%</td><td style="color:#10b981; font-weight:600">17%</td></tr></table>
+  </div>
+
+</div>
+</body>
+</html>

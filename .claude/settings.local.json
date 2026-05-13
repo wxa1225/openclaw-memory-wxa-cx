@@ -70,7 +70,13 @@
       "Bash(rm -f ~/.openclaw-memory-ledger.json ~/.openclaw-memory-graph.json)",
       "Bash(rm -f /home/gem/workspace/agent/memory/event-log/*.json)",
       "Bash(rm -f memory/event-log/*.json)",
-      "Bash(rm -f memory/event-log/*.json memory/event-log/processed-ids.json)"
+      "Bash(rm -f memory/event-log/*.json memory/event-log/processed-ids.json)",
+      "Bash(awk '{print \" \", $NF, \"\\(\"$5\" bytes\\)\"}')",
+      "Bash(xargs -I{} basename {})",
+      "Bash(awk '{print \" Size:\", $5, \"bytes \\(\" int\\($5/1024\\) \"KB\\)\"}')",
+      "Bash(awk '{print \" Size:\", $5, \"bytes\"}')",
+      "Bash(awk '{print \"   \" $NF}')",
+      "Bash(env)"
     ]
   }
 }
