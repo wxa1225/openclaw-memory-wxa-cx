@@ -46,15 +46,22 @@ interface CardActionResult {
 }
 
 const ACTION_LABELS: Record<string, string> = {
-  confirm: "已确认有效",
-  update: "已更新记忆",
-  dismiss: "已忽略",
+  confirm: "已保留两个版本",
+  update: "已用新版本替换",
+  dismiss: "已保留旧版本",
+  review: "已复习",
+  dismiss_warning: "已忽略",
+  confirm_save: "已保存",
+  dismiss_save: "已忽略",
+  edit_save: "已保存",
 };
 
 const ACTION_ICONS: Record<string, string> = {
-  confirm: "✓ 确认有效",
-  update: "✓ 更新记忆",
-  dismiss: "✓ 标记过期",
+  confirm: "✓ 两个都保留",
+  update: "✓ 用新版本替换",
+  dismiss: "✓ 保留旧版本",
+  review: "✓ 已复习",
+  dismiss_warning: "✓ 已忽略",
 };
 
 /** Build an updated card showing which action was selected, keeping all buttons clickable */
@@ -72,9 +79,9 @@ function buildUpdatedCard(
   const claimsMd = versionLines.join("\n\n");
 
   const buttonLabels: Record<string, string> = {
-    confirm: selectedAction === "confirm" ? ACTION_ICONS.confirm : "确认有效",
-    update: selectedAction === "update" ? ACTION_ICONS.update : "更新记忆",
-    dismiss: selectedAction === "dismiss" ? ACTION_ICONS.dismiss : "标记过期",
+    confirm: selectedAction === "confirm" ? "✓ 两个都保留" : "两个都保留",
+    update: selectedAction === "update" ? "✓ 用新版本替换" : "用新版本替换",
+    dismiss: selectedAction === "dismiss" ? "✓ 保留旧版本" : "保留旧版本",
   };
 
   const card = {
@@ -127,8 +134,13 @@ export async function handleMemoryReviewAction(
   config: HandlerConfig
 ): Promise<CardActionResult | undefined> {
   const value = data.action?.value;
-  if (!value || !value.action || !value.memory_id) return undefined;
+  if (!value || !value.action) return undefined;
   if (!["confirm", "update", "dismiss", "review", "dismiss_warning", "confirm_save", "dismiss_save", "edit_save"].includes(value.action)) return undefined;
+
+  // Proactive save actions don't need memory_id (memory doesn't exist yet)
+  if (value.action !== "confirm_save" && value.action !== "dismiss_save" && value.action !== "edit_save") {
+    if (!value.memory_id) return undefined;
+  }
 
   // Extract open_message_id from data for card update
   const openMessageId = data.open_message_id ?? data.context?.open_message_id ?? config.openMessageId;

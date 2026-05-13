@@ -11,7 +11,10 @@
         "api",
         "prod",
         "critical",
-        "process"
+        "process",
+        "生产环境",
+        "API配置",
+        "办公流程"
       ],
       "knownMemoryIds": [
         "mem-0be03e2e",
@@ -47,11 +50,17 @@
         "mem-3a2ed527",
         "mem-2106a314",
         "mem-153abc89",
-        "mem-755866f2"
+        "mem-755866f2",
+        "mem-01cf3b54",
+        "mem-f4e25a71",
+        "mem-ca68f58c",
+        "mem-a35aba51",
+        "mem-6f9c3402",
+        "mem-75858e84"
       ],
-      "trustScore": 0.9999988698352965,
-      "lastActiveAt": "2026-05-11T09:43:57.489Z",
-      "contributionCount": 126,
+      "trustScore": 0.9999998470488398,
+      "lastActiveAt": "2026-05-12T14:19:07.417Z",
+      "contributionCount": 146,
       "confirmationCount": 4
     },
     "memory-extractor": {
@@ -197,5 +206,5 @@
       "confirmationCount": 0
     }
   },
-  "updatedAt": "2026-05-11T09:43:57.489Z"
+  "updatedAt": "2026-05-12T14:19:07.417Z"
 }

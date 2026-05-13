@@ -271,6 +271,56 @@ function simulateDecay() {
 }
 
 // ============================================================
+// simulate-review (reset decay clock after user reviews)
+// ============================================================
+
+function simulateReview() {
+  if (!fs.existsSync(LEDGER_PATH)) {
+    console.log("  (ledger empty, skip review demo)");
+    return;
+  }
+  const data: Record<string, any> = JSON.parse(fs.readFileSync(LEDGER_PATH, "utf-8"));
+
+  // Find a decision/api memory
+  let targetId: string | null = null;
+  let targetEntry: any = null;
+  for (const [mid, entry] of Object.entries(data)) {
+    const cat = (entry as any).category || "";
+    if (cat === "api" || cat === "decision") {
+      targetId = mid;
+      targetEntry = entry;
+      break;
+    }
+  }
+
+  if (!targetId || !targetEntry) {
+    console.log("  (no decision/api memory, skip review demo)");
+    return;
+  }
+
+  const claims = targetEntry.claims || [];
+  const latest = claims[claims.length - 1] || {};
+  const cat = targetEntry.category || "general";
+  const halfLife = targetEntry.recall_half_life ?? 14;
+  const now = new Date().toISOString();
+
+  // Reset valid_from to now and boost confidence
+  latest.valid_from = now;
+  latest.confidence = Math.min(1.0, (latest.confidence || 0.8) + 0.15);
+
+  fs.writeFileSync(LEDGER_PATH, JSON.stringify(data, null, 2), "utf-8");
+
+  const value = (latest.value || targetEntry.id).substring(0, 50);
+
+  console.log(`  [执行复习] → 重置衰减时钟，置信度 +15%`);
+  console.log();
+  console.log(`  [复习后]  [${cat}] ${value}`);
+  console.log(`    强度: ●●●●● (100%) | 距今: 0天`);
+  console.log(`    → 记忆强度回到 100%，下次提醒时间已推迟`);
+  console.log();
+}
+
+// ============================================================
 // simulate-conflict-inject
 // ============================================================
 
@@ -433,6 +483,9 @@ switch (command) {
     break;
   case "simulate-decay":
     simulateDecay();
+    break;
+  case "simulate-review":
+    simulateReview();
     break;
   case "simulate-conflict":
     simulateConflictInject();

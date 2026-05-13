@@ -37,8 +37,8 @@ export function formatConflictCard(
     `**v${c.version}** [⚠️ 冲突] ${c.value} — 置信度 ${Math.round(c.confidence * 100)}%`
   ).join("\n\n");
 
-  const v1Value = claims[0]?.value.substring(0, 8) ?? "";
-  const v2Value = claims[1]?.value.substring(0, 8) ?? "";
+  const v1Value = claims[0]?.value.length > 15 ? claims[0].value.substring(0, 15) + "…" : claims[0]?.value ?? "";
+  const v2Value = claims[1]?.value.length > 15 ? claims[1].value.substring(0, 15) + "…" : claims[1]?.value ?? "";
 
   const card = {
     config: { wide_screen_mode: true },
@@ -47,7 +47,7 @@ export function formatConflictCard(
       template: "red" as const,
     },
     elements: [
-      { tag: "div" as const, text: { tag: "plain_text" as const, content: "发现矛盾更新，请选择保留哪个版本" } },
+      { tag: "div" as const, text: { tag: "plain_text" as const, content: "发现矛盾更新，请选择如何处理" } },
       {
         tag: "markdown" as const,
         content: `${claimsText}\n\n💡 选错可随时点击其他按钮切换`,
@@ -63,7 +63,7 @@ export function formatConflictCard(
           },
           {
             tag: "button" as const,
-            text: { tag: "plain_text" as const, content: `保留 v2 (${v2Value})` },
+            text: { tag: "plain_text" as const, content: `用 v2 替换 (${v2Value})` },
             type: "danger" as const,
             value: { memory_id: memoryId, action: "update" },
           },

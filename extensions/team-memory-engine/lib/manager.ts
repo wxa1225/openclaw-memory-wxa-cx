@@ -511,6 +511,12 @@ export class TeamMemoryManager {
       }
     }
 
+    // Format decay reminder cards
+    for (const e of dueEntries.slice(0, 5)) {
+      const { formatDecayCard } = await import("./decay.js");
+      cards.push(formatDecayCard(e));
+    }
+
     // Build summary text
     let content = "";
     if (triggered.length > 0) {
