@@ -780,6 +780,8 @@ const entries: SeedEntry[] = [
 
 const ledger: Record<string, SeedEntry> = {};
 for (const entry of entries) {
+  // Add teamId to each entry so they can be filtered by team
+  (entry as Record<string, unknown>).teamId = TEAM_ID;
   ledger[entry.id] = entry;
 }
 

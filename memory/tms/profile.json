@@ -58,7 +58,7 @@
         "mem-6f9c3402",
         "mem-75858e84"
       ],
-      "trustScore": 0.9999998470488398,
+      "trustScore": 1,
       "lastActiveAt": "2026-05-12T14:19:07.417Z",
       "contributionCount": 146,
       "confirmationCount": 4
@@ -89,7 +89,18 @@
         "交付规范",
         "流程规范",
         "个人助手",
-        "用户偏好"
+        "用户偏好",
+        "生产环境API",
+        "周报管理",
+        "团队周报",
+        "合同管理",
+        "客户B",
+        "security",
+        "安全合规",
+        "API管理",
+        "生产API密钥",
+        "需求管理",
+        "排期"
       ],
       "knownMemoryIds": [
         "mem-3ba0b093",
@@ -198,13 +209,19 @@
         "mem-153abc89",
         "mem-13719dfc",
         "mem-fbbe1849",
-        "mem-598c3a71"
+        "mem-598c3a71",
+        "mem-5880574c",
+        "mem-560073a8",
+        "mem-55e0aa13",
+        "mem-d71709b3",
+        "mem-bc41fccf",
+        "mem-d09c9642"
       ],
       "trustScore": 1,
-      "lastActiveAt": "2026-05-07T11:22:32.483Z",
-      "contributionCount": 434,
+      "lastActiveAt": "2026-05-13T16:25:08.209Z",
+      "contributionCount": 440,
       "confirmationCount": 0
     }
   },
-  "updatedAt": "2026-05-12T14:19:07.417Z"
+  "updatedAt": "2026-05-13T16:25:08.209Z"
 }
