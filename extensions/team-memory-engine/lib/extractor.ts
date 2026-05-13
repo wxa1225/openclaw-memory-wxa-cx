@@ -21,6 +21,17 @@ export interface ExtractionConfig {
   xApiKey?: string;
 }
 
+/** Classified extraction error — lets callers decide retry / pause / fallback */
+export class ExtractionError extends Error {
+  constructor(
+    message: string,
+    public readonly kind: "auth" | "model" | "network" | "parse"
+  ) {
+    super(message);
+    this.name = "ExtractionError";
+  }
+}
+
 const CATEGORIES = ["decision", "api", "process", "experience", "security", "general"] as const;
 
 /** JSON Schema for the extraction output — sent via response_format to the LLM */
@@ -152,6 +163,10 @@ confidence 反映你对提取内容的确定程度：
         return await this.callModel(prompt);
       } catch (err) {
         lastError = err instanceof Error ? err : new Error(String(err));
+        // Auth errors are not retried — the token is broken, not the network
+        if (err instanceof ExtractionError && err.kind === "auth") {
+          throw err;
+        }
         if (attempt < MAX_RETRIES) {
           const delay = this._jitterDelay(BASE_RETRY_DELAY_MS * 2 ** attempt);
           await new Promise((resolve) => setTimeout(resolve, delay));
@@ -197,7 +212,31 @@ confidence 反映你对提取内容的确定程度：
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(`Extraction API error ${response.status}: ${text}`);
+      // 401 = auth token expired/revoked, 403 = quota exceeded or permission
+      if (response.status === 401 || response.status === 403) {
+        throw new ExtractionError(
+          `Extraction API auth error ${response.status}: ${text}`,
+          "auth"
+        );
+      }
+      // 429 = rate limit, 5xx = server error (transient)
+      if (response.status === 429 || response.status >= 500) {
+        throw new ExtractionError(
+          `Extraction API error ${response.status}: ${text}`,
+          "network"
+        );
+      }
+      // 400/422 = bad request (model name wrong, schema invalid)
+      if (response.status === 400 || response.status === 422) {
+        throw new ExtractionError(
+          `Extraction API model error ${response.status}: ${text}`,
+          "model"
+        );
+      }
+      throw new ExtractionError(
+        `Extraction API error ${response.status}: ${text}`,
+        "network"
+      );
     }
 
     const data = await response.json();

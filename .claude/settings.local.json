@@ -79,7 +79,11 @@
       "Bash(env)",
       "Bash(sed -i 's|export TEAM_MEMORY_MODEL_API_KEY=\".*\"|export TEAM_MEMORY_MODEL_API_KEY=\"__TRACKED_VAR__\"|' /home/gem/.bashrc)",
       "Bash(sed -i 's|export TEAM_MEMORY_EMBEDDING_API_KEY=\".*\"|export TEAM_MEMORY_EMBEDDING_API_KEY=\"__TRACKED_VAR__\"|' /home/gem/.bashrc)",
-      "Bash(GIT_HTTP_LOW_SPEED_LIMIT=1000 GIT_HTTP_LOW_SPEED_TIME=30 git push *)"
+      "Bash(GIT_HTTP_LOW_SPEED_LIMIT=1000 GIT_HTTP_LOW_SPEED_TIME=30 git push *)",
+      "Read(//home/gem/**)",
+      "Bash(chmod +x /home/gem/workspace/agent/scripts/healthcheck.sh /home/gem/workspace/agent/scripts/start.sh /home/gem/workspace/agent/scripts/stop.sh /home/gem/workspace/agent/scripts/restart.sh)",
+      "Bash(/home/gem/workspace/agent/scripts/healthcheck.sh)",
+      "Bash(echo \"EXIT=$?\")"
     ]
   }
 }

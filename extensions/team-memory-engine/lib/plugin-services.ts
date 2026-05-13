@@ -11,6 +11,7 @@ import { EventLog } from "./event-log.js";
 import { analyzeForProactiveCapture, PromptRateLimiter, LLMEnhancedCapture } from "./proactive-capture.js";
 import { formatProactiveConfirmCard } from "./proactive-card.js";
 import { sendFeishuMessage } from "./plugin-feishu.js";
+import { ExtractionError } from "./extractor.js";
 
 export function setupEventHooks(api: OpenClawPluginApi, manager: TeamMemoryManager, cfg: TeamMemoryConfig) {
   // Proactive capture rate limiter
@@ -219,6 +220,18 @@ export function registerServices(api: OpenClawPluginApi, manager: TeamMemoryMana
   let pipelineTimer: ReturnType<typeof setInterval> | null = null;
   let dependencyTimer: ReturnType<typeof setInterval> | null = null;
 
+  // Auth error backoff: when the extraction API returns 401/403, pause the
+  // pipeline and double the interval each time (up to 2h) to avoid log spam.
+  let authFailures = 0;
+  let pipelinePausedUntil = 0;
+  const MAX_PIPELINE_BACKOFF = 120 * 60 * 1000; // 2 hours
+
+  function pipelineBackoffMs(): number {
+    if (authFailures <= 0) return 5 * 60 * 1000;
+    // 5min, 10min, 20min, 40min, 80min, 120min, 120min ...
+    return Math.min(5 * 60 * 1000 * 2 ** (authFailures - 1), MAX_PIPELINE_BACKOFF);
+  }
+
   api.registerService({
     id: "team-memory-pipeline",
     async start() {
@@ -226,6 +239,11 @@ export function registerServices(api: OpenClawPluginApi, manager: TeamMemoryMana
 
       pipelineTimer = setInterval(async () => {
         try {
+          // Skip if paused due to auth backoff
+          if (Date.now() < pipelinePausedUntil) {
+            return;
+          }
+
           const eventLog = new EventLog(cfg.projectRoot);
           const unprocessed = await eventLog.getUnprocessed();
           if (unprocessed.length === 0) return;
@@ -234,10 +252,30 @@ export function registerServices(api: OpenClawPluginApi, manager: TeamMemoryMana
           const extracted = await manager.injectFromEvent(batch);
           if (extracted.length === 0) return;
 
+          // Reset auth backoff on success
+          authFailures = 0;
+          pipelinePausedUntil = 0;
+
           await eventLog.markProcessed(batch.map((e) => e.id));
           api.logger.info(`team-memory-pipeline: extracted ${extracted.length} memories from ${batch.length} events`);
         } catch (err) {
-          api.logger.warn(`team-memory-pipeline: failed: ${String(err)}`);
+          // Classify auth errors vs transient
+          if (err instanceof ExtractionError && err.kind === "auth") {
+            authFailures++;
+            pipelinePausedUntil = Date.now() + pipelineBackoffMs();
+            api.logger.warn(
+              `team-memory-pipeline: AUTH ERROR — ${err.message}. ` +
+              `Pipeline paused ${Math.round(pipelineBackoffMs() / 60000)}min. ` +
+              "Fix: check TEAM_MEMORY_MODEL_API_KEY or modelApiKey in openclaw.json plugins.team-memory-engine.config"
+            );
+          } else if (err instanceof ExtractionError && err.kind === "model") {
+            api.logger.warn(
+              `team-memory-pipeline: MODEL ERROR — ${err.message}. ` +
+              "Check TEAM_MEMORY_MODEL_NAME config value."
+            );
+          } else {
+            api.logger.warn(`team-memory-pipeline: failed: ${String(err)}`);
+          }
         }
       }, 5 * 60 * 1000);
     },

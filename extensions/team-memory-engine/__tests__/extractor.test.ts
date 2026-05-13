@@ -1,6 +1,6 @@
 // Unit tests for extractor.ts
 
-import { MemoryExtractor } from "../lib/extractor.js";
+import { MemoryExtractor, ExtractionError } from "../lib/extractor.js";
 import type { EventLogEntry } from "../lib/storage/types.js";
 
 function makeEvent(content: string): EventLogEntry {
@@ -86,5 +86,35 @@ describe("MemoryExtractor", () => {
   test("empty event batch returns []", async () => {
     const ext = new MockExtractor("anything");
     expect((await ext.extract([], { existingEntries: [], teamId: "test" })).length).toBe(0);
+  });
+});
+
+describe("ExtractionError", () => {
+  test("error class carries kind property", () => {
+    const authErr = new ExtractionError("bad token", "auth");
+    expect(authErr.kind).toBe("auth");
+    expect(authErr.name).toBe("ExtractionError");
+    expect(authErr.message).toBe("bad token");
+
+    const modelErr = new ExtractionError("model not found", "model");
+    expect(modelErr.kind).toBe("model");
+
+    const netErr = new ExtractionError("connection reset", "network");
+    expect(netErr.kind).toBe("network");
+  });
+
+  test("auth errors are not retried (immediate fail)", async () => {
+    let callCount = 0;
+    class AuthFailExtractor extends MemoryExtractor {
+      constructor() { super({ modelEndpoint: "http://localhost/mock", modelApiKey: "bad", modelName: "mock" }); }
+      protected override async callModel(): Promise<string> {
+        callCount++;
+        throw new ExtractionError("auth error", "auth");
+      }
+    }
+    const ext = new AuthFailExtractor();
+    await expect(ext.extract([makeEvent("test")], { existingEntries: [], teamId: "test" }))
+      .rejects.toThrow(ExtractionError);
+    expect(callCount).toBe(1); // No retries for auth errors
   });
 });

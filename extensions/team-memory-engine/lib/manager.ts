@@ -36,7 +36,7 @@ import { MemoryLedger, type InjectClaimOptions, type ConflictResult } from "./le
 import { MemoryGraph } from "./graph.js";
 import { RiskModel } from "./risk.js";
 import { runMigration } from "./migrate.js";
-import { MemoryExtractor, type ExtractedMemory, type ExtractionConfig } from "./extractor.js";
+import { MemoryExtractor, type ExtractedMemory, type ExtractionConfig, ExtractionError } from "./extractor.js";
 import { TeamCapabilityModel } from "./tms.js";
 import { TMSKnowledgeAnalyzer } from "./knowledge-analyzer.js";
 import { MemoryInsightEngine } from "./insight-engine.js";
@@ -185,10 +185,22 @@ export class TeamMemoryManager {
     if (entries.length === 0) return [];
 
     if (this.extractor) {
-      const extracted = await this.extractor.extract(entries, {
-        existingEntries: await this.ledger.getAllEntries(this.teamId),
-        teamId: this.teamId,
-      });
+      let extracted: ExtractedMemory[];
+      try {
+        extracted = await this.extractor.extract(entries, {
+          existingEntries: await this.ledger.getAllEntries(this.teamId),
+          teamId: this.teamId,
+        });
+      } catch (err) {
+        // Auth/model errors: fall back to raw event injection so events
+        // aren't silently lost when the LLM API is down
+        if (err instanceof ExtractionError) {
+          return this._injectRawEvents(entries);
+        }
+        throw err;
+      }
+      if (extracted.length === 0) return [];
+
       const results: LedgerEntry[] = [];
       for (const mem of extracted) {
         const entry = await this.ledger.injectClaim({
@@ -215,7 +227,11 @@ export class TeamMemoryManager {
       return results;
     }
 
-    // Fallback: inject each event content as a raw memory (regex extraction)
+    return this._injectRawEvents(entries);
+  }
+
+  /** Fallback: inject event content as raw memories when LLM is unavailable */
+  private async _injectRawEvents(entries: EventLogEntry[]): Promise<LedgerEntry[]> {
     const results: LedgerEntry[] = [];
     for (const evt of entries) {
       const entry = await this.ledger.injectClaim({
