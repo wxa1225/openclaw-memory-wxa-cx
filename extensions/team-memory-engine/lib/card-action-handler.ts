@@ -35,6 +35,13 @@ interface HandlerConfig {
   openMessageId?: string;
   accountId?: string;
   cfg?: unknown;
+  // Model config for LLM-based EAV extraction in proactive capture
+  modelEndpoint?: string;
+  modelApiKey?: string;
+  modelName?: string;
+  modelXApiKey?: string;
+  // Project root for event log feedback
+  projectRoot?: string;
 }
 
 interface CardActionResult {
@@ -222,15 +229,23 @@ export async function handleMemoryReviewAction(
   if (value.action === "confirm_save") {
     const memoryText = value.memory_text ?? "Unknown memory";
     const category = value.category ?? "general";
-    const entity = value.entity && value.entity !== "general" ? value.entity : undefined;
-    const attribute = value.attribute ?? undefined;
-    const memValue = value.value ?? memoryText;
 
     try {
-      const { extractEntityAttribute } = await import("./extract-utils.js");
-      const eav = entity && attribute
-        ? { entity, attribute, value: memValue }
-        : extractEntityAttribute(memoryText, category);
+      // Try LLM extraction first if model endpoint is configured, fallback to heuristic
+      let eav: { entity: string; attribute: string; value: string };
+
+      if (config.modelEndpoint && config.modelApiKey) {
+        try {
+          eav = await llmExtractSingleEAV(memoryText, category, config.modelEndpoint, config.modelApiKey, config.modelName, config.modelXApiKey);
+        } catch (llmErr) {
+          // Fallback to heuristic extraction
+          const { extractEntityAttribute } = await import("./extract-utils.js");
+          eav = extractEntityAttribute(memoryText, category);
+        }
+      } else {
+        const { extractEntityAttribute } = await import("./extract-utils.js");
+        eav = extractEntityAttribute(memoryText, category);
+      }
 
       const { MemoryLedger } = await import("./ledger.js");
       const ledger = new MemoryLedger(enrichedConfig.teamId, enrichedConfig.ledgerPath);
@@ -246,6 +261,25 @@ export async function handleMemoryReviewAction(
         teamId: enrichedConfig.teamId,
         recallHalfLife: 14,
       });
+
+      // Log card action result to event log for feedback loop
+      if (config.projectRoot) {
+        try {
+          const { EventLog } = await import("./event-log.js");
+          const eventLog = new EventLog(config.projectRoot);
+          await eventLog.appendCardAction({
+            chatId: data.open_chat_id ?? data.context?.open_chat_id ?? "unknown",
+            chatType: (data.open_chat_id?.startsWith("oc_") ?? false) ? "group" : "p2p",
+            senderId: resolverId,
+            action: "confirm_save",
+            memoryId: entry.id,
+            memoryText: eav.value,
+            category,
+          });
+        } catch {
+          // Event log not critical — ignore errors
+        }
+      }
 
       return {
         toast: { type: "success", content: "✅ 已保存到团队记忆" },
@@ -357,5 +391,82 @@ export async function handleMemoryReviewAction(
       content: `${ACTION_LABELS[value.action]} — 记忆已更新`,
     },
     card: updated ? buildUpdatedCard(updated, value.action) : undefined,
+  };
+}
+
+/**
+ * LLM-based single-message EAV extraction for proactive capture.
+ * Calls the configured model to extract entity/attribute/value from one message.
+ * Falls back to heuristic extraction on any error.
+ */
+async function llmExtractSingleEAV(
+  text: string,
+  category: string,
+  endpoint: string,
+  apiKey: string,
+  modelName?: string,
+  xApiKey?: string
+): Promise<{ entity: string; attribute: string; value: string }> {
+  const prompt = `从以下对话中提取结构化的实体/属性/值信息。
+
+对话内容："${text}"
+
+返回 JSON 格式：{"entity": "具体的名称", "attribute": "属性名", "value": "值"}
+
+要求：
+- entity 必须是具体的名称（人名、项目名、系统名、客户名等），不要使用 "general"
+- attribute 是 entity 的某个具体方面
+- value 是提取的具体值
+- 参考类别提示：${category}
+
+只返回 JSON，不要其他文字。`;
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${apiKey}`,
+  };
+
+  if (xApiKey) {
+    headers["x-api-key"] = xApiKey;
+  }
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      model: modelName ?? "qwen-plus",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.1,
+      max_tokens: 300,
+      response_format: { type: "json_object" as const },
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`LLM extraction error ${response.status}: ${await response.text()}`);
+  }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content ?? "";
+
+  if (!content.trim()) {
+    throw new Error("Empty LLM response");
+  }
+
+  let jsonStr = content.trim();
+  const codeFenceMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (codeFenceMatch) {
+    jsonStr = codeFenceMatch[1].trim();
+  }
+
+  const parsed = JSON.parse(jsonStr);
+  if (!parsed.entity || !parsed.attribute || !parsed.value) {
+    throw new Error("LLM response missing required fields");
+  }
+
+  return {
+    entity: String(parsed.entity).trim(),
+    attribute: String(parsed.attribute).trim(),
+    value: String(parsed.value).trim(),
   };
 }

@@ -102,6 +102,36 @@ export class EventLog {
     await this.saveProcessedIds(processed);
   }
 
+  /** Append a card action result (user interaction with memory cards) to the event log */
+  async appendCardAction(entry: {
+    chatId: string;
+    chatType: "p2p" | "group";
+    senderId: string;
+    action: string;
+    memoryId: string;
+    memoryText?: string;
+    category?: string;
+  }): Promise<void> {
+    await fs.promises.mkdir(this.logDir, { recursive: true });
+
+    const cardEntry: EventLogEntry = {
+      id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      storedAt: new Date().toISOString(),
+      chatId: entry.chatId,
+      chatType: entry.chatType,
+      senderId: entry.senderId,
+      content: `[CARD_ACTION] action=${entry.action} memory_id=${entry.memoryId}${entry.memoryText ? ` text="${entry.memoryText}"` : ""}`,
+      contentType: "text",
+      messageId: `card-${entry.memoryId}-${entry.action}`,
+      threadId: undefined,
+      participants: undefined,
+      processedForExtraction: true, // Already processed, don't re-extract
+      tags: ["card_action", entry.action],
+    };
+
+    await this.appendToDailyFile(cardEntry);
+  }
+
   // ---- Internal ----
 
   private dateFilePath(date: string): string {

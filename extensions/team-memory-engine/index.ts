@@ -35,6 +35,28 @@ const plugin = {
   description: "Team Cognitive Infrastructure — Memory OS with Ledger, Graph, Risk Model, and Vector Search",
   kind: "memory" as const,
   configSchema: {
+    type: "object" as const,
+    properties: {
+      teamId: { type: "string" as const },
+      decayCheckInterval: { type: "number" as const },
+      riskCheckInterval: { type: "number" as const },
+      feishuChatId: { type: "string" as const },
+      teamSize: { type: "number" as const },
+      enableGraph: { type: "boolean" as const },
+      projectRoot: { type: "string" as const },
+      modelEndpoint: { type: "string" as const },
+      modelApiKey: { type: "string" as const },
+      modelName: { type: "string" as const },
+      modelXApiKey: { type: "string" as const },
+      extractionBatchSize: { type: "number" as const },
+      enableProactiveCapture: { type: "boolean" as const },
+      proactivePromptInterval: { type: "number" as const },
+      proactiveMaxPerSession: { type: "number" as const },
+      embeddingEndpoint: { type: "string" as const },
+      embeddingApiKey: { type: "string" as const },
+      embeddingModel: { type: "string" as const },
+      embeddingXApiKey: { type: "string" as const },
+    },
     parse(value: unknown): TeamMemoryConfig {
       if (!value || typeof value !== "object" || Array.isArray(value)) {
         return parseConfig({});

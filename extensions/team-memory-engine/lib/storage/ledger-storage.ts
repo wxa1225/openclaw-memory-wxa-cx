@@ -9,6 +9,46 @@ const DEFAULT_PATH = path.join(
   ".openclaw-memory-ledger.json"
 );
 
+/**
+ * Cross-process file lock using a .lock sentinel file.
+ *
+ * This is a cooperative lock — all readers and writers of the ledger
+ * file must use it. It uses a simple spin-lock with setTimeout to
+ * avoid blocking the event loop.
+ */
+class CrossProcessLock {
+  private lockPath: string;
+
+  constructor(filePath: string) {
+    this.lockPath = filePath + ".lock";
+  }
+
+  /** Acquire the lock, spinning with delays if already held */
+  async acquire(maxRetries = 20, retryDelayMs = 50): Promise<void> {
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        // Try to create lock file with exclusive flag (fails if exists)
+        fs.writeFileSync(this.lockPath, String(process.pid), { flag: "wx" });
+        return;
+      } catch {
+        // Lock held by another process, wait and retry
+        await new Promise((r) => setTimeout(r, retryDelayMs));
+      }
+    }
+    // Force acquire — stale lock
+    fs.writeFileSync(this.lockPath, String(process.pid));
+  }
+
+  /** Release the lock */
+  release(): void {
+    try {
+      fs.rmSync(this.lockPath, { force: true });
+    } catch {
+      // Lock already released
+    }
+  }
+}
+
 /** In-memory indexes for faster lookups.
  * Built lazily on first query and kept in sync with mutations. */
 interface LedgerIndexes {
@@ -67,9 +107,12 @@ export class LedgerStorageBackend {
   private indexes: LedgerIndexes | null = null;
   // Write lock queue: chains writes sequentially to prevent race conditions
   private writeLock = Promise.resolve();
+  // Cross-process lock for multi-process safety
+  private lock: CrossProcessLock;
 
   constructor(filePath: string = DEFAULT_PATH) {
     this.filePath = filePath;
+    this.lock = new CrossProcessLock(filePath);
   }
 
   async load(): Promise<Map<string, LedgerEntry>> {
@@ -88,11 +131,17 @@ export class LedgerStorageBackend {
 
   async save(): Promise<void> {
     if (!this.cache) return;
-    const tmpPath = this.filePath + ".tmp";
-    const data: Record<string, LedgerEntry> = {};
-    this.cache.forEach((v, k) => { data[k] = v; });
-    await fs.promises.writeFile(tmpPath, JSON.stringify(data, null, 2), "utf-8");
-    await fs.promises.rename(tmpPath, this.filePath);
+    // Cross-process lock: prevents concurrent writes from separate Node.js processes
+    await this.lock.acquire();
+    try {
+      const tmpPath = this.filePath + ".tmp";
+      const data: Record<string, LedgerEntry> = {};
+      this.cache.forEach((v, k) => { data[k] = v; });
+      await fs.promises.writeFile(tmpPath, JSON.stringify(data, null, 2), "utf-8");
+      await fs.promises.rename(tmpPath, this.filePath);
+    } finally {
+      this.lock.release();
+    }
   }
 
   /**

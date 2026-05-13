@@ -58,6 +58,14 @@ function defaultConfig(): TeamMemoryConfig {
 
 export function parseConfig(value: Record<string, unknown>): TeamMemoryConfig {
   const def = defaultConfig();
+
+  // Support API keys from environment variables (recommended for security)
+  const envApiKey = process.env.TEAM_MEMORY_MODEL_API_KEY;
+  const envXApiKey = process.env.TEAM_MEMORY_MODEL_XAPI_KEY;
+  const envEndpoint = process.env.TEAM_MEMORY_MODEL_ENDPOINT;
+  const envEmbeddingEndpoint = process.env.TEAM_MEMORY_EMBEDDING_ENDPOINT;
+  const envEmbeddingApiKey = process.env.TEAM_MEMORY_EMBEDDING_API_KEY;
+
   return {
     teamId: typeof value.teamId === "string" && value.teamId ? value.teamId : def.teamId,
     decayCheckInterval: typeof value.decayCheckInterval === "number" ? value.decayCheckInterval : def.decayCheckInterval,
@@ -66,16 +74,16 @@ export function parseConfig(value: Record<string, unknown>): TeamMemoryConfig {
     teamSize: typeof value.teamSize === "number" && value.teamSize > 0 ? value.teamSize : def.teamSize,
     enableGraph: typeof value.enableGraph === "boolean" ? value.enableGraph : def.enableGraph,
     projectRoot: typeof value.projectRoot === "string" && value.projectRoot ? value.projectRoot : def.projectRoot,
-    modelEndpoint: typeof value.modelEndpoint === "string" ? value.modelEndpoint : def.modelEndpoint,
-    modelApiKey: typeof value.modelApiKey === "string" ? value.modelApiKey : def.modelApiKey,
+    modelEndpoint: typeof value.modelEndpoint === "string" ? value.modelEndpoint : (envEndpoint ?? def.modelEndpoint),
+    modelApiKey: typeof value.modelApiKey === "string" ? value.modelApiKey : (envApiKey ?? def.modelApiKey),
     modelName: typeof value.modelName === "string" && value.modelName ? value.modelName : def.modelName,
-    modelXApiKey: typeof value.modelXApiKey === "string" ? value.modelXApiKey : def.modelXApiKey,
+    modelXApiKey: typeof value.modelXApiKey === "string" ? value.modelXApiKey : (envXApiKey ?? def.modelXApiKey),
     extractionBatchSize: typeof value.extractionBatchSize === "number" && value.extractionBatchSize > 0 ? value.extractionBatchSize : def.extractionBatchSize,
     enableProactiveCapture: typeof value.enableProactiveCapture === "boolean" ? value.enableProactiveCapture : def.enableProactiveCapture,
     proactivePromptInterval: typeof value.proactivePromptInterval === "number" ? value.proactivePromptInterval : def.proactivePromptInterval,
     proactiveMaxPerSession: typeof value.proactiveMaxPerSession === "number" ? value.proactiveMaxPerSession : def.proactiveMaxPerSession,
-    embeddingEndpoint: typeof value.embeddingEndpoint === "string" ? value.embeddingEndpoint : def.embeddingEndpoint,
-    embeddingApiKey: typeof value.embeddingApiKey === "string" ? value.embeddingApiKey : def.embeddingApiKey,
+    embeddingEndpoint: typeof value.embeddingEndpoint === "string" ? value.embeddingEndpoint : (envEmbeddingEndpoint ?? def.embeddingEndpoint),
+    embeddingApiKey: typeof value.embeddingApiKey === "string" ? value.embeddingApiKey : (envEmbeddingApiKey ?? def.embeddingApiKey),
     embeddingModel: typeof value.embeddingModel === "string" && value.embeddingModel ? value.embeddingModel : def.embeddingModel,
     embeddingXApiKey: typeof value.embeddingXApiKey === "string" ? value.embeddingXApiKey : def.embeddingXApiKey,
   };

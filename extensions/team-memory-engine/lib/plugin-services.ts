@@ -95,11 +95,13 @@ export function setupEventHooks(api: OpenClawPluginApi, manager: TeamMemoryManag
 
     const sessionKey = (ctx as Record<string, unknown>)?.sessionKey as string | undefined;
     const agentId = (ctx as Record<string, unknown>)?.agentId as string | undefined;
+    // Detect group chat context from session key format (group chats have "oc_" prefix)
+    const isGroupChat = sessionKey?.startsWith("oc_") ?? false;
 
     try {
       await eventLog.append({
         chatId: sessionKey ?? "unknown-session",
-        chatType: "p2p",
+        chatType: isGroupChat ? "group" : "p2p",
         senderId: "user",
         senderName: undefined,
         content: prompt,
@@ -119,6 +121,7 @@ export function setupEventHooks(api: OpenClawPluginApi, manager: TeamMemoryManag
     if (!evt.success || !evt.messages || evt.messages.length === 0) return;
 
     const sessionKey = (ctx as Record<string, unknown>)?.sessionKey as string | undefined;
+    const isGroupChat = sessionKey?.startsWith("oc_") ?? false;
 
     try {
       const messages = evt.messages as Array<{ role?: string; content?: string | Array<{ type: string; text: string }> }>;
@@ -143,7 +146,7 @@ export function setupEventHooks(api: OpenClawPluginApi, manager: TeamMemoryManag
           if (textContent.trim()) {
             await eventLog.append({
               chatId: sessionKey ?? "unknown-session",
-              chatType: "p2p",
+              chatType: isGroupChat ? "group" : "p2p",
               senderId: "agent",
               senderName: "AI",
               content: textContent.trim(),
@@ -258,6 +261,21 @@ export function registerServices(api: OpenClawPluginApi, manager: TeamMemoryMana
 
           await eventLog.markProcessed(batch.map((e) => e.id));
           api.logger.info(`team-memory-pipeline: extracted ${extracted.length} memories from ${batch.length} events`);
+
+          // Run dependency inference after new memories are extracted
+          if (extracted.length > 0 && cfg.modelEndpoint && cfg.modelApiKey) {
+            try {
+              const result = await manager.inferDependencies();
+              if (result.dependencies.length > 0) {
+                api.logger.info(`team-memory-pipeline: inferred ${result.dependencies.length} dependencies`);
+                for (const dep of result.dependencies) {
+                  api.logger.info(`  ${dep.sourceId} -[${dep.relation}]-> ${dep.targetId}: ${dep.reason}`);
+                }
+              }
+            } catch (err) {
+              api.logger.warn(`team-memory-pipeline: dependency inference failed: ${String(err)}`);
+            }
+          }
         } catch (err) {
           // Classify auth errors vs transient
           if (err instanceof ExtractionError && err.kind === "auth") {

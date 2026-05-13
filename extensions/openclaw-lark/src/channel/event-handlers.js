@@ -43,11 +43,19 @@ async function handleMemoryReviewAction(data, ctx) {
     if (!["confirm", "update", "dismiss", "review", "dismiss_warning", "confirm_save", "dismiss_save", "edit_save"].includes(value.action)) return undefined;
     try {
         const { handleMemoryReviewAction } = await import("../../../../team-memory-engine/lib/card-action-handler.js");
+        const tmCfg = ctx?.cfg?.["team-memory-engine"]?.config || {};
         return await handleMemoryReviewAction(data, {
-            teamId: process.env?.TEAM_MEMORY_TEAM_ID || "openclaw-team",
+            teamId: process.env?.TEAM_MEMORY_TEAM_ID || tmCfg.teamId || "openclaw-team",
             openMessageId: data.open_message_id ?? data.context?.open_message_id,
             accountId: ctx?.accountId,
             cfg: ctx?.cfg,
+            // Pass model config for LLM-based EAV extraction in proactive capture
+            modelEndpoint: tmCfg.modelEndpoint || process.env.TEAM_MEMORY_MODEL_ENDPOINT,
+            modelApiKey: tmCfg.modelApiKey || process.env.TEAM_MEMORY_MODEL_API_KEY,
+            modelName: tmCfg.modelName || process.env.TEAM_MEMORY_MODEL_NAME,
+            modelXApiKey: tmCfg.modelXApiKey || process.env.TEAM_MEMORY_MODEL_XAPI_KEY,
+            // Project root for card action feedback to event log
+            projectRoot: tmCfg.projectRoot || process.env.PROJECT_ROOT,
         });
     }
     catch {
