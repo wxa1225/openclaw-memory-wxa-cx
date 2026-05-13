@@ -8,6 +8,9 @@ GATEWAY_PORT=18789
 HEALTHY=0
 DEGRADED=1
 DOWN=2
+MEM_DIR="/home/gem/workspace/agent"
+LEDGER_FILE=""
+EVENT_LOG=""
 
 # Colors (only if stdout is a terminal)
 if [ -t 1 ]; then
