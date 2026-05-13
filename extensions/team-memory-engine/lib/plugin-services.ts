@@ -8,7 +8,7 @@ import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
 import type { TeamMemoryManager } from "./manager.js";
 import type { TeamMemoryConfig } from "./plugin-config.js";
 import { EventLog } from "./event-log.js";
-import { analyzeForProactiveCapture, PromptRateLimiter } from "./proactive-capture.js";
+import { analyzeForProactiveCapture, PromptRateLimiter, LLMEnhancedCapture } from "./proactive-capture.js";
 import { formatProactiveConfirmCard } from "./proactive-card.js";
 import { sendFeishuMessage } from "./plugin-feishu.js";
 
@@ -18,6 +18,20 @@ export function setupEventHooks(api: OpenClawPluginApi, manager: TeamMemoryManag
     minIntervalMs: cfg.proactivePromptInterval,
     maxPerSession: cfg.proactiveMaxPerSession,
   });
+
+  // LLM-enhanced capture (only if model endpoint configured)
+  const llmCapture = (cfg.modelEndpoint && cfg.modelApiKey)
+    ? new LLMEnhancedCapture({
+        modelEndpoint: cfg.modelEndpoint,
+        modelApiKey: cfg.modelApiKey,
+        modelName: cfg.modelName ?? "doubao-seed-2.0-pro",
+        xApiKey: cfg.modelXApiKey || undefined,
+      })
+    : null;
+
+  if (llmCapture) {
+    api.logger.info("team-memory-engine: LLM-enhanced proactive capture enabled");
+  }
 
   if (!cfg.projectRoot) {
     api.logger.info("team-memory-engine: event logging disabled (projectRoot not configured)");
@@ -40,8 +54,26 @@ export function setupEventHooks(api: OpenClawPluginApi, manager: TeamMemoryManag
     // Proactive Memory Capture — real-time decision detection
     if (cfg.enableProactiveCapture && cfg.feishuChatId) {
       try {
-        const capture = analyzeForProactiveCapture(prompt, { isOwner: true, isGroup: false });
-        if (capture.detected && rateLimiter.canPrompt()) {
+        // Hybrid approach: regex first (fast), then LLM enhancement (async)
+        let capture = analyzeForProactiveCapture(prompt, { isOwner: true, isGroup: false });
+        if (!capture.detected) return;
+
+        // LLM enhancement: if available, enrich with structured extraction
+        if (llmCapture && rateLimiter.canPrompt()) {
+          try {
+            const llmResult = await llmCapture.analyze(prompt);
+            if (llmResult) {
+              capture = { ...capture, ...llmResult };
+              api.logger.info(
+                `team-memory-engine: LLM-enhanced capture [${capture.triggerType}] entity=${capture.entity ?? "?"} attribute=${capture.attribute ?? "?"} confidence=${(capture.confidence * 100).toFixed(0)}% — "${capture.memoryText.substring(0, 60)}"`
+              );
+            }
+          } catch {
+            // LLM enhancement failed, continue with regex result
+          }
+        }
+
+        if (rateLimiter.canPrompt()) {
           rateLimiter.recordPrompt();
           api.logger.info(
             `team-memory-engine: proactive capture detected [${capture.triggerType}] confidence=${(capture.confidence * 100).toFixed(0)}% — "${capture.memoryText.substring(0, 60)}"`
@@ -185,6 +217,7 @@ export function registerServices(api: OpenClawPluginApi, manager: TeamMemoryMana
   if (!cfg.projectRoot) return;
 
   let pipelineTimer: ReturnType<typeof setInterval> | null = null;
+  let dependencyTimer: ReturnType<typeof setInterval> | null = null;
 
   api.registerService({
     id: "team-memory-pipeline",
@@ -213,4 +246,34 @@ export function registerServices(api: OpenClawPluginApi, manager: TeamMemoryMana
       api.logger.info("team-memory-pipeline: stopped");
     },
   });
+
+  // Dependency inference service — periodically scans ledger for cross-memory dependencies
+  if (cfg.modelEndpoint && cfg.modelApiKey) {
+    api.registerService({
+      id: "team-memory-dependency-inference",
+      async start() {
+        api.logger.info("team-memory-dependency-inference: starting (30min interval)");
+
+        dependencyTimer = setInterval(async () => {
+          try {
+            const result = await manager.inferDependencies();
+            if (result.dependencies.length > 0) {
+              api.logger.info(`team-memory-dependency-inference: inferred ${result.dependencies.length} dependencies across ${result.updatedEntries.length} entries`);
+              // Rebuild graph to include new dependency edges
+              if (cfg.enableGraph) {
+                await manager.rebuildGraph();
+                api.logger.info("team-memory-dependency-inference: graph rebuilt with new dependencies");
+              }
+            }
+          } catch (err) {
+            api.logger.warn(`team-memory-dependency-inference: failed: ${String(err)}`);
+          }
+        }, 30 * 60 * 1000);
+      },
+      stop() {
+        if (dependencyTimer) { clearInterval(dependencyTimer); dependencyTimer = null; }
+        api.logger.info("team-memory-dependency-inference: stopped");
+      },
+    });
+  }
 }

@@ -304,3 +304,175 @@ export class PromptRateLimiter {
     };
   }
 }
+
+// ============================================================================
+// LLM-Enhanced Capture — AI-powered structured extraction
+// ============================================================================
+
+/**
+ * LLM-enhanced proactive capture.
+ *
+ * After regex detection identifies a memory-worthy message, this calls an LLM
+ * to perform structured extraction: entity/attribute/value, category classification,
+ * and confidence scoring. This turns the system from regex-only into AI-powered.
+ */
+export interface LLMEnhancedCaptureConfig {
+  modelEndpoint: string;
+  modelApiKey: string;
+  modelName: string;
+  xApiKey?: string;
+}
+
+const LLM_EXTRACTION_SCHEMA = {
+  type: "object",
+  properties: {
+    isMemoryWorthy: { type: "boolean", description: "是否值得保存为团队记忆" },
+    entity: { type: "string", description: "主体名称（人物/项目/系统/组织）" },
+    attribute: { type: "string", description: "属性名称" },
+    value: { type: "string", description: "提取的值" },
+    category: { type: "string", enum: ["decision", "api", "process", "security", "experience", "general"] },
+    confidence: { type: "number", description: "0.0-1.0 置信度" },
+    tags: { type: "array", items: { type: "string" }, description: "相关标签" },
+    reasoning: { type: "string", description: "为什么这条值得记忆，一句话" },
+  },
+  required: ["isMemoryWorthy", "entity", "attribute", "value", "category", "confidence"],
+  additionalProperties: false,
+};
+
+export class LLMEnhancedCapture {
+  private config: LLMEnhancedCaptureConfig;
+
+  constructor(config: LLMEnhancedCaptureConfig) {
+    this.config = config;
+  }
+
+  /**
+   * Call LLM to analyze a message and extract structured memory.
+   * Returns null if the message is not memory-worthy.
+   */
+  async analyze(text: string): Promise<ProactiveCaptureResult | null> {
+    try {
+      const response = await this._callLLM(text);
+      if (!response) return null;
+
+      if (!response.isMemoryWorthy) return null;
+
+      return {
+        detected: true,
+        triggerType: this._mapCategoryToTriggerType(response.category),
+        confidence: response.confidence,
+        memoryText: response.value,
+        category: response.category,
+        entity: response.entity,
+        attribute: response.attribute,
+        value: response.value,
+        confirmationPrompt: `AI 检测到${response.reasoning}，要保存到团队记忆中吗？`,
+      };
+    } catch {
+      // LLM call failed — return null (regex fallback will still work)
+      return null;
+    }
+  }
+
+  /**
+   * Hybrid approach: fast regex detection first, then LLM enhancement.
+   * This gives both low latency (regex fires immediately) and AI depth.
+   */
+  async analyzeHybrid(text: string, context?: { isOwner: boolean; isGroup: boolean }): Promise<ProactiveCaptureResult | null> {
+    // Step 1: Fast regex detection
+    const regexResult = analyzeForProactiveCapture(text, context ?? { isOwner: true, isGroup: false });
+    if (!regexResult.detected) return null;
+
+    // Step 2: LLM enhancement (async, non-blocking)
+    const llmResult = await this.analyze(text);
+    if (llmResult) {
+      // Use LLM result but keep the regex trigger type as fallback
+      return {
+        ...llmResult,
+        triggerType: llmResult.triggerType ?? regexResult.triggerType,
+      };
+    }
+
+    // Step 3: LLM failed, fall back to regex result
+    return regexResult;
+  }
+
+  private _mapCategoryToTriggerType(category: string): ProactiveCaptureResult["triggerType"] {
+    const map: Record<string, ProactiveCaptureResult["triggerType"]> = {
+      decision: "decision_made",
+      process: "process_defined",
+      api: "api_noted",
+      security: "security_noted",
+      experience: "preference_declared",
+      general: "fact_stated",
+    };
+    return map[category] ?? "fact_stated";
+  }
+
+  private async _callLLM(text: string): Promise<{
+    isMemoryWorthy: boolean;
+    entity: string;
+    attribute: string;
+    value: string;
+    category: string;
+    confidence: number;
+    tags: string[];
+    reasoning: string;
+  } | null> {
+    const prompt = `你是一个团队记忆提取助手。分析以下对话内容，判断是否包含值得团队记住的信息。
+
+## 对话内容
+${text}
+
+## 判断标准
+值得记忆的：决策、约定、流程、API配置、安全信息、重要经验、截止日期、规则变更
+不值得的：闲聊、问候、简短确认（好的/收到）、技术讨论但没有明确结论
+
+## 提取规则
+- entity 必须是具体的名称（人名、项目名、系统名），不要用 "general"
+- attribute 是 entity 的具体方面，不要和 entity 相同
+- category 必须是以下之一：decision（决策）、api（技术配置）、process（流程）、security（安全）、experience（经验）、general（通用）
+- confidence 反映确定性：0.8+ 明确陈述，0.6-0.7 大概率，0.5 及以下不太确定
+
+## 输出
+只返回 JSON，不要其他文字。`;
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${this.config.modelApiKey}`,
+    };
+    if (this.config.xApiKey) {
+      headers["x-api-key"] = this.config.xApiKey;
+    }
+
+    const response = await fetch(this.config.modelEndpoint, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        model: this.config.modelName,
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.1,
+        max_tokens: 500,
+        response_format: {
+          type: "json_schema",
+          json_schema: { name: "proactive_capture", schema: LLM_EXTRACTION_SCHEMA },
+        },
+      }),
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content ?? "";
+    if (!content) return null;
+
+    try {
+      let jsonStr = content.trim();
+      const fenceMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (fenceMatch) jsonStr = fenceMatch[1].trim();
+      return JSON.parse(jsonStr);
+    } catch {
+      return null;
+    }
+  }
+}

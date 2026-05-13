@@ -294,16 +294,41 @@ export function registerCli(api: OpenClawPluginApi, manager: TeamMemoryManager, 
     // proactive-capture
     cmd.command("proactive-capture").description("Analyze text for proactive memory capture (demo tool)").argument("<text>", "Text to analyze for memory-worthy content").action(async (text: string) => {
       try {
-        const { analyzeForProactiveCapture } = await import("./proactive-capture.js");
+        const { analyzeForProactiveCapture, LLMEnhancedCapture } = await import("./proactive-capture.js");
         const capture = analyzeForProactiveCapture(text, { isOwner: true, isGroup: false });
+
+        // LLM enhancement if configured
+        const modelEndpoint = cfg.modelEndpoint ?? process.env?.TEAM_MEMORY_MODEL_ENDPOINT ?? "";
+        const modelApiKey = cfg.modelApiKey ?? process.env?.TEAM_MEMORY_MODEL_API_KEY ?? "";
+        const modelName = cfg.modelName ?? process.env?.TEAM_MEMORY_MODEL_NAME ?? "doubao-seed-2.0-pro";
+        const modelXApiKey = cfg.modelXApiKey ?? process.env?.TEAM_MEMORY_MODEL_X_API_KEY ?? "";
+
+        if (modelEndpoint && modelApiKey) {
+          const llmCapture = new LLMEnhancedCapture({
+            modelEndpoint,
+            modelApiKey,
+            modelName,
+            xApiKey: modelXApiKey || undefined,
+          });
+          const llmResult = await llmCapture.analyzeHybrid(text, { isOwner: true, isGroup: false });
+          if (llmResult) {
+            console.log(`✅ LLM-enhanced detection [${llmResult.triggerType}] confidence=${(llmResult.confidence * 100).toFixed(0)}%`);
+            console.log(`   Entity: ${llmResult.entity ?? "(LLM extracted)"}`);
+            console.log(`   Attribute: ${llmResult.attribute ?? "(LLM extracted)"}`);
+            console.log(`   Value: ${llmResult.value}`);
+            console.log(`   Category: ${llmResult.category}`);
+            return;
+          }
+        }
+
+        // Fallback to regex
         if (capture.detected) {
-          console.log(`✅ Detected [${capture.triggerType}] confidence=${(capture.confidence * 100).toFixed(0)}%`);
+          console.log(`✅ Regex detection [${capture.triggerType}] confidence=${(capture.confidence * 100).toFixed(0)}%`);
           console.log(`   Category: ${capture.category}`);
           console.log(`   Memory: ${capture.memoryText}`);
           if (capture.entity) console.log(`   Entity: ${capture.entity}`);
           if (capture.attribute) console.log(`   Attribute: ${capture.attribute}`);
           if (capture.value) console.log(`   Value: ${capture.value}`);
-          console.log(`   Prompt: ${capture.confirmationPrompt}`);
         } else {
           console.log("❌ No memory-worthy content detected");
         }

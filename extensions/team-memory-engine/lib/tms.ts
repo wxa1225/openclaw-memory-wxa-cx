@@ -9,9 +9,20 @@ const NOISE_TAGS = new Set([
   "general", "todo", "wip", "test", "draft", "temp", "note",
 ]);
 
+// Expertise categories with weights for deeper analysis
 const EXPERTISE_CATEGORIES = new Set([
   "decision", "api", "process", "experience", "security",
 ]);
+
+// Entity patterns for domain expertise inference
+const DOMAIN_PATTERNS: Record<string, string[]> = {
+  "前端": ["前端", "UI", "React", "CSS", "Tailwind", "Webpack"],
+  "后端": ["API", "数据库", "PostgreSQL", "Redis", "Server", "Gateway"],
+  "运维": ["部署", "CI/CD", "Docker", "K8s", "Nginx", "监控", "备份"],
+  "安全": ["认证", "JWT", "Token", "限流", "加密", "应急响应"],
+  "架构": ["架构", "微服务", "选型", "网关"],
+  "质量": ["测试", "Bug", "代码审查", "质量"],
+};
 
 export class TeamCapabilityModel {
   private profile: TeamCapabilityProfile;
@@ -43,7 +54,7 @@ export class TeamCapabilityModel {
 
     for (const entry of entries) {
       for (const claim of entry.claims) {
-        // Track injector
+        // Track injector (higher weight — they initiated the knowledge)
         this._ensureMember(claim.injected_by);
         const injector = this.profile.members[claim.injected_by]!;
         if (!injector.knownMemoryIds.includes(entry.id)) {
@@ -51,9 +62,9 @@ export class TeamCapabilityModel {
         }
         injector.contributionCount++;
         injector.lastActiveAt = new Date().toISOString();
-        this._updateExpertise(injector, entry);
+        this._updateExpertise(injector, entry, 1.0);
 
-        // Track confirmers
+        // Track confirmers (lower weight — they validated)
         for (const confirmer of claim.confirmed_by) {
           this._ensureMember(confirmer);
           const member = this.profile.members[confirmer]!;
@@ -62,14 +73,22 @@ export class TeamCapabilityModel {
           }
           member.confirmationCount++;
           member.lastActiveAt = new Date().toISOString();
-          this._updateExpertise(member, entry);
+          this._updateExpertise(member, entry, 0.6);
         }
       }
     }
 
-    // Recompute trust scores
+    // Recompute trust scores and domain expertise
     for (const [id, member] of Object.entries(this.profile.members)) {
       this.profile.members[id].trustScore = this.computeTrustScore(id);
+      // Infer domain expertise from entity/attribute patterns
+      const domains = this._inferDomains(member, entries);
+      // Merge domains into expertiseAreas (dedup)
+      for (const domain of domains) {
+        if (!member.expertiseAreas.includes(domain)) {
+          member.expertiseAreas.push(domain);
+        }
+      }
     }
 
     this.profile.updatedAt = new Date().toISOString();
@@ -129,10 +148,16 @@ export class TeamCapabilityModel {
     }
   }
 
-  private _updateExpertise(member: MemberCapability, entry: LedgerEntry): void {
-    if (EXPERTISE_CATEGORIES.has(entry.category) && !member.expertiseAreas.includes(entry.category)) {
-      member.expertiseAreas.push(entry.category);
+  private _updateExpertise(member: MemberCapability, entry: LedgerEntry, weight: number): void {
+    // Category-based expertise (weighted)
+    if (EXPERTISE_CATEGORIES.has(entry.category)) {
+      const label = `${entry.category}(+${(weight * 100).toFixed(0)}%)`;
+      // Store base category without weight suffix for dedup
+      if (!member.expertiseAreas.includes(entry.category)) {
+        member.expertiseAreas.push(entry.category);
+      }
     }
+    // Tag-based expertise (filter noise)
     for (const tag of entry.tags) {
       const tagLower = tag.toLowerCase();
       if (NOISE_TAGS.has(tagLower)) continue;
@@ -140,6 +165,29 @@ export class TeamCapabilityModel {
         member.expertiseAreas.push(tag);
       }
     }
+  }
+
+  /** Infer domain expertise from entity/attribute patterns in member's known memories */
+  private _inferDomains(member: MemberCapability, entries: LedgerEntry[]): string[] {
+    const domainScores: Record<string, number> = {};
+
+    for (const memId of member.knownMemoryIds) {
+      const entry = entries.find(e => e.id === memId);
+      if (!entry) continue;
+
+      const text = `${entry.entity} ${entry.attribute} ${entry.tags.join(" ")} ${entry.category}`;
+      for (const [domain, keywords] of Object.entries(DOMAIN_PATTERNS)) {
+        const matchCount = keywords.filter(kw => text.includes(kw)).length;
+        if (matchCount > 0) {
+          domainScores[domain] = (domainScores[domain] ?? 0) + matchCount;
+        }
+      }
+    }
+
+    // Return domains with score >= 2 as inferred expertise
+    return Object.entries(domainScores)
+      .filter(([, score]) => score >= 2)
+      .map(([domain]) => domain);
   }
 
   private async save(): Promise<void> {

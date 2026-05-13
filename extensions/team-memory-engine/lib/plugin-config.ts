@@ -105,5 +105,24 @@ export function getConfigFromEnv(api: { config?: Record<string, unknown> }): Rec
   if (riskInterval) cfg.riskCheckInterval = parseInt(riskInterval, 10);
   if (chatId) cfg.feishuChatId = chatId;
   if (teamSize) cfg.teamSize = parseInt(teamSize, 10);
+
+  // API keys from env (security: don't hardcode in openclaw.json)
+  const modelEndpoint = get("TEAM_MEMORY_MODEL_ENDPOINT");
+  const modelApiKey = get("TEAM_MEMORY_MODEL_API_KEY");
+  const modelXApiKey = get("TEAM_MEMORY_MODEL_X_API_KEY");
+  const modelName = get("TEAM_MEMORY_MODEL_NAME");
+  const embeddingEndpoint = get("TEAM_MEMORY_EMBEDDING_ENDPOINT");
+  const embeddingApiKey = get("TEAM_MEMORY_EMBEDDING_API_KEY");
+  const embeddingXApiKey = get("TEAM_MEMORY_EMBEDDING_X_API_KEY");
+  const embeddingModel = get("TEAM_MEMORY_EMBEDDING_MODEL");
+  if (modelEndpoint) cfg.modelEndpoint = modelEndpoint;
+  if (modelApiKey) cfg.modelApiKey = modelApiKey;
+  if (modelXApiKey) cfg.modelXApiKey = modelXApiKey;
+  if (modelName) cfg.modelName = modelName;
+  if (embeddingEndpoint) cfg.embeddingEndpoint = embeddingEndpoint;
+  if (embeddingApiKey) cfg.embeddingApiKey = embeddingApiKey;
+  if (embeddingXApiKey) cfg.embeddingXApiKey = embeddingXApiKey;
+  if (embeddingModel) cfg.embeddingModel = embeddingModel;
+
   return cfg;
 }

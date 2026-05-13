@@ -7,6 +7,33 @@ import * as fs from "fs";
 import * as path from "path";
 import type { EventLogEntry } from "./storage/types.js";
 
+// Module-level write locks keyed by date file path.
+// This prevents concurrent appends from overwriting each other (read-modify-write race).
+const writeLocks = new Map<string, Promise<void>>();
+
+function withWriteLock<T>(filePath: string, fn: () => Promise<T>): Promise<T> {
+  let resolve: () => void;
+  let reject: (err: unknown) => void;
+  const nextLock = new Promise<void>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  const currentLock = writeLocks.get(filePath) ?? Promise.resolve();
+  writeLocks.set(filePath, nextLock);
+
+  return currentLock.then(async () => {
+    try {
+      return await fn();
+    } finally {
+      resolve!();
+    }
+  }).catch(async (err) => {
+    reject!(err);
+    throw err;
+  });
+}
+
 export class EventLog {
   private logDir: string;
   private processedIdsPath: string;
@@ -100,9 +127,12 @@ export class EventLog {
 
   private async appendToDailyFile(entry: EventLogEntry): Promise<void> {
     const date = entry.storedAt.slice(0, 10);
-    const entries = await this.readDailyFile(date);
-    entries.push(entry);
-    await this.writeDailyFile(date, entries);
+    const filePath = this.dateFilePath(date);
+    await withWriteLock(filePath, async () => {
+      const entries = await this.readDailyFile(date);
+      entries.push(entry);
+      await this.writeDailyFile(date, entries);
+    });
   }
 
   private async listFiles(): Promise<string[]> {
@@ -134,9 +164,11 @@ export class EventLog {
 
   private async saveProcessedIds(ids: Set<string>): Promise<void> {
     await fs.promises.mkdir(path.dirname(this.processedIdsPath), { recursive: true });
-    const tmpPath = this.processedIdsPath + ".tmp";
-    await fs.promises.writeFile(tmpPath, JSON.stringify(Array.from(ids)), "utf-8");
-    await fs.promises.rename(tmpPath, this.processedIdsPath);
-    this.processedIdsCache = ids;
+    await withWriteLock(this.processedIdsPath, async () => {
+      const tmpPath = this.processedIdsPath + ".tmp";
+      await fs.promises.writeFile(tmpPath, JSON.stringify(Array.from(ids)), "utf-8");
+      await fs.promises.rename(tmpPath, this.processedIdsPath);
+      this.processedIdsCache = ids;
+    });
   }
 }
