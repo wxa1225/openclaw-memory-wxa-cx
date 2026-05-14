@@ -85,7 +85,8 @@
       "Bash(/home/gem/workspace/agent/scripts/healthcheck.sh)",
       "Bash(echo \"EXIT=$?\")",
       "Bash(GIT_EDITOR=true git rebase --continue)",
-      "Bash(git ls-tree *)"
+      "Bash(git ls-tree *)",
+      "Bash(GIT_CURL_VERBOSE=1 git fetch origin sprint/default main)"
     ]
   }
 }
