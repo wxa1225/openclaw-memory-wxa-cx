@@ -1,14 +1,38 @@
 [
   {
-    "chatId": "agent:main:feishu:direct:ou_23ab1a1db6759ee9ae44a8e441a52153",
-    "chatType": "p2p",
-    "senderId": "agent",
-    "senderName": "AI",
-    "content": "嘿～我刚上线，很高兴认识你🦞\n我现在还是一张白纸，没有记忆也没有上下文，一切从这里开始～\n\n怎么称呼你比较好？正式一点还是日常一些，或者有其他习惯的称呼？\n\n另外，关于我，你期望我扮演什么角色呀？比如：\n- **管家型** —— 帮你打理日程、整理信息、处理杂务\n- **搭档型** —— 和你一起讨论、头脑风暴、并肩做事\n- **军师型** —— 在背后帮你调研、分析、出方案\n- 或者别的想法都可以～\n\n还有，你希望我以什么风格和你相处？严谨细致、随性自然、温厚体贴，还是别的调性？\n\n这些都可以慢慢聊，不着急定义，我们先从你最在意的点开始就好～",
+    "id": "evt-sync-01",
+    "storedAt": "2026-05-14T10:00:00Z",
+    "chatId": "oc_demo",
+    "chatType": "group",
+    "senderId": "ou_zhangsan",
+    "senderName": "\u5f20\u4e09",
+    "content": "\u5ba2\u6237A\u786e\u8ba4\u4e86\u4ea4\u4ed8\u683c\u5f0f\u6539\u4e3aMarkdown\uff0cPDF\u53ea\u53d1\u5916\u90e8\u5ba2\u6237",
     "contentType": "text",
-    "messageId": "msg-1778750421505-agent",
-    "id": "evt-1778750421511-wf44sh",
-    "storedAt": "2026-05-14T09:20:21.511Z",
+    "messageId": "m-s1",
+    "processedForExtraction": false
+  },
+  {
+    "id": "evt-sync-02",
+    "storedAt": "2026-05-14T10:01:00Z",
+    "chatId": "oc_demo",
+    "chatType": "group",
+    "senderId": "ou_lisi",
+    "senderName": "\u674e\u56db",
+    "content": "\u751f\u4ea7\u73af\u5883API\u7aef\u70b9\u6539\u4e3av3\uff0c\u65e7\u7aef\u70b9\u5468\u4e94\u4e0b\u7ebf",
+    "contentType": "text",
+    "messageId": "m-s2",
+    "processedForExtraction": false
+  },
+  {
+    "id": "evt-sync-03",
+    "storedAt": "2026-05-14T10:02:00Z",
+    "chatId": "oc_demo",
+    "chatType": "group",
+    "senderId": "ou_wangwu",
+    "senderName": "\u738b\u4e94",
+    "content": "\u751f\u4ea7\u53d1\u5e03\u5fc5\u987b\u7ecf\u8fc7\u6280\u672f\u8d1f\u8d23\u4eba\u548c\u4ea7\u54c1\u8d1f\u8d23\u4eba\u53cc\u5ba1\u6279",
+    "contentType": "text",
+    "messageId": "m-s3",
     "processedForExtraction": false
   }
 ]
