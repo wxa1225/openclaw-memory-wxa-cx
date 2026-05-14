@@ -617,17 +617,13 @@
           "enableGraph": true,
           "teamSize": 5,
           "modelEndpoint": "https://innerapi.aiforce.cloud/innerapi/api/v1/sgw/model/proxy/chat/completions",
-          "modelApiKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIyMzc5MTE2NTc4X2FwcF80azA5bWY1d3Awc2N2X3ByZXZpZXciLCJleHAiOjE3Nzg5NDU0OTksIm5iZiI6MTc3ODY4NjI5OSwiaWF0IjoxNzc4Njg2Mjk5LCJqdGkiOiI2MjIwNzJhMC0zODgyLWM5ZTUtYzE1Zi04Y2VmNzNhOTc3ODUiLCJ0ZW5hbnRfaWQiOjIzNzkxMTY1NzgsInVzZXJfaWQiOjE4NjMxNjExMzA2OTk4MTIsImFwcF9pZCI6ImFwcF80azA5bWY1d3Awc2N2IiwiYXBwX2VudiI6InByZXZpZXciLCJhY2Nlc3Nfa2V5IjoiMjM3OTExNjU3OF9hcHBfNGswOW1mNXdwMHNjdl9wcmV2aWV3Iiwic2FuZGJveF9pZCI6IjE4NjMzNDEyOTMzMzU4ODIifQ.30EKJ6EF-al-9YU4NGlrtb5C9HWTJwmqWSrkiVu7oqw",
           "modelName": "doubao-seed-2.0-pro",
-          "modelXApiKey": "2379116578_app_4k09mf5wp0scv_preview",
           "extractionBatchSize": 20,
           "enableProactiveCapture": true,
           "proactivePromptInterval": 120000,
           "proactiveMaxPerSession": 10,
           "embeddingEndpoint": "https://innerapi.aiforce.cloud/innerapi/api/v1/sgw/model/proxy/embeddings",
-          "embeddingApiKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIyMzc5MTE2NTc4X2FwcF80azA5bWY1d3Awc2N2X3ByZXZpZXciLCJleHAiOjE3Nzg5NDU0OTksIm5iZiI6MTc3ODY4NjI5OSwiaWF0IjoxNzc4Njg2Mjk5LCJqdGkiOiI2MjIwNzJhMC0zODgyLWM5ZTUtYzE1Zi04Y2VmNzNhOTc3ODUiLCJ0ZW5hbnRfaWQiOjIzNzkxMTY1NzgsInVzZXJfaWQiOjE4NjMxNjExMzA2OTk4MTIsImFwcF9pZCI6ImFwcF80azA5bWY1d3Awc2N2IiwiYXBwX2VudiI6InByZXZpZXciLCJhY2Nlc3Nfa2V5IjoiMjM3OTExNjU3OF9hcHBfNGswOW1mNXdwMHNjdl9wcmV2aWV3Iiwic2FuZGJveF9pZCI6IjE4NjMzNDEyOTMzMzU4ODIifQ.30EKJ6EF-al-9YU4NGlrtb5C9HWTJwmqWSrkiVu7oqw",
-          "embeddingModel": "text-embedding-3-small",
-          "embeddingXApiKey": "2379116578_app_4k09mf5wp0scv_preview"
+          "embeddingModel": "text-embedding-3-small"
         }
       }
     },

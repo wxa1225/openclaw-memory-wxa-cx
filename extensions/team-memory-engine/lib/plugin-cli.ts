@@ -1,11 +1,15 @@
 // CLI command registrations for the team-memory-engine plugin
 // All `openclaw team-memory` subcommands.
 
+import * as os from "os";
+import * as path from "path";
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
 import type { TeamMemoryManager } from "./manager.js";
 import type { TeamMemoryConfig } from "./plugin-config.js";
 import { EventLog } from "./event-log.js";
 import { formatConflictCard, sendFeishuMessage } from "./plugin-feishu.js";
+import { importFeishuDoc, importFeishuBitable, importFeishuCalendar, importAllFeishuSources } from "./feishu-importer.js";
+import { LedgerStorageBackend } from "./storage/ledger-storage.js";
 
 export function registerCli(api: OpenClawPluginApi, manager: TeamMemoryManager, cfg: TeamMemoryConfig) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -438,5 +442,82 @@ export function registerCli(api: OpenClawPluginApi, manager: TeamMemoryManager, 
         console.error(`Failed: ${String(err)}`);
       }
     });
+
+    // Feishu content importer — deep integration
+    cmd.command("import-doc").description("Import a Feishu doc as team memories (LLM extraction)").argument("<doc-token>", "Feishu doc token").action(async (docToken: string) => {
+      try {
+        const result = await importFeishuDoc(docToken, {
+          modelEndpoint: cfg.modelEndpoint,
+          modelApiKey: cfg.modelApiKey,
+          modelName: cfg.modelName,
+          xApiKey: cfg.modelXApiKey,
+        }, cfg.teamId, path.join(os.homedir(), ".openclaw-memory-ledger.json"));
+        console.log(`✅ Imported doc → ${result.memoriesExtracted} memories`);
+        console.log(`   Content: ${result.contentLength} chars`);
+        for (const id of result.memoryIds) console.log(`   ${id}`);
+      } catch (err) {
+        console.error(`Failed: ${String(err)}`);
+      }
+    });
+
+    cmd.command("import-bitable").description("Import Feishu Bitable records as team memories").argument("<app-token>", "Bitable app token").argument("<table-id>", "Table ID").action(async (appToken: string, tableId: string) => {
+      try {
+        const result = await importFeishuBitable(appToken, tableId, {
+          modelEndpoint: cfg.modelEndpoint,
+          modelApiKey: cfg.modelApiKey,
+          modelName: cfg.modelName,
+          xApiKey: cfg.modelXApiKey,
+        }, cfg.teamId, path.join(os.homedir(), ".openclaw-memory-ledger.json"));
+        console.log(`✅ Imported bitable → ${result.memoriesExtracted} memories`);
+        for (const id of result.memoryIds) console.log(`   ${id}`);
+      } catch (err) {
+        console.error(`Failed: ${String(err)}`);
+      }
+    });
+
+    cmd.command("import-calendar").description("Import upcoming calendar events as process memories").option("-d, --days <n>", "Days ahead", "7").action(async (opts: { days: string }) => {
+      try {
+        const result = await importFeishuCalendar({
+          modelEndpoint: cfg.modelEndpoint,
+          modelApiKey: cfg.modelApiKey,
+          modelName: cfg.modelName,
+          xApiKey: cfg.modelXApiKey,
+        }, cfg.teamId, path.join(os.homedir(), ".openclaw-memory-ledger.json"), parseInt(opts.days, 10));
+        console.log(`✅ Imported calendar → ${result.memoriesExtracted} memories`);
+        for (const id of result.memoryIds) console.log(`   ${id}`);
+      } catch (err) {
+        console.error(`Failed: ${String(err)}`);
+      }
+    });
+
+    cmd.command("import-all").description("Batch import: doc + bitable + calendar from Feishu").option("--doc <token...>", "Doc tokens to import").option("--bitable <app:table...>", "Bitables as appToken:tableId").option("--days <n>", "Calendar days ahead", "7").action(async (opts: { doc?: string[]; bitable?: string[]; days: string }) => {
+      try {
+        const bitables = (opts.bitable ?? []).map(s => {
+          const [appToken, tableId] = s.split(":");
+          return { appToken, tableId };
+        });
+        const ledgerPath = path.join(os.homedir(), ".openclaw-memory-ledger.json");
+        const config = {
+          modelEndpoint: cfg.modelEndpoint,
+          modelApiKey: cfg.modelApiKey,
+          modelName: cfg.modelName,
+          xApiKey: cfg.modelXApiKey,
+        };
+        const results = await importAllFeishuSources(config, cfg.teamId, ledgerPath, {
+          docTokens: opts.doc,
+          bitables,
+          calendarDaysAhead: parseInt(opts.days, 10),
+        });
+        let total = 0;
+        for (const r of results) {
+          console.log(`✅ ${r.sourceType} → ${r.memoriesExtracted} memories`);
+          total += r.memoriesExtracted;
+        }
+        console.log(`\nTotal: ${total} memories imported`);
+      } catch (err) {
+        console.error(`Failed: ${String(err)}`);
+      }
+    });
+
   }, { commands: ["team-memory"] });
 }

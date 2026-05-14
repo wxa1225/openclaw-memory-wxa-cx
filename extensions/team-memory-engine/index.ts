@@ -19,7 +19,7 @@
 
 import { definePluginEntry, type OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
 import { TeamMemoryManager } from "./lib/manager.js";
-import { parseConfig, getConfigFromEnv, type TeamMemoryConfig } from "./lib/plugin-config.js";
+import { parseConfig, getConfigFromEnv, resolveSecrets, type TeamMemoryConfig } from "./lib/plugin-config.js";
 import { Mem0HttpClient, type Mem0Provider } from "./lib/plugin-feishu.js";
 import { registerTools } from "./lib/plugin-tools.js";
 import { registerCli } from "./lib/plugin-cli.js";
@@ -70,7 +70,10 @@ const plugin = {
       ? api.pluginConfig as Record<string, unknown>
       : {};
     const envConfig = getConfigFromEnv(api);
-    const cfg = parseConfig({ ...rawConfig, ...envConfig });
+    let cfg = parseConfig({ ...rawConfig, ...envConfig });
+
+    // Resolve API keys from secrets provider (security: don't hardcode in openclaw.json)
+    cfg = await resolveSecrets(api, cfg);
 
     const mem0ApiKey = process.env?.MEM0_API_KEY ?? api.resolveConfig?.("mem0.apiKey") ?? "";
     const mem0Host = process.env?.MEM0_HOST ?? api.resolveConfig?.("mem0.host") ?? "https://api.mem0.ai";

@@ -1,5 +1,7 @@
 // Configuration types, defaults, and environment parsing for the team-memory-engine plugin
 
+import * as fs from "fs";
+
 export interface TeamMemoryConfig {
   teamId: string;
   decayCheckInterval: number;
@@ -131,6 +133,68 @@ export function getConfigFromEnv(api: { config?: Record<string, unknown> }): Rec
   if (embeddingApiKey) cfg.embeddingApiKey = embeddingApiKey;
   if (embeddingXApiKey) cfg.embeddingXApiKey = embeddingXApiKey;
   if (embeddingModel) cfg.embeddingModel = embeddingModel;
+
+  return cfg;
+}
+
+/**
+ * Resolve API keys from secrets provider.
+ * This is the preferred path for sensitive credentials — keys stored
+ * in the secrets JSON file rather than openclaw.json config.
+ *
+ * Fallback chain: process.env → api.config.env.vars → secrets file → empty
+ */
+export async function resolveSecrets(
+  api: { resolveConfig?: (key: string) => string | undefined; config?: Record<string, unknown> },
+  cfg: TeamMemoryConfig
+): Promise<TeamMemoryConfig> {
+  // Try api.resolveConfig (framework secret resolution) first
+  const resolve = (key: string): string | undefined => {
+    return api.resolveConfig?.(key) ?? undefined;
+  };
+
+  // Fallback: read directly from the secrets JSON file
+  const readFromSecretsFile = (secretKey: string): string | undefined => {
+    const secretsPath = process.env.TEAM_MEMORY_SECRETS_PATH
+      ?? "/home/gem/workspace/.force/openclaw/miaoda-openclaw-secrets.json";
+    try {
+      const raw = fs.readFileSync(secretsPath, "utf-8");
+      const secrets = JSON.parse(raw) as Record<string, unknown>;
+      const val = secrets[secretKey];
+      return typeof val === "string" ? val : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+
+  if (!cfg.modelApiKey) {
+    cfg.modelApiKey = resolve("teamMemory.modelApiKey")
+      ?? readFromSecretsFile("team_memory_model_api_key")
+      ?? process.env.TEAM_MEMORY_MODEL_API_KEY ?? "";
+  }
+  if (!cfg.modelXApiKey) {
+    cfg.modelXApiKey = resolve("teamMemory.modelXApiKey")
+      ?? readFromSecretsFile("team_memory_model_x_api_key")
+      ?? process.env.TEAM_MEMORY_MODEL_XAPI_KEY ?? "";
+  }
+  if (!cfg.modelEndpoint) {
+    cfg.modelEndpoint = resolve("teamMemory.modelEndpoint")
+      ?? process.env.TEAM_MEMORY_MODEL_ENDPOINT ?? "";
+  }
+  if (!cfg.embeddingApiKey) {
+    cfg.embeddingApiKey = resolve("teamMemory.embeddingApiKey")
+      ?? readFromSecretsFile("team_memory_model_api_key")
+      ?? process.env.TEAM_MEMORY_EMBEDDING_API_KEY ?? "";
+  }
+  if (!cfg.embeddingEndpoint) {
+    cfg.embeddingEndpoint = resolve("teamMemory.embeddingEndpoint")
+      ?? process.env.TEAM_MEMORY_EMBEDDING_ENDPOINT ?? "";
+  }
+  if (!cfg.embeddingXApiKey) {
+    cfg.embeddingXApiKey = resolve("teamMemory.embeddingXApiKey")
+      ?? readFromSecretsFile("team_memory_model_x_api_key")
+      ?? process.env.TEAM_MEMORY_EMBEDDING_XAPI_KEY ?? "";
+  }
 
   return cfg;
 }
