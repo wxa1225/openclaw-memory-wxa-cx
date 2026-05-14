@@ -203,6 +203,25 @@ export async function handleMemoryReviewAction(
 
   // "dismiss_warning" — acknowledge without boosting
   if (value.action === "dismiss_warning") {
+    // Log the dismiss to event log
+    if (config.projectRoot) {
+      try {
+        const { EventLog } = await import("./event-log.js");
+        const eventLog = new EventLog(config.projectRoot);
+        await eventLog.appendCardAction({
+          chatId: data.open_chat_id ?? data.context?.open_chat_id ?? "unknown",
+          chatType: (data.open_chat_id?.startsWith("oc_") ?? false) ? "group" : "p2p",
+          senderId: resolverId,
+          action: "dismiss_warning",
+          memoryId: value.memory_id,
+          memoryText: entry.claims[entry.claims.length - 1]?.value ?? "",
+          category: entry.category,
+        });
+      } catch {
+        // Event log not critical — ignore errors
+      }
+    }
+
     return {
       toast: { type: "warning", content: "已忽略，下次巡检再提醒" },
       card: {
@@ -316,6 +335,26 @@ export async function handleMemoryReviewAction(
 
   // "dismiss_save" — ignore the detected memory
   if (value.action === "dismiss_save") {
+    // Log the dismiss to event log for audit trail
+    if (config.projectRoot) {
+      try {
+        const { EventLog } = await import("./event-log.js");
+        const eventLog = new EventLog(config.projectRoot);
+        const memoryText = value.memory_text ?? "Unknown memory";
+        await eventLog.appendCardAction({
+          chatId: data.open_chat_id ?? data.context?.open_chat_id ?? "unknown",
+          chatType: (data.open_chat_id?.startsWith("oc_") ?? false) ? "group" : "p2p",
+          senderId: resolverId,
+          action: "dismiss_save",
+          memoryId: "n/a",
+          memoryText,
+          category: value.category ?? "general",
+        });
+      } catch {
+        // Event log not critical — ignore errors
+      }
+    }
+
     return {
       toast: { type: "warning", content: "已忽略，不会保存此信息" },
       card: {
@@ -343,6 +382,34 @@ export async function handleMemoryReviewAction(
       ...data,
       action: { value: { ...value, action: "confirm_save" as const } },
     }, config);
+  }
+
+  // ========================================================================
+  // Non-proactive actions (confirm, update, dismiss, review) — write to event log for feedback loop
+  // ========================================================================
+
+  const nonProactiveActions = new Set(["confirm", "update", "dismiss", "review"]);
+  if (nonProactiveActions.has(value.action)) {
+    // Log the card action to event log for audit trail
+    if (config.projectRoot) {
+      try {
+        const { EventLog } = await import("./event-log.js");
+        const eventLog = new EventLog(config.projectRoot);
+        const claimsCount = entry.claims.length;
+        const latestValue = entry.claims[entry.claims.length - 1]?.value ?? "";
+        await eventLog.appendCardAction({
+          chatId: data.open_chat_id ?? data.context?.open_chat_id ?? "unknown",
+          chatType: (data.open_chat_id?.startsWith("oc_") ?? false) ? "group" : "p2p",
+          senderId: resolverId,
+          action: value.action,
+          memoryId: value.memory_id,
+          memoryText: latestValue,
+          category: entry.category,
+        });
+      } catch {
+        // Event log not critical — ignore errors
+      }
+    }
   }
 
   const conflictingClaims = entry.claims.filter((c) => c.status === "conflicting");

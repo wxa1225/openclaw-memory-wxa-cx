@@ -643,12 +643,10 @@
         "source": "npm",
         "spec": "@shareclz/openclaw-mem0-plugin",
         "installPath": "./extensions/openclaw-mem0-plugin",
-        "installedAt": "2026-04-13T03:13:10.564Z",
         "version": "1.1.2",
-        "resolvedVersion": "1.1.2",
         "resolvedName": "@shareclz/openclaw-mem0-plugin",
+        "resolvedVersion": "1.1.2",
         "resolvedSpec": "@shareclz/openclaw-mem0-plugin@1.1.2",
-        "resolvedAt": "2026-04-13T03:13:10.564Z",
         "integrity": "sha512-j6m8oN6ykVc3a1/Bw0o7LmXmNApiGk6wxafrT0zW9m4UiqZe8LM4Y2LzvGEAnKwFdkUIkaSzpl/8Qp7MPy/zcQ==",
         "shasum": "b1bdaa44917ce9535ba1acddb145ea0ed5d26bae"
       },
@@ -656,12 +654,12 @@
         "source": "npm",
         "spec": "@lark-apaas/openclaw-extension-miaoda",
         "installPath": "./extensions/openclaw-extension-miaoda",
-        "version": "1.0.14",
+        "version": "1.0.16",
         "resolvedName": "@lark-apaas/openclaw-extension-miaoda",
-        "resolvedVersion": "1.0.14",
-        "resolvedSpec": "@lark-apaas/openclaw-extension-miaoda@1.0.14",
-        "integrity": "sha512-saxgxvDDbO2acdEMXEC7w51lFQmF8sxruaP/lCvlPWG8QTFWGv9/klm5mrusyc/Wx2KvumX16GqCr78Je2MyEg==",
-        "shasum": "7bfe422b1e25c82c2dbd207ea08a6e7982b32160"
+        "resolvedVersion": "1.0.16",
+        "resolvedSpec": "@lark-apaas/openclaw-extension-miaoda@1.0.16",
+        "integrity": "sha512-qYpZ90Bs37YoSkL8NjKYxgPAIxRHBx90cqhPAo3yIcLqXUtZHPerED4tI/xOotyiHSbC8y3cp7Jv+3QQu+9I4w==",
+        "shasum": "c0df0871a0cf24bb1178617ad491b021f9d66292"
       },
       "openclaw-guardian-plugin": {
         "source": "npm",

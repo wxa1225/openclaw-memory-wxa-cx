@@ -3,49 +3,49 @@
     "skill_name": "miaoda-doc-parse",
     "skill_hash": "7231819ac3d12a7973b39fb1eae7720b6bf2e0eeffce7fe1ae9ee896b194a9ac",
     "is_detected": true,
-    "last_detect_ts": 1778671285485
+    "last_detect_ts": 1778757828917
   },
   "miaoda-image-understanding": {
     "skill_name": "miaoda-image-understanding",
     "skill_hash": "d3833100a0d781ba8b40db40ce0eb4f81678269a40bee0e808c92e37f914974d",
     "is_detected": true,
-    "last_detect_ts": 1778671285911
+    "last_detect_ts": 1778757829069
   },
   "miaoda-openclaw-guide": {
     "skill_name": "miaoda-openclaw-guide",
     "skill_hash": "10db1c13597eb01325208ff52555fd0e12e36940f7170bcaf3955dce5f246280",
     "is_detected": true,
-    "last_detect_ts": 1778671286077
+    "last_detect_ts": 1778757829215
   },
   "miaoda-skillhub": {
     "skill_name": "miaoda-skillhub",
     "skill_hash": "70a0373222049cf4ec3f4f3affd6897080b85863a3e2818667350c81fcc24b6f",
     "is_detected": true,
-    "last_detect_ts": 1778671286210
+    "last_detect_ts": 1778757829389
   },
   "miaoda-speech-to-text": {
     "skill_name": "miaoda-speech-to-text",
     "skill_hash": "dd3749c6d3a2dc9f956de8dad441f928ce930ea8184d00109377225fbe6dbe96",
     "is_detected": true,
-    "last_detect_ts": 1778671286339
+    "last_detect_ts": 1778757829532
   },
   "miaoda-text-gen-image": {
     "skill_name": "miaoda-text-gen-image",
     "skill_hash": "3d4f18cb60e49c05493f5bccef2132ab58f3e90014d59d48687a914d412b8e9b",
     "is_detected": true,
-    "last_detect_ts": 1778671286481
+    "last_detect_ts": 1778757829678
   },
   "miaoda-web-fetch": {
     "skill_name": "miaoda-web-fetch",
     "skill_hash": "a823253d7af63489686c6d5602f348d0f721acfacd2b302f0ee0bba2a52f9634",
     "is_detected": true,
-    "last_detect_ts": 1778671286615
+    "last_detect_ts": 1778757829811
   },
   "miaoda-web-search": {
     "skill_name": "miaoda-web-search",
     "skill_hash": "fc55af2721ded2f473da6ad580b081642a5f67808d655182577a24c6453f5e2c",
     "is_detected": true,
-    "last_detect_ts": 1778671286760
+    "last_detect_ts": 1778757829943
   },
   "feishu-bitable": {
     "skill_name": "feishu-bitable",
@@ -100,5 +100,17 @@
     "skill_hash": "178207afa94e6fa7619c72b11b0f9348dbb461b11f7dd29ae795abe1eb8268d7",
     "is_detected": true,
     "last_detect_ts": 1778735999038
+  },
+  "miaoda-coding": {
+    "skill_name": "miaoda-coding",
+    "skill_hash": "fdba55f241b913ad859ea4ca8a7c1a9f19c9968b8f90f50b7b0cb963080a674f",
+    "is_detected": true,
+    "last_detect_ts": 1778750243445
+  },
+  "miaoda-database-skill": {
+    "skill_name": "miaoda-database-skill",
+    "skill_hash": "4bd93439f61b8c495031b9e36aaa594944e5dd35ef7fd954a34a8ca9c5acc49b",
+    "is_detected": true,
+    "last_detect_ts": 1778750244160
   }
 }
